@@ -1,0 +1,114 @@
+# Aleria AI Town
+# Keep source code, docs, seed JSON, prompts, dependency lock files,
+# .env.example, and demo materials under version control.
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.hypothesis/
+.tox/
+.nox/
+
+# Python environments and packaging output
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+site/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Python test and coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+pytest-report.xml
+
+# Node.js dependencies and package-manager caches
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Vue, Vite, TypeScript, and frontend output
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+*.tsbuildinfo
+.eslintcache
+vite.config.*.timestamp-*
+
+# Runtime SQLite state
+# Seed content in root data/*.json remains tracked.
+backend/data/*.db
+backend/data/*.db-*
+backend/data/*.sqlite
+backend/data/*.sqlite-*
+backend/data/*.sqlite3
+backend/data/*.sqlite3-*
+!backend/data/.gitkeep
+
+# Logs and runtime process files
+*.log
+logs/
+*.pid
+*.pid.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.cache/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Local IDE and editor state
+.idea/
+.vscode/
+*.code-workspace
+
+# OS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Local deployment state
+.vercel/
+.netlify/
+docker-compose.override.yml
+

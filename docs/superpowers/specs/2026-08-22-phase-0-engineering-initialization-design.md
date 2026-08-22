@@ -74,6 +74,7 @@ Aleria_AI_Town/
 ├── .gitignore
 ├── README.md
 ├── backend/
+│   ├── __init__.py
 │   ├── requirements.txt
 │   ├── data/
 │   │   └── aleria.db
@@ -94,6 +95,7 @@ Aleria_AI_Town/
 │       ├── schemas/
 │       │   ├── __init__.py
 │       │   ├── common.py
+│       │   ├── seed.py
 │       │   └── world.py
 │       └── services/
 │           ├── __init__.py
@@ -121,6 +123,8 @@ Aleria_AI_Town/
 │   └── seed_world.py
 └── tests/
     ├── backend/
+    │   ├── conftest.py
+    │   ├── test_seed_world.py
     │   └── test_world_api.py
     └── frontend/
         ├── TownView.spec.ts
