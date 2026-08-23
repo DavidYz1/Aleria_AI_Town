@@ -1,3 +1,4 @@
+import type { NpcDetailData } from '../../frontend/src/types/npc'
 import type { WorldData } from '../../frontend/src/types/world'
 import type { WorldTickData } from '../../frontend/src/types/worldTick'
 
@@ -43,5 +44,43 @@ export const tickFixture: WorldTickData = {
     { id: 1, tick: 1, event_type: 'npc_action', actor_id: 'ryan', action_id: 1, description: 'Ryan 工作', world_time: '09:00' },
     { id: 2, tick: 1, event_type: 'npc_action', actor_id: 'shir', action_id: 2, description: 'Shir 前往 park', world_time: '09:00' },
     { id: 3, tick: 1, event_type: 'npc_action', actor_id: 'grey', action_id: 3, description: 'Grey 工作', world_time: '09:00' },
+  ],
+}
+
+export const npcDetailFixture: NpcDetailData = {
+  profile: {
+    id: 'ryan',
+    name: 'Ryan',
+    role: 'Knight',
+    personality: ['optimistic', 'brave', 'kind'],
+  },
+  state: {
+    location_id: 'park',
+    location_name: '中央公园',
+    current_action: 'work',
+    status: {
+      energy: 70,
+      mood: 75,
+      social: 67,
+    },
+  },
+  world_context: {
+    day: 1,
+    time: '09:00',
+    tick: 1,
+    time_phase: 'morning',
+  },
+  recent_actions: [
+    {
+      id: 1,
+      tick: 1,
+      world_time: '09:00',
+      action_type: 'work',
+      target_kind: null,
+      target_id: null,
+      target_name: null,
+      reason_code: 'knight_duty',
+      reason_text: '当前处于骑士履行训练职责的时间。',
+    },
   ],
 }
