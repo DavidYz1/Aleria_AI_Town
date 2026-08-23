@@ -1,6 +1,6 @@
 # Aleria AI Town API Contract
 
-Version: v1.2
+Version: v1.3
 
 Last Updated: 2026-08-23
 
@@ -270,40 +270,95 @@ Response:
 
 ## 4.1 Get NPC Detail
 
+Phase 1B 权威契约：
+
+`docs/superpowers/specs/2026-08-23-phase-1b-npc-detail-explainability-design.md`
+
 Method:
 
     GET /api/npcs/{npc_id}
 
-Returns:
+Purpose:
 
--   profile
--   current state
--   recent actions
--   relationships
+返回指定 NPC 的 Profile、权威当前状态、当前世界上下文，以及最近三条持久化 Action。`npc_id` 使用稳定小写字符串 ID；Phase 1B 不提供 `limit` 查询参数。
 
-Example:
+Response:
 
 ``` json
 {
-  "profile": {
-    "name": "Ryan",
-    "role": "Knight",
-    "personality": [
-      "brave",
-      "kind"
+  "success": true,
+  "data": {
+    "profile": {
+      "id": "ryan",
+      "name": "Ryan",
+      "role": "Knight",
+      "personality": ["optimistic", "brave", "kind"]
+    },
+    "state": {
+      "location_id": "park",
+      "location_name": "中央公园",
+      "current_action": "work",
+      "status": {
+        "energy": 70,
+        "mood": 75,
+        "social": 67
+      }
+    },
+    "world_context": {
+      "day": 1,
+      "time": "09:00",
+      "tick": 1,
+      "time_phase": "morning"
+    },
+    "recent_actions": [
+      {
+        "id": 1,
+        "tick": 1,
+        "world_time": "09:00",
+        "action_type": "work",
+        "target_kind": null,
+        "target_id": null,
+        "target_name": null,
+        "reason_code": "knight_duty",
+        "reason_text": "当前处于骑士履行训练职责的时间。"
+      }
     ]
   },
-  "state": {
-    "location_id": "tavern",
-    "current_action": "social",
-    "energy": 70,
-    "mood": 75,
-    "social": 60
-  }
+  "message": "ok"
+}
+```
+
+数据规则：
+
+-   `recent_actions` 按 `tick DESC, id DESC` 返回，最多三条；Tick 0 时为空列表。
+-   历史 Action 的持久化 `reason` 机器代码对外暴露为 `reason_code`，`reason_text` 是确定性规则摘要。
+-   `reason_text` 不是 chain-of-thought、隐藏推理或完整 Agent Trace。
+-   地点/NPC 目标名称由 Backend 解析；无法解析时保留 `target_id` 并作为 `target_name` 回退。
+-   本端点不返回 `relationships` 或重复的 Event 记录。
+
+NPC Profile 不存在时返回 HTTP 404：
+
+``` json
+{
+  "success": false,
+  "data": null,
+  "message": "NPC not found"
+}
+```
+
+标准世界、NPC State、当前 Location 或数据库不可用时返回 HTTP 503：
+
+``` json
+{
+  "success": false,
+  "data": null,
+  "message": "NPC detail is unavailable"
 }
 ```
 
 ## 4.2 NPC Chat
+
+规划中，尚未实现。以下仅为后续方向，不属于当前公共 API。
 
 Method:
 
@@ -331,6 +386,8 @@ Backend flow:
     Save Memory
 
 # 5. Player APIs
+
+规划中，尚未实现。本节不属于当前公共 API。
 
 ## 5.1 Create Player
 
@@ -380,6 +437,8 @@ Example:
 
 # 6. Event APIs
 
+独立 Event 查询 API 尚未实现。当前 Event 只在成功的 `POST /api/world/tick` 响应中返回。
+
 ## Get Timeline
 
 Method:
@@ -401,6 +460,8 @@ Example:
 ```
 
 # 7. Internal Agent Interfaces
+
+以下是后续 Hybrid Agent 的概念接口，尚未作为可调用模块实现。Phase 1A/1B 当前使用 `backend/app/world/` 中经过测试的确定性 Decision Policy 和 Action Validation。
 
 ## Decide Action
 
@@ -451,6 +512,8 @@ Checks:
 服务器异常
 
 AI failure:
+
+下列为未来 LLM Provider 接入后的计划降级路径；当前未实现 LLM/Mock Provider。
 
     LLM Error
     ↓

@@ -1,6 +1,6 @@
 # Aleria AI Town 开发路线规划（Development Roadmap）
 
-版本：v1.2
+版本：v1.3
 
 更新时间：2026-08-23
 
@@ -150,7 +150,19 @@ Phase 0不实现：
 -   Frontend推进控制、错误/冲突处理、Action/Event结果展示。
 -   Backend/Frontend行为测试、类型检查和生产构建。
 
-尚未开始的Phase 1后续范围：NPC详情、NPC聊天、LLM/Mock Provider。PixiJS、Quest、RAG、复杂Memory和多人系统继续延期。
+
+## Phase 1B完成状态（2026-08-23）
+
+已完成 NPC Detail 与确定性行为解释子阶段：
+
+-   `GET /api/npcs/{npc_id}` 权威只读契约，包含 Profile、State 和 World Context。
+-   最近三条持久化 Action，按 `tick DESC, id DESC` 排序并解析地点/NPC目标名称。
+-   将历史 `reason` 机器代码映射为稳定 `reason_code` 和确定性中文 `reason_text`。
+-   响应式 NPC Detail Panel，支持 loading、空历史、错误重试、关闭和快速切换竞态保护。
+-   已打开详情在权威 World Tick 变化后自动刷新，World/NPC Detail Store 保持独立。
+-   不新增数据库表，不修改 `GET /api/world` 或 `POST /api/world/tick` 公共契约。
+
+尚未开始的Phase 1后续范围：NPC聊天、LLM/Mock Provider、Player交互。PixiJS、Quest、RAG、复杂Memory、Relationship和多人系统继续延期。
 
 ## 目标
 
@@ -207,6 +219,12 @@ Phase 0不实现：
 
     GET /api/npcs/{id}
 
+已在Phase 1B完成：Profile、权威当前状态、世界阶段与最近三条行动解释。
+
+------------------------------------------------------------------------
+
+### NPC Chat API（计划中）
+
     POST /api/npcs/{id}/chat
 
 ------------------------------------------------------------------------
@@ -218,8 +236,11 @@ Phase 0不实现：
 -   小镇页面
 -   NPC卡片
 -   NPC详情
--   Chat窗口
 -   Tick按钮
+
+计划中：
+
+-   Chat窗口
 
 ------------------------------------------------------------------------
 
@@ -270,25 +291,19 @@ Phase 0不实现：
 
 ------------------------------------------------------------------------
 
-# 6. Phase 3：世界持久化
+# 6. Phase 3：高级持久化与快照
 
 目标：
 
-让世界状态可以保存。
+在已完成的 SQLite 当前状态与 Action/Event 持久化上，增加可回滚快照和更丰富的长期数据。
 
 增加：
 
 ## Database
 
-SQLite:
-
-    npc
-
-    npc_state
+SQLite（计划新增）:
 
     memory
-
-    event
 
     relationship
 

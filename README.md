@@ -1,6 +1,6 @@
 # Aleria AI Town
 
-> 腾讯游戏 AI Town 工程作业 · Phase 1A Deterministic World Tick
+> 腾讯游戏 AI Town 工程作业 · Phase 1B NPC Detail & Explainability
 
 ## 提交信息
 
@@ -13,9 +13,9 @@
 
 ## 项目简介
 
-Aleria AI Town 是一个以持续世界状态和 NPC Agent 为核心的 AI 小镇原型。本仓库当前完成 Phase 1A：在 Phase 0 读取闭环上增加确定性的一小时 World Tick、原子状态/历史持久化、乐观并发控制，以及 Vue 推进与结果展示闭环。
+Aleria AI Town 是一个以持续世界状态和 NPC Agent 为核心的 AI 小镇原型。本仓库当前完成 Phase 1B：在确定性一小时 World Tick 闭环上，增加可查询的 NPC 权威当前状态、世界阶段、最近三条持久化行动及确定性中文解释。
 
-当前页面展示晨曦镇的 Day/时间、两个地点，以及 Ryan、Shir、Grey 三名 NPC 的基础位置、行动、性格和 Energy/Mood/Social 状态。
+当前页面展示晨曦镇的 Day/时间、两个地点，以及 Ryan、Shir、Grey 三名 NPC 的基础状态。点击“查看详情”可打开居民档案；成功推进 Tick 后，已打开的详情会重新读取 Backend 权威状态和最新行动历史。
 
 ## 当前技术栈
 
@@ -46,6 +46,7 @@ macOS/Linux 对应的环境激活命令是 `source .venv/bin/activate`，路径�
 Backend 启动后：
 
 - World API：`http://127.0.0.1:8000/api/world`
+- NPC Detail API：`http://127.0.0.1:8000/api/npcs/ryan`
 - Swagger UI：`http://127.0.0.1:8000/docs`
 
 从已有Phase 0数据库升级时，不要用重播种代替迁移；先运行以下非破坏性命令，它只创建缺失的Phase 1A表，不重置世界状态：
@@ -56,6 +57,7 @@ python scripts\upgrade_schema.py
 
 - `GET /api/world` 返回当前世界、地点列表和 NPC 基础状态。
 - `POST /api/world/tick` 接收 `{"expected_tick": 0}`，推进一小时并返回完整世界、Action 与 Event。
+- `GET /api/npcs/{npc_id}` 返回 NPC Profile、当前状态、世界阶段和最近三条行动解释。
 
 ### 2. 初始化 Frontend
 
@@ -81,7 +83,9 @@ backend/data/aleria.db（SQLite 运行时事实来源）
 GET /api/world
         ↕ POST /api/world/tick（expected_tick 乐观锁）
 Pure World Engine → Transactional Repository → actions/events
-        ↓ API Adapter → Pinia Store → Vue UI
+        ↓
+GET /api/npcs/{npc_id}（独立只读查询切片）
+        ↓ API Adapter → 独立 Pinia Store → Vue UI
 晨曦镇页面
 ```
 
@@ -106,7 +110,7 @@ npm run type-check
 npm run build
 ```
 
-## Phase 0 与 Phase 1A 已完成
+## Phase 0、Phase 1A 与 Phase 1B 已完成
 
 - 初始化 Monorepo 目录与开发环境配置
 - 建立 SQLite 世界、地点、NPC Profile/State 模型
@@ -121,13 +125,19 @@ npm run build
 - 单事务更新 `world_state`/`npc_states` 并写入 `actions`/`events`
 - `expected_tick` 冲突返回 409；Frontend 自动刷新权威状态
 - 展示推进中的状态、NPC Actions 和 World Events
+- 提供 `GET /api/npcs/{npc_id}` 独立只读查询切片
+- 展示 Profile、权威当前状态和 morning/day/evening/night 世界阶段
+- 按 `tick DESC, id DESC` 展示最近三条持久化 Action
+- 将历史 `reason` 机器代码映射为 `reason_code + reason_text`，未暴露 chain-of-thought
+- 支持详情 loading、错误重试、空历史、关闭、快速切换竞态保护与 Tick 后刷新
 
 ## 当前限制与延期范围
 
-Phase 1A 是确定性模拟闭环，不是完整游戏：
+Phase 1B 是确定性模拟和 NPC 可解释查询闭环，不是完整游戏：
 
 - 世界仅由用户点击推进，不运行后台自动时钟
-- 当前只有 World Tick 写入 API，没有登录与部署配置
+- 当前只有 World Tick 写入 API；NPC Detail 是只读 API，尚未实现 Chat、Player、登录与部署配置
+- 尚未实现 LLM/Mock Provider、Memory、Relationship、Background、Goal 或完整 Agent Trace
 - LLM 环境变量仅为后续预留；当前 `LLM_PROVIDER=mock`、`ENABLE_LLM=false`，没有调用任何模型
 - PixiJS、Quest、RAG、复杂 Memory、多人系统和 WebSocket 均明确延期
 - 当前 UI 是便于验证数据流的响应式 DOM/CSS 页面，后续可按独立阶段迁移开源界面或渲染层

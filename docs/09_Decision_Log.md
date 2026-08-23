@@ -1,6 +1,6 @@
 # Aleria AI Town 架构决策记录（Architecture Decision Record）
 
-版本：v1.2
+版本：v1.3
 
 更新时间：2026-08-23
 
@@ -812,6 +812,28 @@ Frontend提交当前 `expected_tick`；Backend通过条件更新保证同一版�
 ## 原因
 
 保持Frontend Store简单，避免客户端自行合并状态导致契约漂移，也为后续替换UI/Renderer保留稳定边界。
+
+------------------------------------------------------------------------
+
+# 21. ADR-018：NPC Detail使用独立只读切片与确定性解释
+
+## 背景
+
+Phase 1B 需要展示 NPC 的权威当前状态和最近行动，同时不能破坏已经验证的确定性 Tick 写入路径，也不应把规则解释误表述为模型思维过程。
+
+## 决策
+
+-   新建 `NpcRepository → NpcService → GET /api/npcs/{npc_id}` 只读切片，不向 `WorldTickRepository` 添加详情查询。
+-   复用 `npc_profiles`、`npc_states`、`locations`、`world_state`、`actions`，不新增数据库表。
+-   数据库保留稳定 `actions.reason` 机器代码；Detail DTO 对外提供 `reason_code` 和根据历史上下文确定生成的 `reason_text`。
+-   解释是可审计的规则摘要，不重算历史决策，不保存或暴露 chain-of-thought/Agent Trace。
+-   Frontend 使用独立 `npcDetail` Store 处理选择、竞态、重试和刷新；`TownView` 协调 World/NPC Detail Store，两个 Store 不相互依赖。
+
+## 原因
+
+-   保护 Tick 的单事务写入边界，让详情查询可独立演进。
+-   保持 Backend 作为状态与历史的唯一事实来源。
+-   在可解释、可测试和不暴露隐藏推理之间保持清晰边界。
 
 ------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 # Aleria AI Town Engineering Architecture
 
-Version: v1.1
+Version: v1.2
 
 Last Updated: 2026-08-23
 
@@ -23,6 +23,33 @@ Last Updated: 2026-08-23
     SQLite current state + actions + events
 
 确定性决策位于 `backend/app/world/`，Phase 1A不创建LLM/Memory/Agent基础设施。未来Agent增强可以替换Decision Policy，但继续复用时钟、Action校验、事务与API边界。
+
+## Phase 1B implementation status
+
+Phase 1B 在不修改 Tick Engine 和数据库结构的前提下，增加独立 NPC 只读查询切片：
+
+    GET /api/npcs/{npc_id}
+              ↓
+    NpcService
+              ↓
+    NpcRepository + deterministic action explanation
+              ↓
+    SQLite profile/state/location/world/actions
+
+边界划分：
+
+-   `NpcRepository` 只执行有界读查，不进入 `WorldTickRepository`，不生成 Pydantic DTO 或用户文案。
+-   `NpcService` 聚合 Profile、State、World Context 和最近三条 Action，解析目标名称并映射公共 Schema。
+-   持久化 `actions.reason` 保持为稳定机器代码；Detail DTO 将其暴露为 `reason_code + reason_text`。
+-   `reason_text` 是对已执行确定性规则的可审计摘要，不是 chain-of-thought、隐藏推理或 Agent Trace。
+
+Frontend 继续保持独立状态切片：
+
+    World API → World Store ─┐
+                              ├→ TownView → NpcCard / NpcDetailPanel
+    NPC API → NPC Detail Store ─┘
+
+`TownView` 只负责跨 Store 协调：选择/关闭 NPC，以及在权威 World Tick 变化时刷新已打开详情。World Store 不导入或修改 NPC Detail Store。
 
 ## 1.1 Design Goal
 
@@ -207,6 +234,8 @@ World Simulation。
 ------------------------------------------------------------------------
 
 # 5. Backend Architecture
+
+以下为模块化单体的目标边界。当前 Phase 1B 只实现 `api/world*`、`api/npcs`、`world/`、相关 Repository/Service/Schema；`agent/`、`llm/`、Chat 与 Player 模块仍未实现。
 
 目录：
 
@@ -593,6 +622,8 @@ Vue3 + TypeScript + Vite
 
     └── main.ts
 
+Phase 1B 当前实现使用 `TownView.vue`、`NpcCard.vue`、`NpcDetailPanel.vue`、独立 `world`/`npcDetail` Store，以及共享 Axios client 下的 `world`/`npc` API Adapter。详情面板是可访问的响应式 `aside`，不是 Modal，不引入遮罩、焦点陷阱或 PixiJS。
+
 ------------------------------------------------------------------------
 
 # 11. Map Rendering Strategy
@@ -689,15 +720,19 @@ Loading/Error State
 
 ## Phase 1 MVP
 
-完成：
+已完成：
 
 -   Vue页面
 -   FastAPI
 -   SQLite
 -   World Tick
--   NPC展示
+-   NPC基础展示与详情
+-   最近行动的确定性解释
+
+尚未完成：
+
 -   NPC聊天
--   Mock模式
+-   LLM/Mock Provider
 
 ------------------------------------------------------------------------
 

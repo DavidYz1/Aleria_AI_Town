@@ -1,6 +1,6 @@
 # Aleria AI Town 项目结构设计（Project Structure）
 
-版本：v1.2
+版本：v1.3
 
 更新时间：2026-08-23
 
@@ -82,19 +82,24 @@ Vue3 + TypeScript + Vite
 -   世界规则
 -   数据持久化
 
-Phase 1A目录（在Phase 0基础上）：
+Phase 1B当前目录（在Phase 1A基础上）：
 
     frontend/
     └── src/
         ├── api/
+        │   ├── client.ts
+        │   ├── npc.ts
         │   └── world.ts
         ├── components/
         │   ├── LocationCard.vue
         │   ├── NpcCard.vue
+        │   ├── NpcDetailPanel.vue
         │   └── TickPanel.vue
         ├── stores/
+        │   ├── npcDetail.ts
         │   └── world.ts
         ├── types/
+        │   ├── npc.ts
         │   ├── world.ts
         │   └── worldTick.ts
         ├── views/
@@ -102,7 +107,7 @@ Phase 1A目录（在Phase 0基础上）：
         ├── App.vue
         └── main.ts
 
-Frontend保持 `Typed API Adapter -> World Store -> UI / Renderer` 边界。未来迁移开源Vue界面或PixiJS时，只替换展示组件、样式、素材和Renderer，不反向修改Backend领域模型。
+Frontend保持 `Typed API Adapter -> Feature Store -> UI / Renderer` 边界。`world` 和 `npcDetail` Store 互不依赖，由 `TownView` 协调选择和 Tick 后刷新。未来迁移开源Vue界面或PixiJS时，只替换展示组件、样式、素材和Renderer，不反向修改Backend领域模型。
 
 ------------------------------------------------------------------------
 
@@ -111,6 +116,8 @@ Frontend保持 `Typed API Adapter -> World Store -> UI / Renderer` 边界。未�
 负责后端通信。
 
 例如：
+
+    client.ts
 
     world.ts
 
@@ -122,7 +129,9 @@ Frontend保持 `Typed API Adapter -> World Store -> UI / Renderer` 边界。未�
 
 -   获取世界状态
 -   推进Tick
--   NPC聊天
+-   读取NPC详情
+
+NPC聊天仍是后续范围，当前 `npc.ts` 只实现只读 Detail Adapter。
 
 ------------------------------------------------------------------------
 
@@ -146,15 +155,15 @@ UI组件。
 
 使用Pinia管理：
 
-当前世界状态。
+当前世界状态和独立 NPC 详情请求状态。
 
 例如：
 
-    worldState
+    world
 
-    playerState
+    npcDetail
 
-    selectedNPC
+`npcDetail` 管理 `selectedNpcId`、loading/error/data、retry/refresh/close 与最新请求版本保护。Player Store 尚未实现。
 
 ------------------------------------------------------------------------
 
@@ -164,7 +173,7 @@ UI组件。
 
 Python + FastAPI
 
-Phase 1A目录（新增Tick模块）：
+Phase 1B当前目录（新增NPC Detail只读切片）：
 
     backend/
     ├── __init__.py
@@ -176,6 +185,8 @@ Phase 1A目录（新增Tick模块）：
         ├── main.py
         ├── api/
         │   ├── __init__.py
+        │   ├── dependencies.py
+        │   ├── npcs.py
         │   ├── world.py
         │   └── world_tick.py
         ├── core/
@@ -185,15 +196,18 @@ Phase 1A目录（新增Tick模块）：
         │   ├── __init__.py
         │   ├── connection.py
         │   ├── models.py
+        │   ├── npc_repository.py
         │   ├── world_repository.py
         │   └── world_tick_repository.py
         ├── schemas/
         │   ├── __init__.py
         │   ├── common.py
+        │   ├── npc.py
         │   ├── seed.py
         │   ├── world.py
         │   └── world_tick.py
         ├── world/
+        │   ├── __init__.py
         │   ├── types.py
         │   ├── clock.py
         │   ├── decision.py
@@ -201,10 +215,12 @@ Phase 1A目录（新增Tick模块）：
         │   └── tick_engine.py
         └── services/
             ├── __init__.py
+            ├── action_explanation.py
+            ├── npc_service.py
             ├── world_service.py
             └── world_tick_service.py
 
-Phase 1A已创建 `world/` 纯领域包。`agents/` 与 `llm/` 仍延后到对应功能进入实施阶段，不创建空包。
+Phase 1A已创建 `world/` 纯领域包。Phase 1B 使用独立 `NpcRepository -> NpcService -> npcs API` 查询路径，不向 Tick Repository 添加详情查询，不新增数据库表。`agents/` 与 `llm/` 仍延后到对应功能进入实施阶段，不创建空包。
 
 ------------------------------------------------------------------------
 
@@ -383,13 +399,21 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
     tests/
     ├── backend/
     │   ├── conftest.py
+    │   ├── test_action_explanation.py
+    │   ├── test_npc_api.py
+    │   ├── test_npc_repository.py
+    │   ├── test_npc_service.py
     │   ├── test_seed_world.py
     │   ├── test_world_api.py
     │   ├── test_world_engine.py
     │   └── test_world_tick.py
     └── frontend/
+        ├── fixtures.ts
+        ├── NpcCard.spec.ts
+        ├── NpcDetailPanel.spec.ts
         ├── TownView.spec.ts
         ├── TickPanel.spec.ts
+        ├── npcDetail.spec.ts
         ├── world.spec.ts
         └── worldTick.spec.ts
 
@@ -397,10 +421,12 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
 
 -   API正确性
 -   Tick一致性
+-   NPC Detail查询、最近三条历史与解释目录
+-   Frontend详情竞态、错误/空状态和Tick后刷新
 -   Agent输出校验
 -   角色一致性
 
-World Tick测试已随Phase 1A实现创建；`test_agent.py` 和Prompt测试继续随对应行为实现，不预先建立空测试。
+World Tick测试已随Phase 1A实现创建，NPC Detail测试已随Phase 1B创建；`test_agent.py` 和Prompt测试继续随对应行为实现，不预先建立空测试。
 
 ------------------------------------------------------------------------
 
@@ -439,7 +465,7 @@ World Tick测试已随Phase 1A实现创建；`test_agent.py` 和Prompt测试继�
 
 第一阶段：
 
-必须完成：
+当前已完成：
 
     frontend
 
@@ -457,7 +483,9 @@ World Tick测试已随Phase 1A实现创建；`test_agent.py` 和Prompt测试继�
 
     +
 
-    NPC Chat
+    NPC Detail
+
+NPC Chat、LLM/Mock Provider、Memory、Relationship 仍为后续范围。
 
 ------------------------------------------------------------------------
 
