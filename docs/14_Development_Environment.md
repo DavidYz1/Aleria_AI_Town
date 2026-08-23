@@ -198,12 +198,12 @@ npm install
 ## 启动
 
 ``` bash
-npm run dev
+npm run dev -- --host 127.0.0.1
 ```
 
 默认：
 
-    http://localhost:5173
+    http://127.0.0.1:5173
 
 ------------------------------------------------------------------------
 
@@ -300,7 +300,7 @@ APP_ENV=development
 DATABASE_URL=sqlite:///./backend/data/aleria.db
 
 
-FRONTEND_ORIGIN=http://localhost:5173
+FRONTEND_ORIGIN=http://127.0.0.1:5173
 
 
 LLM_PROVIDER=mock
@@ -428,7 +428,7 @@ uvicorn backend.app.main:app --reload
 ``` bash
 cd frontend
 
-npm run dev
+npm run dev -- --host 127.0.0.1
 ```
 
 ------------------------------------------------------------------------
@@ -437,7 +437,7 @@ npm run dev
 
 访问：
 
-    http://localhost:5173
+    http://127.0.0.1:5173
 
 ------------------------------------------------------------------------
 
@@ -463,8 +463,8 @@ npm run build
 
 真实闭环检查：
 
-1.  Backend运行在 `http://localhost:8000`。
-2.  Frontend运行在 `http://localhost:5173`。
+1.  Backend运行在 `http://127.0.0.1:8000`。
+2.  Frontend运行在 `http://127.0.0.1:5173`。
 3.  页面展示晨曦镇、Day 1 08:00、星辰酒馆、中央公园以及Ryan/Shir/Grey。
 4.  停止Backend并刷新页面时，Frontend展示可理解的接口失败状态。
 

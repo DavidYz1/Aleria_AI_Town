@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ryan",
+    "name": "Ryan",
+    "role": "Knight",
+    "personality": ["optimistic", "brave", "kind"],
+    "sort_order": 1,
+    "state": {
+      "location_id": "park",
+      "current_action": "rest",
+      "energy": 80,
+      "mood": 78,
+      "social": 70
+    }
+  },
+  {
+    "id": "shir",
+    "name": "Shir",
+    "role": "Assassin",
+    "personality": ["quiet", "introverted", "observant"],
+    "sort_order": 2,
+    "state": {
+      "location_id": "tavern",
+      "current_action": "eat",
+      "energy": 72,
+      "mood": 65,
+      "social": 35
+    }
+  },
+  {
+    "id": "grey",
+    "name": "Grey",
+    "role": "Guardian",
+    "personality": ["reliable", "calm", "protective"],
+    "sort_order": 3,
+    "state": {
+      "location_id": "park",
+      "current_action": "work",
+      "energy": 88,
+      "mood": 74,
+      "social": 55
+    }
+  }
+]

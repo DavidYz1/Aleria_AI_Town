@@ -1,0 +1,14 @@
+[
+  {
+    "id": "tavern",
+    "name": "星辰酒馆",
+    "description": "冒险者交流和休息的地方",
+    "sort_order": 1
+  },
+  {
+    "id": "park",
+    "name": "中央公园",
+    "description": "居民散步和放松的地方",
+    "sort_order": 2
+  }
+]
