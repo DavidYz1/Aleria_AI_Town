@@ -6,6 +6,10 @@ defineProps<{
   locationName: string
 }>()
 
+const emit = defineEmits<{
+  select: [npcId: string]
+}>()
+
 const needLabels = {
   energy: 'Energy',
   mood: 'Mood',
@@ -40,5 +44,20 @@ const needLabels = {
         </dd>
       </div>
     </dl>
+
+    <button
+      type="button"
+      class="npc-detail-trigger"
+      @click="emit('select', npc.id)"
+    >
+      查看详情
+    </button>
   </article>
 </template>
+
+<style scoped>
+.npc-detail-trigger {
+  width: 100%;
+  margin-top: 1.2rem;
+}
+</style>

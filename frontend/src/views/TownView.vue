@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 
 import LocationCard from '../components/LocationCard.vue'
 import NpcCard from '../components/NpcCard.vue'
+import NpcDetailPanel from '../components/NpcDetailPanel.vue'
 import TickPanel from '../components/TickPanel.vue'
+import { useNpcDetailStore } from '../stores/npcDetail'
 import { useWorldStore } from '../stores/world'
 
 const store = useWorldStore()
+const npcDetailStore = useNpcDetailStore()
 
 const locationNames = computed(
   () => new Map(store.data?.locations.map((location) => [location.id, location.name]) ?? []),
@@ -19,6 +22,28 @@ function reloadWorld(): void {
 function advanceWorld(): void {
   void store.advanceTick()
 }
+
+function selectNpc(npcId: string): void {
+  void npcDetailStore.selectNpc(npcId)
+}
+
+function retryNpcDetail(): void {
+  void npcDetailStore.retry()
+}
+
+watch(
+  () => store.data?.world.tick,
+  (nextTick, previousTick) => {
+    if (
+      nextTick !== undefined
+      && previousTick !== undefined
+      && nextTick !== previousTick
+      && npcDetailStore.selectedNpcId !== null
+    ) {
+      void npcDetailStore.refresh()
+    }
+  },
+)
 
 onMounted(reloadWorld)
 </script>
@@ -73,15 +98,59 @@ onMounted(reloadWorld)
           <p class="section-number">03</p>
           <h2 id="npcs-heading">居民状态</h2>
         </div>
-        <div class="npc-grid">
-          <NpcCard
-            v-for="npc in store.data.npcs"
-            :key="npc.id"
-            :npc="npc"
-            :location-name="locationNames.get(npc.location_id) ?? '未知地点'"
+        <div
+          class="resident-layout"
+          :class="{ 'has-detail': npcDetailStore.selectedNpcId !== null }"
+        >
+          <div class="npc-grid">
+            <NpcCard
+              v-for="npc in store.data.npcs"
+              :key="npc.id"
+              :npc="npc"
+              :location-name="locationNames.get(npc.location_id) ?? '未知地点'"
+              @select="selectNpc"
+            />
+          </div>
+
+          <NpcDetailPanel
+            :selected-npc-id="npcDetailStore.selectedNpcId"
+            :detail="npcDetailStore.data"
+            :loading="npcDetailStore.loading"
+            :error="npcDetailStore.error"
+            @close="npcDetailStore.close"
+            @retry="retryNpcDetail"
           />
         </div>
       </section>
     </template>
   </main>
 </template>
+
+<style scoped>
+.resident-layout.has-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 0.9fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.resident-layout.has-detail .npc-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.resident-layout :deep(.npc-detail-panel) {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .resident-layout.has-detail {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .resident-layout.has-detail .npc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
