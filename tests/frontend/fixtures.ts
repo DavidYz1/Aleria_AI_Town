@@ -1,4 +1,5 @@
 import type { NpcDetailData } from '../../frontend/src/types/npc'
+import type { NpcChatData } from '../../frontend/src/types/chat'
 import type { WorldData } from '../../frontend/src/types/world'
 import type { WorldTickData } from '../../frontend/src/types/worldTick'
 
@@ -83,4 +84,24 @@ export const npcDetailFixture: NpcDetailData = {
       reason_text: '当前处于骑士履行训练职责的时间。',
     },
   ],
+}
+
+export const chatResponseFixture: NpcChatData = {
+  conversation_id: '5e547c21-a228-4e86-940d-a1bf5d65702f',
+  npc_id: 'ryan',
+  turn: {
+    user: {
+      id: 1,
+      role: 'user',
+      content: '你害怕史莱姆吗？',
+    },
+    assistant: {
+      id: 2,
+      role: 'assistant',
+      content: '害怕？当然不是……我只是觉得史莱姆比看起来更麻烦。',
+      emotion: 'guarded',
+    },
+  },
+  provider: 'mock',
+  fallback_used: false,
 }

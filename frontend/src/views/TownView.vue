@@ -3,17 +3,29 @@ import { computed, onMounted, watch } from 'vue'
 
 import LocationCard from '../components/LocationCard.vue'
 import NpcCard from '../components/NpcCard.vue'
+import NpcChatPanel from '../components/NpcChatPanel.vue'
 import NpcDetailPanel from '../components/NpcDetailPanel.vue'
 import TickPanel from '../components/TickPanel.vue'
+import { useNpcChatStore } from '../stores/npcChat'
 import { useNpcDetailStore } from '../stores/npcDetail'
 import { useWorldStore } from '../stores/world'
 
 const store = useWorldStore()
 const npcDetailStore = useNpcDetailStore()
+const npcChatStore = useNpcChatStore()
 
 const locationNames = computed(
   () => new Map(store.data?.locations.map((location) => [location.id, location.name]) ?? []),
 )
+const selectedNpcName = computed(() => {
+  const npcId = npcDetailStore.selectedNpcId
+  if (npcId === null) return ''
+  return store.data?.npcs.find((npc) => npc.id === npcId)?.name ?? npcId
+})
+const selectedChatSession = computed(() => {
+  const npcId = npcDetailStore.selectedNpcId
+  return npcId === null ? null : npcChatStore.sessionFor(npcId)
+})
 
 function reloadWorld(): void {
   void store.loadWorld()
@@ -29,6 +41,21 @@ function selectNpc(npcId: string): void {
 
 function retryNpcDetail(): void {
   void npcDetailStore.retry()
+}
+
+function updatePendingMessage(value: string): void {
+  const npcId = npcDetailStore.selectedNpcId
+  if (npcId !== null) npcChatStore.setPendingMessage(npcId, value)
+}
+
+function sendChatMessage(): void {
+  const npcId = npcDetailStore.selectedNpcId
+  if (npcId !== null) void npcChatStore.send(npcId)
+}
+
+function retryChatMessage(): void {
+  const npcId = npcDetailStore.selectedNpcId
+  if (npcId !== null) void npcChatStore.retry(npcId)
 }
 
 watch(
@@ -112,14 +139,32 @@ onMounted(reloadWorld)
             />
           </div>
 
-          <NpcDetailPanel
-            :selected-npc-id="npcDetailStore.selectedNpcId"
-            :detail="npcDetailStore.data"
-            :loading="npcDetailStore.loading"
-            :error="npcDetailStore.error"
-            @close="npcDetailStore.close"
-            @retry="retryNpcDetail"
-          />
+          <div
+            v-if="npcDetailStore.selectedNpcId !== null && selectedChatSession"
+            class="detail-chat-stack"
+          >
+            <NpcDetailPanel
+              :selected-npc-id="npcDetailStore.selectedNpcId"
+              :detail="npcDetailStore.data"
+              :loading="npcDetailStore.loading"
+              :error="npcDetailStore.error"
+              @close="npcDetailStore.close"
+              @retry="retryNpcDetail"
+            />
+            <NpcChatPanel
+              :selected-npc-id="npcDetailStore.selectedNpcId"
+              :npc-name="selectedNpcName"
+              :messages="selectedChatSession.messages"
+              :sending="selectedChatSession.sending"
+              :error="selectedChatSession.error"
+              :pending-message="selectedChatSession.pendingMessage"
+              :provider="selectedChatSession.provider"
+              :fallback-used="selectedChatSession.fallbackUsed"
+              @update:pending-message="updatePendingMessage"
+              @send="sendChatMessage"
+              @retry="retryChatMessage"
+            />
+          </div>
         </div>
       </section>
     </template>
@@ -140,6 +185,11 @@ onMounted(reloadWorld)
 
 .resident-layout :deep(.npc-detail-panel) {
   margin-top: 0;
+}
+
+.detail-chat-stack {
+  display: grid;
+  gap: 1rem;
 }
 
 @media (max-width: 900px) {
