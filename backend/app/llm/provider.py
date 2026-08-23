@@ -6,6 +6,9 @@ from backend.app.llm.types import ChatProviderRequest
 from backend.app.schemas.chat import ChatEmotion
 
 
+PROVIDER_UNAVAILABLE_MESSAGE = "Chat provider is unavailable"
+
+
 class ChatProviderError(RuntimeError):
     pass
 
