@@ -10,7 +10,16 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import Location, NpcProfile, NpcState, WorldState
+from backend.app.database.models import (
+    Event,
+    Location,
+    NpcProfile,
+    NpcState,
+    WorldAction,
+    WorldState,
+)
+from backend.app.database.world_tick_repository import WorldTickRepository
+from backend.app.world.tick_engine import run_tick
 from scripts.seed_world import load_seed_data, seed_database
 
 
@@ -49,6 +58,24 @@ def test_seed_database_is_idempotent(database_url, seed_dir):
         78,
         70,
     )
+
+
+def test_reseed_resets_tick_history_consistently(database_url, seed_dir):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        repository = WorldTickRepository(session)
+        repository.persist_tick(0, run_tick(repository.get_snapshot()))
+
+    seed_database(database_url, seed_dir)
+
+    with session_factory() as session:
+        assert session.scalar(select(func.count()).select_from(WorldAction)) == 0
+        assert session.scalar(select(func.count()).select_from(Event)) == 0
+        repository = WorldTickRepository(session)
+        assert repository.get_snapshot().tick == 0
+        persisted = repository.persist_tick(0, run_tick(repository.get_snapshot()))
+        assert persisted.result.world.tick == 1
 
 
 def test_seed_data_rejects_need_outside_zero_to_one_hundred(tmp_path, seed_dir):

@@ -1,8 +1,8 @@
 # Aleria AI Town Database Schema Design
 
-Version: v1.1
+Version: v1.2
 
-Last Updated: 2026-08-22
+Last Updated: 2026-08-23
 
 # 1. Database Design Overview
 
@@ -38,6 +38,39 @@ Phase 1在实现World Tick时增加：
 -   `actions`
 -   `events`
 
+Phase 1A已实现上述两表。物理约束为：
+
+``` text
+actions(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  world_id TEXT NOT NULL REFERENCES world_state(id),
+  tick INTEGER NOT NULL CHECK(tick >= 1),
+  actor_id TEXT NOT NULL REFERENCES npc_profiles(id),
+  action_type TEXT NOT NULL CHECK(action_type IN ('move','rest','work','eat','social')),
+  target_kind TEXT NULL CHECK(target_kind IS NULL OR target_kind IN ('location','npc')),
+  target_id TEXT NULL,
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status = 'recorded'),
+  world_time TEXT NOT NULL,
+  UNIQUE(world_id, tick, actor_id)
+)
+
+events(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  world_id TEXT NOT NULL REFERENCES world_state(id),
+  tick INTEGER NOT NULL CHECK(tick >= 1),
+  event_type TEXT NOT NULL CHECK(event_type = 'npc_action'),
+  actor_id TEXT NOT NULL REFERENCES npc_profiles(id),
+  action_id INTEGER NOT NULL UNIQUE REFERENCES actions(id),
+  description TEXT NOT NULL,
+  world_time TEXT NOT NULL
+)
+```
+
+`target_id`是由应用层严格校验的多态目标：`target_kind=location`时引用地点ID，`target_kind=npc`时引用NPC ID。Phase 1A不为了这一字段提前引入统一Entity表。
+
+一次Tick对 `world_state`、全部 `npc_states`、`actions` 和 `events` 的写入只提交一次；任一校验或数据库错误会整体回滚。`world_state.tick = expected_tick` 的条件更新提供乐观并发控制。
+
 Phase 2及以后按实际用例增加：
 
 -   `entities`
@@ -47,6 +80,10 @@ Phase 2及以后按实际用例增加：
 -   `world_snapshots`
 
 根目录 `data/*.json` 只作为可读种子输入。运行时状态只保存在SQLite中。
+
+重播种表示把目标世界恢复到种子Tick，因此会在同一事务中先删除该世界的 `events` 与 `actions`，再重置当前状态；其他world_id的数据不受影响。
+
+已有Phase 0数据库使用 `python scripts/upgrade_schema.py` 增量创建缺失表。该命令只执行SQLAlchemy `create_all` 的加表操作，不重置当前状态或历史；未来出现改列、数据迁移等需求时再引入版本化迁移工具。
 
 所有World、Location和NPC主键使用稳定的小写字符串ID。API DTO不直接等同数据库表结构。
 

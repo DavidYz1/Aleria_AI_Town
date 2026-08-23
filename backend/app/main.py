@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api.world import router as world_router
+from backend.app.api.world_tick import router as world_tick_router
 from backend.app.core.config import get_settings
 from backend.app.database.connection import create_engine_and_session
 
@@ -17,10 +18,11 @@ def create_app(database_url: str | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
         allow_credentials=False,
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
     application.include_router(world_router)
+    application.include_router(world_tick_router)
     return application
 
 

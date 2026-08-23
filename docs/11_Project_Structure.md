@@ -1,8 +1,8 @@
 # Aleria AI Town 项目结构设计（Project Structure）
 
-版本：v1.1
+版本：v1.2
 
-更新时间：2026-08-22
+更新时间：2026-08-23
 
 # 1. 文档目的
 
@@ -82,7 +82,7 @@ Vue3 + TypeScript + Vite
 -   世界规则
 -   数据持久化
 
-Phase 0目录：
+Phase 1A目录（在Phase 0基础上）：
 
     frontend/
     └── src/
@@ -90,11 +90,13 @@ Phase 0目录：
         │   └── world.ts
         ├── components/
         │   ├── LocationCard.vue
-        │   └── NpcCard.vue
+        │   ├── NpcCard.vue
+        │   └── TickPanel.vue
         ├── stores/
         │   └── world.ts
         ├── types/
-        │   └── world.ts
+        │   ├── world.ts
+        │   └── worldTick.ts
         ├── views/
         │   └── TownView.vue
         ├── App.vue
@@ -162,7 +164,7 @@ UI组件。
 
 Python + FastAPI
 
-Phase 0目录：
+Phase 1A目录（新增Tick模块）：
 
     backend/
     ├── __init__.py
@@ -174,7 +176,8 @@ Phase 0目录：
         ├── main.py
         ├── api/
         │   ├── __init__.py
-        │   └── world.py
+        │   ├── world.py
+        │   └── world_tick.py
         ├── core/
         │   ├── __init__.py
         │   └── config.py
@@ -182,17 +185,26 @@ Phase 0目录：
         │   ├── __init__.py
         │   ├── connection.py
         │   ├── models.py
-        │   └── world_repository.py
+        │   ├── world_repository.py
+        │   └── world_tick_repository.py
         ├── schemas/
         │   ├── __init__.py
         │   ├── common.py
         │   ├── seed.py
-        │   └── world.py
+        │   ├── world.py
+        │   └── world_tick.py
+        ├── world/
+        │   ├── types.py
+        │   ├── clock.py
+        │   ├── decision.py
+        │   ├── action_rules.py
+        │   └── tick_engine.py
         └── services/
             ├── __init__.py
-            └── world_service.py
+            ├── world_service.py
+            └── world_tick_service.py
 
-Phase 0不创建空的 `world/`、`agents/` 或 `llm/` 包。这些目录在World Tick、Agent和LLM功能进入实施阶段时创建。
+Phase 1A已创建 `world/` 纯领域包。`agents/` 与 `llm/` 仍延后到对应功能进入实施阶段，不创建空包。
 
 ------------------------------------------------------------------------
 
@@ -372,10 +384,14 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
     ├── backend/
     │   ├── conftest.py
     │   ├── test_seed_world.py
-    │   └── test_world_api.py
+    │   ├── test_world_api.py
+    │   ├── test_world_engine.py
+    │   └── test_world_tick.py
     └── frontend/
         ├── TownView.spec.ts
-        └── world.spec.ts
+        ├── TickPanel.spec.ts
+        ├── world.spec.ts
+        └── worldTick.spec.ts
 
 覆盖：
 
@@ -384,7 +400,7 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
 -   Agent输出校验
 -   角色一致性
 
-后续 `test_world_tick.py`、`test_agent.py` 和Prompt测试随对应行为实现创建，不预先建立空测试。
+World Tick测试已随Phase 1A实现创建；`test_agent.py` 和Prompt测试继续随对应行为实现，不预先建立空测试。
 
 ------------------------------------------------------------------------
 
@@ -396,12 +412,14 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
 
     seed_world.py
 
+    upgrade_schema.py
+
 负责：
 
 -   创建数据库
 -   导入初始世界
 
-`seed_world.py` 同时创建Phase 0表并幂等写入种子数据，因此不再提供重复的 `init_db.py` 入口。
+`seed_world.py` 创建表并幂等重置种子世界；`upgrade_schema.py` 为已有数据库非破坏性创建缺失表。两者语义不同，因此不合并为模糊的 `init_db.py` 入口。
 
 ------------------------------------------------------------------------
 

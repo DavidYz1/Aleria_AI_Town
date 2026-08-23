@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 
 import LocationCard from '../components/LocationCard.vue'
 import NpcCard from '../components/NpcCard.vue'
+import TickPanel from '../components/TickPanel.vue'
 import { useWorldStore } from '../stores/world'
 
 const store = useWorldStore()
@@ -13,6 +14,10 @@ const locationNames = computed(
 
 function reloadWorld(): void {
   void store.loadWorld()
+}
+
+function advanceWorld(): void {
+  void store.advanceTick()
 }
 
 onMounted(reloadWorld)
@@ -42,6 +47,13 @@ onMounted(reloadWorld)
     </section>
 
     <template v-else-if="store.data">
+      <TickPanel
+        :advancing="store.advancing"
+        :error="store.tickError"
+        :tick="store.lastTick"
+        @advance="advanceWorld"
+      />
+
       <section class="town-section" aria-labelledby="locations-heading">
         <div class="section-heading">
           <p class="section-number">02</p>

@@ -7,11 +7,20 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from pydantic import ValidationError
+from sqlalchemy import delete
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.core.config import get_settings
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import Base, Location, NpcProfile, NpcState, WorldState
+from backend.app.database.models import (
+    Base,
+    Event,
+    Location,
+    NpcProfile,
+    NpcState,
+    WorldAction,
+    WorldState,
+)
 from backend.app.schemas.seed import SeedData
 
 def _read_json(path: Path):
@@ -34,6 +43,10 @@ def seed_database(database_url: str, seed_dir: Path) -> None:
     Base.metadata.create_all(engine)
 
     with session_factory() as session:
+        session.execute(delete(Event).where(Event.world_id == seed.world.id))
+        session.execute(
+            delete(WorldAction).where(WorldAction.world_id == seed.world.id)
+        )
         session.merge(WorldState(**seed.world.model_dump()))
         for location in seed.locations:
             session.merge(Location(**location.model_dump()))

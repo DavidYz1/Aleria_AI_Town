@@ -1,4 +1,12 @@
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, JSON, String
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -57,3 +65,54 @@ class NpcState(Base):
     energy: Mapped[int] = mapped_column(Integer, nullable=False)
     mood: Mapped[int] = mapped_column(Integer, nullable=False)
     social: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class WorldAction(Base):
+    __tablename__ = "actions"
+    __table_args__ = (
+        CheckConstraint("tick >= 1"),
+        CheckConstraint("action_type IN ('move', 'rest', 'work', 'eat', 'social')"),
+        CheckConstraint("target_kind IS NULL OR target_kind IN ('location', 'npc')"),
+        CheckConstraint("status = 'recorded'"),
+        UniqueConstraint("world_id", "tick", "actor_id"),
+        Index("ix_actions_actor_tick", "actor_id", "tick"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    world_id: Mapped[str] = mapped_column(
+        ForeignKey("world_state.id"), nullable=False
+    )
+    tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    actor_id: Mapped[str] = mapped_column(
+        ForeignKey("npc_profiles.id"), nullable=False
+    )
+    action_type: Mapped[str] = mapped_column(String, nullable=False)
+    target_kind: Mapped[str | None] = mapped_column(String, nullable=True)
+    target_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    reason: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="recorded")
+    world_time: Mapped[str] = mapped_column(String(5), nullable=False)
+
+
+class Event(Base):
+    __tablename__ = "events"
+    __table_args__ = (
+        CheckConstraint("tick >= 1"),
+        CheckConstraint("event_type = 'npc_action'"),
+        Index("ix_events_actor_tick", "actor_id", "tick"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    world_id: Mapped[str] = mapped_column(
+        ForeignKey("world_state.id"), nullable=False
+    )
+    tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_type: Mapped[str] = mapped_column(String, nullable=False)
+    actor_id: Mapped[str] = mapped_column(
+        ForeignKey("npc_profiles.id"), nullable=False
+    )
+    action_id: Mapped[int] = mapped_column(
+        ForeignKey("actions.id"), nullable=False, unique=True
+    )
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    world_time: Mapped[str] = mapped_column(String(5), nullable=False)

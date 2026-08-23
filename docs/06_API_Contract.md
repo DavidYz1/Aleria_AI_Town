@@ -1,8 +1,8 @@
 # Aleria AI Town API Contract
 
-Version: v1.1
+Version: v1.2
 
-Last Updated: 2026-08-22
+Last Updated: 2026-08-23
 
 # 1. API Design Overview
 
@@ -152,13 +152,23 @@ HTTP Status:
 
 ## 3.2 Advance World Tick
 
+Phase 1A权威契约：
+
+`docs/superpowers/specs/2026-08-23-phase-1a-deterministic-world-tick-design.md`
+
 Method:
 
     POST /api/world/tick
 
 Purpose:
 
-推进一个世界回合。
+使用乐观锁推进一个一小时世界回合。请求必须携带Frontend当前看到的Tick：
+
+``` json
+{
+  "expected_tick": 0
+}
+```
 
 Flow:
 
@@ -180,18 +190,81 @@ Response:
 {
   "success": true,
   "data": {
-    "world_time": "11:00",
+    "world": {
+      "world": {
+        "id": "aleria-town",
+        "name": "晨曦镇",
+        "day": 1,
+        "time": "09:00",
+        "tick": 1
+      },
+      "locations": [
+        {"id": "tavern", "name": "星辰酒馆", "description": "冒险者交流和休息的地方"},
+        {"id": "park", "name": "中央公园", "description": "居民散步和放松的地方"}
+      ],
+      "npcs": [
+        {
+          "id": "ryan", "name": "Ryan", "role": "Knight",
+          "personality": ["optimistic", "brave", "kind"],
+          "location_id": "park", "current_action": "work",
+          "status": {"energy": 70, "mood": 75, "social": 67}
+        },
+        {
+          "id": "shir", "name": "Shir", "role": "Assassin",
+          "personality": ["quiet", "introverted", "observant"],
+          "location_id": "park", "current_action": "move",
+          "status": {"energy": 65, "mood": 64, "social": 32}
+        },
+        {
+          "id": "grey", "name": "Grey", "role": "Guardian",
+          "personality": ["reliable", "calm", "protective"],
+          "location_id": "park", "current_action": "work",
+          "status": {"energy": 78, "mood": 71, "social": 52}
+        }
+      ]
+    },
     "actions": [
       {
-        "actor": "ryan",
-        "action": "move",
-        "target": "tavern",
-        "reason": "want to socialize"
+        "id": 1,
+        "tick": 1,
+        "actor_id": "ryan",
+        "action_type": "work",
+        "target_kind": null,
+        "target_id": null,
+        "reason": "knight_duty",
+        "status": "recorded",
+        "world_time": "09:00"
+      }
+    ],
+    "events": [
+      {
+        "id": 1,
+        "tick": 1,
+        "event_type": "npc_action",
+        "actor_id": "ryan",
+        "action_id": 1,
+        "description": "Ryan 工作",
+        "world_time": "09:00"
       }
     ]
-  }
+  },
+  "message": "ok"
 }
 ```
+
+`world`是完整的 `GET /api/world` Data对象，不是局部补丁。
+
+当 `expected_tick` 已过期时返回HTTP 409：
+
+``` json
+{
+  "success": false,
+  "data": null,
+  "message": "world tick conflict; refresh and retry"
+}
+```
+
+世界未初始化或事务持久化失败时返回HTTP 503。`expected_tick < 0` 返回HTTP 422。
 
 # 4. NPC APIs
 

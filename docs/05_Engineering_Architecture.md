@@ -1,10 +1,28 @@
 # Aleria AI Town Engineering Architecture
 
-Version: v1.0
+Version: v1.1
 
-Last Updated: 2026-08-22
+Last Updated: 2026-08-23
 
 # 1. Architecture Overview
+
+## Phase 1A implementation status
+
+当前已实现的World Tick采用“纯World Engine + Application Service + Transactional Repository”边界：
+
+    Vue TickPanel / Pinia
+              ↓
+    POST /api/world/tick
+              ↓
+    WorldTickService
+              ↓
+    Pure clock + decision + action rules + tick engine
+              ↓
+    WorldTickRepository（单事务 + expected_tick乐观锁）
+              ↓
+    SQLite current state + actions + events
+
+确定性决策位于 `backend/app/world/`，Phase 1A不创建LLM/Memory/Agent基础设施。未来Agent增强可以替换Decision Policy，但继续复用时钟、Action校验、事务与API边界。
 
 ## 1.1 Design Goal
 

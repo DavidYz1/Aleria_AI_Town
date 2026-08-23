@@ -1,8 +1,8 @@
 # Aleria AI Town World Model Design
 
-Version: v1.1
+Version: v1.2
 
-Last Updated: 2026-08-22
+Last Updated: 2026-08-23
 
 # 1. Overview
 
@@ -37,6 +37,19 @@ Phase 0 实现以 `docs/superpowers/specs/2026-08-22-phase-0-engineering-initial
 -   `energy`、`mood`、`social` 均为 0-100 整数。
 -   World、Location、NPC均使用稳定的小写字符串ID。
 -   Phase 0以SQLite为运行时唯一状态源；根目录JSON只用于种子配置。
+
+## 1.3 Phase 1A Deterministic Tick Contract
+
+Phase 1A权威规格为 `docs/superpowers/specs/2026-08-23-phase-1a-deterministic-world-tick-design.md`。
+
+-   一次用户触发的Tick严格推进一小时，先更新时间，再进行NPC决策。
+-   时间阶段为morning（06:00-11:59）、day（12:00-17:59）、evening（18:00-21:59）、night（22:00-05:59）。
+-   决策前统一应用 `energy -2`、`mood -1`、`social -3` 的被动变化。
+-   所有NPC从同一个不可变快照决策；当前Tick的移动不会被其他NPC在同Tick观察到。
+-   决策优先级依次为夜晚/低体力、低社交、低心情、角色时间例程。
+-   Action效果为：move（energy -5）、rest（energy +15, mood +2）、work（energy -8, mood -2）、eat（energy +5, mood +8）、social（energy -2, mood +5, social +15）。
+-   所有需求值执行后截断到0-100。
+-   Tick状态与Action/Event历史在同一SQLite事务中提交。
 
 ------------------------------------------------------------------------
 

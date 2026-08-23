@@ -1,8 +1,8 @@
 # Aleria AI Town 开发路线规划（Development Roadmap）
 
-版本：v1.1
+版本：v1.2
 
-更新时间：2026-08-22
+更新时间：2026-08-23
 
 # 1. 文档目的
 
@@ -137,6 +137,20 @@ Phase 0不实现：
 ------------------------------------------------------------------------
 
 # 4. Phase 1：基础世界闭环（MVP）
+
+## Phase 1A完成状态（2026-08-23）
+
+已完成确定性World Tick子阶段：
+
+-   `POST /api/world/tick` 与 `expected_tick` 乐观锁。
+-   一小时世界时钟及morning/day/evening/night阶段。
+-   基于状态、角色、时间阶段的Ryan/Shir/Grey确定性决策。
+-   Action校验/执行、0-100状态约束、Event记录。
+-   SQLite单事务更新当前状态并写入 `actions`/`events`。
+-   Frontend推进控制、错误/冲突处理、Action/Event结果展示。
+-   Backend/Frontend行为测试、类型检查和生产构建。
+
+尚未开始的Phase 1后续范围：NPC详情、NPC聊天、LLM/Mock Provider。PixiJS、Quest、RAG、复杂Memory和多人系统继续延期。
 
 ## 目标
 
