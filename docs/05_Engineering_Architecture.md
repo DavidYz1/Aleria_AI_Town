@@ -1,8 +1,8 @@
 # Aleria AI Town Engineering Architecture
 
-Version: v1.2
+Version: v1.3
 
-Last Updated: 2026-08-23
+Last Updated: 2026-08-24
 
 # 1. Architecture Overview
 
@@ -50,6 +50,29 @@ Frontend 继续保持独立状态切片：
     NPC API → NPC Detail Store ─┘
 
 `TownView` 只负责跨 Store 协调：选择/关闭 NPC，以及在权威 World Tick 变化时刷新已打开详情。World Store 不导入或修改 NPC Detail Store。
+
+## Phase 1C implementation status
+
+Phase 1C 增加与确定性 World Engine 隔离的 Chat Slice：
+
+    Vue NpcChatPanel
+              ↓
+    npcChat Pinia Store（per-NPC session）
+              ↓
+    POST /api/npcs/{npc_id}/chat
+              ↓
+    ChatService
+       ├── ChatContextAssembler
+       ├── ChatProvider
+       └── ChatRepository
+              ↓
+    SQLite conversations + conversation_messages
+
+`ChatContextAssembler` 只读取 NPC Profile/State、Location、World、最近 Action、版本化 Prompt 和有界聊天历史。`ChatService` 在 Provider 返回并通过严格校验后，才以一个事务写入完整 User/Assistant 轮次。Chat 不调用 `WorldTickService`，不更新 `world_state`/`npc_states`，也不写入 `actions`/`events`。
+
+Provider 边界为 `ChatProvider`。默认 `MockChatProvider` 无 Key 运行；所有非 Mock 标签复用一个 `OpenAICompatibleChatProvider`，通过 `base_url/api_key/model/auth_mode` 配置腾讯混元、DeepSeek 或本地 Qwen compatible 服务。可预期的 Primary 故障由 `FallbackChatProvider` 降级到 Mock，并在响应和数据库中如实标记。
+
+Frontend 使用第三个独立 `npcChat` Store；World、NPC Detail、NPC Chat 三个 Store 不互相导入，由 `TownView` 协调。切换或关闭 NPC 只隐藏 Chat Panel，不删除页面生命周期内的 per-NPC session；Tick 变化只刷新 Detail。
 
 ## 1.1 Design Goal
 
@@ -235,7 +258,7 @@ World Simulation。
 
 # 5. Backend Architecture
 
-以下为模块化单体的目标边界。当前 Phase 1B 只实现 `api/world*`、`api/npcs`、`world/`、相关 Repository/Service/Schema；`agent/`、`llm/`、Chat 与 Player 模块仍未实现。
+以下为模块化单体的目标边界。当前 Phase 1C 已实现 `api/world*`、`api/npcs`、`api/npc_chat`、`world/`、`llm/`、Chat Repository/Context/Service 及相关 Schema；通用 `agent/`、Memory、Relationship 与 Player 模块仍未实现。
 
 目录：
 
@@ -395,15 +418,18 @@ NPC智能行为。
 
 Chat不是Action Decision。
 
-Chat关注：
+当前 Chat 关注：
 
--   人格
--   关系
--   记忆
+-   NPC Profile、人格 Prompt 与世界背景
+-   权威 World/NPC 当前状态和最近三条 Action
+-   当前会话的有界持久化历史
+-   严格 `reply + emotion` 输出
 
 Action Decision关注：
 
 -   下一步行为。
+
+当前实现刻意不加载 Relationship 或 Agent Memory，也不把聊天自动提升为 Memory。Provider 调用发生在数据库写事务之外；只有合法回复存在后，User 与 Assistant 才在一个事务中完整保存。
 
 ------------------------------------------------------------------------
 
@@ -525,22 +551,15 @@ Provider Abstraction。
 
 结构：
 
-    LLM Interface
-
-
+    ChatProvider Interface
           |
-
-    ------------------
-
+          |---- MockChatProvider
           |
+          └---- FallbackChatProvider
+                    ├── OpenAICompatibleChatProvider
+                    └── MockChatProvider
 
-    OpenAI
-
-    Gemini
-
-    DeepSeek
-
-    Mock
+腾讯混元、DeepSeek、本地 Qwen 通过配置复用同一个 compatible Adapter。未来 Gemini native 或其他非 compatible 协议可以新增 Adapter，但 `ChatService` 不感知供应商。
 
 优势：
 
@@ -622,7 +641,7 @@ Vue3 + TypeScript + Vite
 
     └── main.ts
 
-Phase 1B 当前实现使用 `TownView.vue`、`NpcCard.vue`、`NpcDetailPanel.vue`、独立 `world`/`npcDetail` Store，以及共享 Axios client 下的 `world`/`npc` API Adapter。详情面板是可访问的响应式 `aside`，不是 Modal，不引入遮罩、焦点陷阱或 PixiJS。
+Phase 1C 当前实现使用 `TownView.vue`、`NpcCard.vue`、`NpcDetailPanel.vue`、`NpcChatPanel.vue`，以及独立 `world`/`npcDetail`/`npcChat` Store。三个 API Adapter 复用共享 Axios client。详情与聊天面板都是可访问的响应式 `aside`；Chat 只按文本插值渲染，不解析 HTML/Markdown，不引入遮罩、焦点陷阱或 PixiJS。
 
 ------------------------------------------------------------------------
 
@@ -700,7 +719,13 @@ Action不直接执行。
 
 Fallback:
 
-Mock Provider
+    Compatible Provider Error
+    ↓
+    Mock Provider
+    ↓
+    provider=mock, fallback_used=true
+
+Provider 超时、网络错误、非 2xx、外层响应缺失或严格输出校验失败统一映射为安全错误；不会向 Frontend 泄露 URL、Key 或上游响应正文。
 
 ## API失败
 
@@ -728,11 +753,8 @@ Loading/Error State
 -   World Tick
 -   NPC基础展示与详情
 -   最近行动的确定性解释
-
-尚未完成：
-
--   NPC聊天
--   LLM/Mock Provider
+-   NPC Chat 首轮/续聊、Mock/compatible Provider 与 fallback
+-   完整聊天轮次持久化和 per-NPC Frontend session
 
 ------------------------------------------------------------------------
 
@@ -740,7 +762,7 @@ Loading/Error State
 
 增加：
 
--   LLM Provider
+-   LLM驱动的可替换 Action Decision Policy
 -   Memory Retrieval
 -   Relationship
 -   Event System

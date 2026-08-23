@@ -1,8 +1,8 @@
 # Aleria AI Town API Contract
 
-Version: v1.3
+Version: v1.4
 
-Last Updated: 2026-08-23
+Last Updated: 2026-08-24
 
 # 1. API Design Overview
 
@@ -358,32 +358,122 @@ NPC Profile 不存在时返回 HTTP 404：
 
 ## 4.2 NPC Chat
 
-规划中，尚未实现。以下仅为后续方向，不属于当前公共 API。
+Phase 1C 已实现。Chat 是独立文本交互切片，不修改 World Tick、NPC State、Action 或 Event。
 
 Method:
 
     POST /api/npcs/{npc_id}/chat
 
-Request:
+首轮 Request：
 
 ``` json
 {
-  "player_id": "player001",
-  "message": "你好Ryan"
+  "conversation_id": null,
+  "message": "你好 Ryan"
 }
 ```
 
-Backend flow:
+续聊 Request：
+
+``` json
+{
+  "conversation_id": "5e547c21-a228-4e86-940d-a1bf5d65702f",
+  "message": "那我们该怎么应对？"
+}
+```
+
+约束：
+
+-   `conversation_id` 为 UUID 或 `null`；首轮由 Backend 分配 UUID。
+-   `message` 去除首尾空白后长度为 1–500。
+-   续聊 UUID 必须属于相同 `world_id + npc_id`，不能跨 NPC 复用。
+-   当前没有 `player_id`、登录或 Player 表。
+
+成功响应：
+
+``` json
+{
+  "success": true,
+  "data": {
+    "conversation_id": "5e547c21-a228-4e86-940d-a1bf5d65702f",
+    "npc_id": "ryan",
+    "turn": {
+      "user": {
+        "id": 1,
+        "role": "user",
+        "content": "你害怕史莱姆吗？"
+      },
+      "assistant": {
+        "id": 2,
+        "role": "assistant",
+        "content": "害怕？当然不是……我只是觉得史莱姆比看起来更麻烦。",
+        "emotion": "guarded"
+      }
+    },
+    "provider": "mock",
+    "fallback_used": false
+  },
+  "message": "ok"
+}
+```
+
+`emotion` 只能是：`neutral`、`cheerful`、`reserved`、`guarded`、`thoughtful`、`concerned`。
+
+当 Primary compatible Provider 失败并成功回退时，HTTP 仍为 200，`provider="mock"` 且 `fallback_used=true`；这两个字段同时保存到 Assistant 消息元数据。
+
+NPC 不存在或 conversation 不属于当前 NPC 时返回 HTTP 404：
+
+``` json
+{
+  "success": false,
+  "data": null,
+  "message": "NPC not found"
+}
+```
+
+或：
+
+``` json
+{
+  "success": false,
+  "data": null,
+  "message": "Conversation not found"
+}
+```
+
+请求 UUID/长度/空白校验失败使用 FastAPI 标准 HTTP 422 `detail` 响应，不进入 ChatService。
+
+上下文不可用时返回 HTTP 503：
+
+``` json
+{
+  "success": false,
+  "data": null,
+  "message": "Chat context is unavailable"
+}
+```
+
+Provider 与 Mock 均不可用或聊天持久化失败时返回：
+
+``` json
+{
+  "success": false,
+  "data": null,
+  "message": "Chat service is unavailable"
+}
+```
+
+Backend flow：
 
     Load NPC Profile
     ↓
-    Load Relationship
+    Load authoritative World/NPC/Location/recent Actions
     ↓
-    Retrieve Memory
+    Load versioned Prompt + bounded conversation history
     ↓
-    Generate Reply
+    Generate and strictly validate reply + emotion
     ↓
-    Save Memory
+    Atomically save complete User + Assistant turn
 
 # 5. Player APIs
 
@@ -503,6 +593,10 @@ Checks:
 
 参数错误
 
+422:
+
+请求 Schema 校验错误
+
 404:
 
 资源不存在
@@ -513,13 +607,13 @@ Checks:
 
 AI failure:
 
-下列为未来 LLM Provider 接入后的计划降级路径；当前未实现 LLM/Mock Provider。
-
     LLM Error
     ↓
     Mock Provider
     ↓
-    Valid Result
+    Valid Result with fallback_used=true
+
+Provider 失败不会修改 World Engine。若 Primary 与 Mock 均失败，则返回安全 HTTP 503，且不保存半轮消息。
 
 # 9. API Design Principles
 

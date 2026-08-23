@@ -1,8 +1,8 @@
 # Aleria AI Town 开发环境设计文档（Development Environment）
 
-版本：v1.1
+版本：v1.2
 
-更新时间：2026-08-22
+更新时间：2026-08-24
 
 # 1. 文档目的
 
@@ -125,15 +125,13 @@ LLM Provider抽象。
 
 结构：
 
-    LLM Provider
+    ChatProvider
+    ├── MockChatProvider
+    └── FallbackChatProvider
+        ├── OpenAICompatibleChatProvider
+        └── MockChatProvider
 
-    ├── Mock Provider
-
-    ├── Gemini Provider
-
-    ├── OpenAI Provider
-
-    └── Other Provider
+腾讯混元、DeepSeek 和本地 Qwen compatible 服务复用同一个 Adapter；当前没有供应商专用实现。
 
 ------------------------------------------------------------------------
 
@@ -281,7 +279,7 @@ Phase 0运行时唯一状态源为SQLite。根目录 `data/*.json` 仅作为种�
 python scripts/seed_world.py
 ```
 
-脚本负责创建Phase 0表并写入晨曦镇、两个地点及Ryan/Shir/Grey；重复执行会恢复声明的初始数据，不产生重复记录。
+脚本负责创建当前 SQLAlchemy 模型全部表并写入晨曦镇、两个地点及 Ryan/Shir/Grey；重复执行会按依赖顺序清除目标世界的 Chat、Event、Action 历史并恢复种子状态，不产生重复记录。
 
 ------------------------------------------------------------------------
 
@@ -303,40 +301,59 @@ DATABASE_URL=sqlite:///./backend/data/aleria.db
 FRONTEND_ORIGIN=http://127.0.0.1:5173
 
 
-LLM_PROVIDER=mock
+CHAT_PROVIDER=mock
 
 
-ENABLE_LLM=false
+CHAT_LLM_BASE_URL=
 
 
-GEMINI_API_KEY=
+CHAT_LLM_API_KEY=
 
-OPENAI_API_KEY=
+CHAT_LLM_MODEL=
+
+
+CHAT_LLM_AUTH_MODE=bearer
+
+
+CHAT_LLM_TIMEOUT_SECONDS=10
+
+
+CHAT_HISTORY_LIMIT=10
+
+
+CHAT_PROMPT_VERSION=v1
 ```
+
+约束：
+
+-   `CHAT_PROVIDER=mock` 时 URL、Key、model 可以全部为空。
+-   非 Mock 必须配置 `CHAT_LLM_BASE_URL` 和 `CHAT_LLM_MODEL`。
+-   `CHAT_LLM_AUTH_MODE=bearer` 时 Key 必填，且只保存在 Backend 环境中；文档示例使用 `<backend-only-secret>`。
+-   `CHAT_LLM_AUTH_MODE=none` 允许本地服务不配置 Key。
+-   timeout 范围 0–120 秒（不含 0），history limit 范围 1–50，当前 Prompt 版本为 `v1`。
 
 ------------------------------------------------------------------------
 
 # 9. AI运行模式
 
-系统支持两种模式。
+系统支持默认 Mock 和 compatible Primary + Mock fallback 两种运行方式。
 
 # Mock模式
 
 默认：
 
-    ENABLE_LLM=false
+    CHAT_PROVIDER=mock
 
 行为：
 
-使用预设NPC决策。
+使用确定性的角色化 Mock Chat 回复。World Tick 的 NPC Action 仍由 `backend/app/world/` 规则决定，不由 Chat Provider 控制。
 
 例如：
 
 ``` json
 {
-"action":"move",
-"target":"park",
-"reason":"天气很好，想散步"
+  "reply":"别担心，只要愿意向前走，我们总能找到办法。",
+  "emotion":"cheerful"
 }
 ```
 
@@ -348,15 +365,29 @@ OPENAI_API_KEY=
 
 ------------------------------------------------------------------------
 
-# LLM模式
+# Compatible LLM模式
 
-配置：
+云端 compatible 示例：
 
-    ENABLE_LLM=true
+``` env
+CHAT_PROVIDER=deepseek
+CHAT_LLM_BASE_URL=<provider-compatible-base-url>
+CHAT_LLM_API_KEY=<backend-only-secret>
+CHAT_LLM_MODEL=<compatible-model-name>
+CHAT_LLM_AUTH_MODE=bearer
+```
 
-调用：
+`CHAT_PROVIDER` 是可观测标签，不选择专用代码分支。腾讯混元或其他 compatible 云端服务替换地址与模型即可。
 
-对应Provider。
+本地无鉴权 Qwen 示例：
+
+``` env
+CHAT_PROVIDER=local
+CHAT_LLM_BASE_URL=http://127.0.0.1:8001/v1
+CHAT_LLM_API_KEY=
+CHAT_LLM_MODEL=qwen-local
+CHAT_LLM_AUTH_MODE=none
+```
 
 要求：
 
@@ -370,11 +401,13 @@ OPENAI_API_KEY=
 
     ↓
 
-    Action Validation
+    Strict reply + emotion Validation
 
     ↓
 
-    World Update
+    Chat Response / Mock Fallback
+
+Chat 不进入 Action Execution 或 World Update。Primary 超时、网络错误、非 2xx 或非法输出时自动尝试 Mock，并通过 `fallback_used` 如实标记。
 
 ------------------------------------------------------------------------
 
@@ -441,7 +474,7 @@ npm run dev -- --host 127.0.0.1
 
 ------------------------------------------------------------------------
 
-# 12. Phase 0验证命令
+# 12. 当前工程验证命令
 
 Backend API测试：
 
@@ -467,6 +500,10 @@ npm run build
 2.  Frontend运行在 `http://127.0.0.1:5173`。
 3.  页面展示晨曦镇、Day 1 08:00、星辰酒馆、中央公园以及Ryan/Shir/Grey。
 4.  停止Backend并刷新页面时，Frontend展示可理解的接口失败状态。
+5.  默认 Mock 下选择 Ryan，发送“你害怕史莱姆吗？”，收到 guarded 回复；续聊复用 conversation ID。
+6.  切换 Shir/Grey 时会话互不覆盖；推进 Tick 后 Chat 历史保留。
+
+可选真实 Provider 手动冒烟只在开发者明确配置环境后执行。不得把真实 Key、Authorization Header 或上游错误正文写入终端截图、测试 fixture、Git diff 或文档。
 
 ------------------------------------------------------------------------
 

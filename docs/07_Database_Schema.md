@@ -1,8 +1,8 @@
 # Aleria AI Town Database Schema Design
 
-Version: v1.2
+Version: v1.3
 
-Last Updated: 2026-08-23
+Last Updated: 2026-08-24
 
 # 1. Database Design Overview
 
@@ -71,6 +71,41 @@ events(
 
 一次Tick对 `world_state`、全部 `npc_states`、`actions` 和 `events` 的写入只提交一次；任一校验或数据库错误会整体回滚。`world_state.tick = expected_tick` 的条件更新提供乐观并发控制。
 
+Phase 1C 在不修改 World Engine 表的前提下增加：
+
+-   `conversations`
+-   `conversation_messages`
+
+物理约束为：
+
+``` text
+conversations(
+  id TEXT PRIMARY KEY,
+  world_id TEXT NOT NULL REFERENCES world_state(id),
+  npc_id TEXT NOT NULL REFERENCES npc_profiles(id),
+  created_tick INTEGER NOT NULL CHECK(created_tick >= 0),
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX ix_conversations_npc_updated(npc_id, updated_at)
+)
+
+conversation_messages(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  conversation_id TEXT NOT NULL REFERENCES conversations(id),
+  role TEXT NOT NULL CHECK(role IN ('user','assistant')),
+  content TEXT NOT NULL,
+  emotion TEXT NULL,
+  provider TEXT NULL,
+  fallback_used INTEGER NOT NULL CHECK(fallback_used IN (0,1)),
+  prompt_version TEXT NULL,
+  world_tick INTEGER NOT NULL CHECK(world_tick >= 0),
+  created_at DATETIME NOT NULL,
+  INDEX ix_conversation_messages_conversation_id_id(conversation_id, id)
+)
+```
+
+User 与 Assistant 在同一个事务中成对写入。User 行的 `emotion/provider/prompt_version` 为 `NULL`；Assistant 行记录经过校验的情绪、实际 Provider、fallback 标记和 Prompt 版本。Provider 失败时不创建 Conversation，也不留下半轮消息。
+
 Phase 2及以后按实际用例增加：
 
 -   `entities`
@@ -81,7 +116,7 @@ Phase 2及以后按实际用例增加：
 
 根目录 `data/*.json` 只作为可读种子输入。运行时状态只保存在SQLite中。
 
-重播种表示把目标世界恢复到种子Tick，因此会在同一事务中先删除该世界的 `events` 与 `actions`，再重置当前状态；其他world_id的数据不受影响。
+重播种表示把目标世界恢复到种子Tick，因此会在同一事务中按 `conversation_messages → conversations → events → actions` 的依赖顺序删除目标世界历史，再重置当前状态；其他world_id的数据不受影响。
 
 已有Phase 0数据库使用 `python scripts/upgrade_schema.py` 增量创建缺失表。该命令只执行SQLAlchemy `create_all` 的加表操作，不重置当前状态或历史；未来出现改列、数据迁移等需求时再引入版本化迁移工具。
 
@@ -619,11 +654,11 @@ Optimistic Lock。
 
 物品系统。
 
-## conversations
+## conversations / conversation_messages
 
-完整聊天历史。
+Phase 1C 已实现聊天会话与消息历史。Conversation 绑定稳定的 World/NPC 边界；消息按自增 `id` 保持顺序，Repository 只向 Chat Context 返回配置上限内的最新消息，并恢复为时间正序。
 
-当前MVP不实现。
+当前实现不把 Chat 自动写入 `memories`，也不创建 Player 或 Relationship 外键。上述能力仍由后续阶段按实际用例增加。
 
 ------------------------------------------------------------------------
 
@@ -664,6 +699,13 @@ Optimistic Lock。
 
 
     memories
+
+
+    conversations
+
+        |
+
+        └---- conversation_messages
 
 
     quests(optional)

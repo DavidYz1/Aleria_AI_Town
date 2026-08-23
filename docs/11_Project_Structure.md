@@ -1,8 +1,8 @@
 # Aleria AI Town 项目结构设计（Project Structure）
 
-版本：v1.3
+版本：v1.4
 
-更新时间：2026-08-23
+更新时间：2026-08-24
 
 # 1. 文档目的
 
@@ -82,11 +82,12 @@ Vue3 + TypeScript + Vite
 -   世界规则
 -   数据持久化
 
-Phase 1B当前目录（在Phase 1A基础上）：
+Phase 1C当前目录：
 
     frontend/
     └── src/
         ├── api/
+        │   ├── chat.ts
         │   ├── client.ts
         │   ├── npc.ts
         │   └── world.ts
@@ -94,11 +95,14 @@ Phase 1B当前目录（在Phase 1A基础上）：
         │   ├── LocationCard.vue
         │   ├── NpcCard.vue
         │   ├── NpcDetailPanel.vue
+        │   ├── NpcChatPanel.vue
         │   └── TickPanel.vue
         ├── stores/
+        │   ├── npcChat.ts
         │   ├── npcDetail.ts
         │   └── world.ts
         ├── types/
+        │   ├── chat.ts
         │   ├── npc.ts
         │   ├── world.ts
         │   └── worldTick.ts
@@ -107,7 +111,7 @@ Phase 1B当前目录（在Phase 1A基础上）：
         ├── App.vue
         └── main.ts
 
-Frontend保持 `Typed API Adapter -> Feature Store -> UI / Renderer` 边界。`world` 和 `npcDetail` Store 互不依赖，由 `TownView` 协调选择和 Tick 后刷新。未来迁移开源Vue界面或PixiJS时，只替换展示组件、样式、素材和Renderer，不反向修改Backend领域模型。
+Frontend保持 `Typed API Adapter -> Feature Store -> UI / Renderer` 边界。`world`、`npcDetail` 和 `npcChat` Store 互不依赖，由 `TownView` 协调选择、发送和 Tick 后详情刷新。未来迁移开源Vue界面或PixiJS时，只替换展示组件、样式、素材和Renderer，不反向修改Backend领域模型。
 
 ------------------------------------------------------------------------
 
@@ -123,6 +127,8 @@ Frontend保持 `Typed API Adapter -> Feature Store -> UI / Renderer` 边界。`w
 
     npc.ts
 
+    chat.ts
+
     player.ts
 
 提供：
@@ -130,8 +136,9 @@ Frontend保持 `Typed API Adapter -> Feature Store -> UI / Renderer` 边界。`w
 -   获取世界状态
 -   推进Tick
 -   读取NPC详情
+-   发送NPC首轮/续聊并解包 Provider 元数据
 
-NPC聊天仍是后续范围，当前 `npc.ts` 只实现只读 Detail Adapter。
+`chat.ts` 复用 `client.ts` 的 Axios 实例，不创建第二套 HTTP 配置；错误只向 Store 暴露安全的 status/message。
 
 ------------------------------------------------------------------------
 
@@ -145,7 +152,7 @@ UI组件。
 
     NPCPanel.vue
 
-    ChatBox.vue
+    NpcChatPanel.vue
 
     Timeline.vue
 
@@ -155,7 +162,7 @@ UI组件。
 
 使用Pinia管理：
 
-当前世界状态和独立 NPC 详情请求状态。
+当前世界状态、独立 NPC 详情请求状态和 per-NPC Chat session。
 
 例如：
 
@@ -163,7 +170,9 @@ UI组件。
 
     npcDetail
 
-`npcDetail` 管理 `selectedNpcId`、loading/error/data、retry/refresh/close 与最新请求版本保护。Player Store 尚未实现。
+    npcChat
+
+`npcDetail` 管理 `selectedNpcId`、loading/error/data、retry/refresh/close 与最新请求版本保护。`npcChat` 按 NPC 管理 conversation/messages/sending/error/pending/provider/fallback，并用独立请求版本阻止迟到响应污染新状态。Player Store 尚未实现。
 
 ------------------------------------------------------------------------
 
@@ -173,7 +182,7 @@ UI组件。
 
 Python + FastAPI
 
-Phase 1B当前目录（新增NPC Detail只读切片）：
+Phase 1C当前目录（新增 Chat Slice 与 Provider 抽象）：
 
     backend/
     ├── __init__.py
@@ -186,6 +195,7 @@ Phase 1B当前目录（新增NPC Detail只读切片）：
         ├── api/
         │   ├── __init__.py
         │   ├── dependencies.py
+        │   ├── npc_chat.py
         │   ├── npcs.py
         │   ├── world.py
         │   └── world_tick.py
@@ -193,6 +203,7 @@ Phase 1B当前目录（新增NPC Detail只读切片）：
         │   ├── __init__.py
         │   └── config.py
         ├── database/
+        │   ├── chat_repository.py
         │   ├── __init__.py
         │   ├── connection.py
         │   ├── models.py
@@ -200,12 +211,21 @@ Phase 1B当前目录（新增NPC Detail只读切片）：
         │   ├── world_repository.py
         │   └── world_tick_repository.py
         ├── schemas/
+        │   ├── chat.py
         │   ├── __init__.py
         │   ├── common.py
         │   ├── npc.py
         │   ├── seed.py
         │   ├── world.py
         │   └── world_tick.py
+        ├── llm/
+        │   ├── __init__.py
+        │   ├── factory.py
+        │   ├── fallback.py
+        │   ├── mock.py
+        │   ├── openai_compatible.py
+        │   ├── provider.py
+        │   └── types.py
         ├── world/
         │   ├── __init__.py
         │   ├── types.py
@@ -216,11 +236,13 @@ Phase 1B当前目录（新增NPC Detail只读切片）：
         └── services/
             ├── __init__.py
             ├── action_explanation.py
+            ├── chat_context.py
+            ├── chat_service.py
             ├── npc_service.py
             ├── world_service.py
             └── world_tick_service.py
 
-Phase 1A已创建 `world/` 纯领域包。Phase 1B 使用独立 `NpcRepository -> NpcService -> npcs API` 查询路径，不向 Tick Repository 添加详情查询，不新增数据库表。`agents/` 与 `llm/` 仍延后到对应功能进入实施阶段，不创建空包。
+Phase 1A创建 `world/` 纯领域包，Phase 1B增加独立 NPC Detail 只读切片。Phase 1C 增加 `ChatRepository -> ChatContextAssembler/ChatService -> npc_chat API` 和独立 `llm/` Provider 边界，不向 Tick Repository 添加 Chat 写入。通用 `agents/`、Memory、Relationship 与 Player 仍延期，不创建空包。
 
 ------------------------------------------------------------------------
 
@@ -316,18 +338,15 @@ NPC Agent系统。
 
 LLM抽象层。
 
-实施阶段：NPC Decision或Chat首次接入模型时。
+Phase 1C 已实施，用于 NPC Chat；确定性 NPC Decision 仍位于 `world/`。
 
 结构：
 
-    LLM Provider
-
-
-    ├── Gemini
-
-    ├── OpenAI
-
-    └── Mock
+    ChatProvider
+    ├── MockChatProvider
+    └── FallbackChatProvider
+        ├── OpenAICompatibleChatProvider
+        └── MockChatProvider
 
 避免业务代码绑定具体模型。
 
@@ -365,24 +384,13 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
 目录：
 
     prompts/
-
-
-    ├── world_lore.md
-
-
-    ├── characters/
-
-
-    │   ├── ryan.md
-
-    │   ├── shir.md
-
-    │   └── grey.md
-
-
-    ├── decision_prompt.md
-
-    └── chat_prompt.md
+    └── v1/
+        ├── world_lore.md
+        ├── chat_system.md
+        └── characters/
+            ├── ryan.md
+            ├── shir.md
+            └── grey.md
 
 保存：
 
@@ -400,6 +408,17 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
     ├── backend/
     │   ├── conftest.py
     │   ├── test_action_explanation.py
+    │   ├── test_chat_acceptance.py
+    │   ├── test_chat_config.py
+    │   ├── test_chat_context.py
+    │   ├── test_chat_models.py
+    │   ├── test_chat_provider_factory.py
+    │   ├── test_chat_repository.py
+    │   ├── test_chat_schemas.py
+    │   ├── test_chat_service.py
+    │   ├── test_mock_chat_provider.py
+    │   ├── test_npc_chat_api.py
+    │   ├── test_openai_compatible_provider.py
     │   ├── test_npc_api.py
     │   ├── test_npc_repository.py
     │   ├── test_npc_service.py
@@ -411,9 +430,12 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
         ├── fixtures.ts
         ├── NpcCard.spec.ts
         ├── NpcDetailPanel.spec.ts
+        ├── NpcChatPanel.spec.ts
         ├── TownView.spec.ts
         ├── TickPanel.spec.ts
         ├── npcDetail.spec.ts
+        ├── npcChat.spec.ts
+        ├── chatApi.spec.ts
         ├── world.spec.ts
         └── worldTick.spec.ts
 
@@ -423,10 +445,12 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
 -   Tick一致性
 -   NPC Detail查询、最近三条历史与解释目录
 -   Frontend详情竞态、错误/空状态和Tick后刷新
+-   Chat 两轮持久化、Provider/fallback、World 隔离和三角色差异
+-   Frontend per-NPC session、sending/error/retry/fallback/迟到响应和纯文本渲染
 -   Agent输出校验
 -   角色一致性
 
-World Tick测试已随Phase 1A实现创建，NPC Detail测试已随Phase 1B创建；`test_agent.py` 和Prompt测试继续随对应行为实现，不预先建立空测试。
+World Tick测试已随Phase 1A实现创建，NPC Detail测试已随Phase 1B创建，Chat/Provider/Frontend测试随Phase 1C创建。LLM 驱动的 Action Agent 与 Memory 测试继续随对应行为实现，不预先建立空测试。
 
 ------------------------------------------------------------------------
 
@@ -485,7 +509,11 @@ World Tick测试已随Phase 1A实现创建，NPC Detail测试已随Phase 1B创�
 
     NPC Detail
 
-NPC Chat、LLM/Mock Provider、Memory、Relationship 仍为后续范围。
+    +
+
+    NPC Chat / Mock / Compatible Provider
+
+Memory、Relationship、Player、LLM Tick Decision、Quest 与多人系统仍为后续范围。
 
 ------------------------------------------------------------------------
 

@@ -1,8 +1,8 @@
 # Aleria AI Town 架构决策记录（Architecture Decision Record）
 
-版本：v1.3
+版本：v1.4
 
-更新时间：2026-08-23
+更新时间：2026-08-24
 
 # 1. 文档目的
 
@@ -537,17 +537,15 @@ Vector Retrieval
 
 设计统一接口：
 
-    LLM Provider
+    ChatProvider
+         |
+         |---- MockChatProvider
+         |
+         └---- FallbackChatProvider
+                   ├── OpenAICompatibleChatProvider
+                   └── MockChatProvider
 
-    |
-
-    ----------------
-
-    Gemini
-
-    OpenAI
-
-    Mock
+Phase 1C 不为腾讯混元、DeepSeek、本地 Qwen 分别复制 Provider 类。它们通过 `base_url/api_key/model/auth_mode` 复用一个 compatible Adapter；未来非 compatible 协议再新增独立 Adapter。
 
 ------------------------------------------------------------------------
 
@@ -834,6 +832,62 @@ Phase 1B 需要展示 NPC 的权威当前状态和最近行动，同时不能破
 -   保护 Tick 的单事务写入边界，让详情查询可独立演进。
 -   保持 Backend 作为状态与历史的唯一事实来源。
 -   在可解释、可测试和不暴露隐藏推理之间保持清晰边界。
+
+------------------------------------------------------------------------
+
+# 22. ADR-019：真实模型使用单一 OpenAI-compatible Adapter
+
+## 决策
+
+`ChatService` 只依赖 `ChatProvider`。除 Mock 外的 Provider 标签统一由 `OpenAICompatibleChatProvider` 处理，配置为 `base_url/api_key/model/auth_mode/timeout`，不创建 Hunyuan、DeepSeek 或 Qwen 专用 Service 分支。
+
+## 原因
+
+-   避免供应商类重复和配置漂移。
+-   同时支持云端 API 与本地 compatible 服务。
+-   保留未来新增 Gemini native 等非 compatible Adapter 的能力。
+
+------------------------------------------------------------------------
+
+# 23. ADR-020：Mock 是一等运行模式与自动 fallback
+
+## 决策
+
+默认 `CHAT_PROVIDER=mock`，无 URL、model、Key 也能完成验收闭环。非 Mock Primary 的可预期 Provider 故障由 `FallbackChatProvider` 降级到真实 `MockChatProvider`，并如实返回和保存 `provider=mock`、`fallback_used=true`。
+
+## 原因
+
+-   腾讯作业可以在无外网、无密钥环境稳定演示和测试。
+-   fallback 不伪装成 Primary 成功，便于诊断和 UI 提示。
+-   仅捕获 `ChatProviderError`，不吞掉编程错误。
+
+------------------------------------------------------------------------
+
+# 24. ADR-021：Chat 与确定性 World Engine 隔离
+
+## 决策
+
+Chat Context 可以读取 World、NPC State 和最近 Action，但 Chat 路径不得调用 World Tick、更新 NPC State 或插入 Action/Event。聊天历史只进入后续 Chat Context，不影响 Phase 1A 的确定性 Action Policy。
+
+## 原因
+
+-   保持同输入世界快照产生同一 Action 的可重复性。
+-   防止自然语言输出绕过 Action Validation 和事务边界。
+-   未来 Memory/Relationship 进入世界决策前必须另行设计并审查。
+
+------------------------------------------------------------------------
+
+# 25. ADR-022：只原子保存完整聊天轮次
+
+## 决策
+
+Provider 调用发生在数据库写事务之外。只有回复通过严格 `reply + emotion` 校验后，Repository 才在一次事务中创建/更新 Conversation，并同时插入 User 与 Assistant；任一持久化错误整体回滚。
+
+## 原因
+
+-   Provider 或数据库故障不留下只有 User 的半轮记录。
+-   Assistant 行可以保存实际 Provider、fallback 和 Prompt 版本，支持审计。
+-   有界历史始终由完整的持久化消息构成。
 
 ------------------------------------------------------------------------
 

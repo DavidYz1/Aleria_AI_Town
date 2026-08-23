@@ -1,8 +1,8 @@
 # Aleria AI Town 开发路线规划（Development Roadmap）
 
-版本：v1.3
+版本：v1.4
 
-更新时间：2026-08-23
+更新时间：2026-08-24
 
 # 1. 文档目的
 
@@ -162,7 +162,19 @@ Phase 0不实现：
 -   已打开详情在权威 World Tick 变化后自动刷新，World/NPC Detail Store 保持独立。
 -   不新增数据库表，不修改 `GET /api/world` 或 `POST /api/world/tick` 公共契约。
 
-尚未开始的Phase 1后续范围：NPC聊天、LLM/Mock Provider、Player交互。PixiJS、Quest、RAG、复杂Memory、Relationship和多人系统继续延期。
+## Phase 1C完成状态（2026-08-24）
+
+已完成 NPC Chat 与 Provider 抽象子阶段：
+
+-   `POST /api/npcs/{npc_id}/chat` 首轮/续聊、404/422/503 契约。
+-   `conversations` 与 `conversation_messages`，完整 User/Assistant 轮次原子保存。
+-   版本化 World/Character/System Prompt、权威状态/Action 和有界历史 Context。
+-   `ChatProvider`、一等 Mock、单一 OpenAI-compatible Adapter 与自动 fallback。
+-   Ryan/Shir/Grey 角色化 Mock 回复和严格 `reply + emotion` 校验。
+-   Frontend per-NPC session、sending、失败重试、fallback 提示、切换/关闭恢复和迟到响应保护。
+-   Acceptance 证明 Chat 不改变 World Tick、NPC State、Action 或 Event。
+
+尚未开始的 Phase 1 范围只剩 Player 交互。PixiJS、Quest、RAG、复杂 Memory、Relationship、LLM Tick Decision 和多人系统继续延期。
 
 ## 目标
 
@@ -223,9 +235,11 @@ Phase 0不实现：
 
 ------------------------------------------------------------------------
 
-### NPC Chat API（计划中）
+### NPC Chat API（已完成）
 
     POST /api/npcs/{id}/chat
+
+已完成首轮/续聊、Mock/compatible Provider、fallback 与完整轮次持久化。
 
 ------------------------------------------------------------------------
 
@@ -237,10 +251,8 @@ Phase 0不实现：
 -   NPC卡片
 -   NPC详情
 -   Tick按钮
-
-计划中：
-
 -   Chat窗口
+-   三个 NPC 的独立 Chat session、错误重试和 Provider/fallback 状态
 
 ------------------------------------------------------------------------
 
