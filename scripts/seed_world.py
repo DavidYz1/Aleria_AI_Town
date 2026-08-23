@@ -7,13 +7,15 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from pydantic import ValidationError
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.core.config import get_settings
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import (
     Base,
+    Conversation,
+    ConversationMessage,
     Event,
     Location,
     NpcProfile,
@@ -43,6 +45,19 @@ def seed_database(database_url: str, seed_dir: Path) -> None:
     Base.metadata.create_all(engine)
 
     with session_factory() as session:
+        conversation_ids = select(Conversation.id).where(
+            Conversation.world_id == seed.world.id
+        )
+        session.execute(
+            delete(ConversationMessage).where(
+                ConversationMessage.conversation_id.in_(conversation_ids)
+            )
+        )
+        session.execute(
+            delete(Conversation).where(
+                Conversation.world_id == seed.world.id
+            )
+        )
         session.execute(delete(Event).where(Event.world_id == seed.world.id))
         session.execute(
             delete(WorldAction).where(WorldAction.world_id == seed.world.id)
