@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.npcs import router as npcs_router
 from backend.app.api.world import router as world_router
 from backend.app.api.world_tick import router as world_tick_router
 from backend.app.core.config import get_settings
@@ -23,6 +24,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     )
     application.include_router(world_router)
     application.include_router(world_tick_router)
+    application.include_router(npcs_router)
     return application
 
 

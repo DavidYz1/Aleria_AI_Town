@@ -1,9 +1,8 @@
-from collections.abc import Generator
-
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from backend.app.api.dependencies import get_session
 from backend.app.database.world_repository import (
     WorldRepository,
     WorldUnavailableError,
@@ -14,11 +13,6 @@ from backend.app.services.world_service import WorldService
 
 
 router = APIRouter()
-
-
-def get_session(request: Request) -> Generator[Session, None, None]:
-    with request.app.state.session_factory() as session:
-        yield session
 
 
 @router.get(

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from backend.app.api.world import get_session
+from backend.app.api.dependencies import get_session
 from backend.app.database.world_repository import WorldUnavailableError
 from backend.app.database.world_tick_repository import (
     WorldTickConflictError,
