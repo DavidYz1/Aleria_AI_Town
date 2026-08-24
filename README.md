@@ -1,81 +1,78 @@
-# Aleria AI Town
+# Aleria AI Town · 曦谷
 
-> 腾讯游戏 AI 小镇工程作业 · Phase 1D 可运行版本
+> 腾讯游戏 AI 小镇工程作业 · Phase 1E 可运行版本
 
-## 提交信息
+曦谷是一座从战争中恢复的温暖小镇。你是一名失去记忆、身带陌生印记的旅人；一次寻找失踪孩子的委托，将你带向城堡残缺的档案和森林深处的旧封锁线。
+
+这个故事想追问：当和平建立在残缺记忆之上，寻找真相究竟是在修复世界，还是再次撕开伤口？
+
+## 这是什么游戏
+
+Aleria AI Town 是一个“确定性世界 + 生成式角色对话”的小型叙事 RPG 原型。玩家可以观察曦谷的时间与居民状态、在四个地点间旅行、推进世界时间、与 Ryan、Shir、Grey 对话，并完成“失踪的孩子”任务。
+
+世界规则与 AI 表达被刻意分开：World Engine 决定时间、NPC 行动和持久化状态；Chat Provider 负责让角色说得更自然，但不能替玩家行动，也不能修改 World Tick、NPC State、Action、Event 或 Quest。
+
+### 提交信息
 
 | 项目 | 内容 |
 | --- | --- |
 | 候选人姓名 | `[提交前由候选人填写]` |
 | 仓库地址 | `[提交前由候选人填写]` |
-| 在线体验地址 | `[提交前由候选人填写；未部署时写 N/A]` |
+| 在线体验地址 | `N/A（Phase 3 计划）` |
 | 实际开发用时 | `[提交前由候选人填写]` |
 | 技术栈 | Vue 3 + TypeScript + Pinia / FastAPI + SQLAlchemy / SQLite |
-| 当前完成范围 | World Tick、NPC Detail、Mock/真实模型 Chat、Player、确定性 Quest、响应式 DOM UI |
-| 已知问题 | 暂无线上部署；地图渲染、复杂 Memory/Relationship、多人系统尚未实现 |
+| 当前阶段 | Phase 1E：内容圣经、Prompt v3 与提交叙事 |
 
-## 项目概览
+## 当前可以体验什么
 
-Aleria AI Town 是一个“世界状态优先”的 AI 小镇原型。玩家进入战后重建中的**曦谷**，观察 Ryan、Shir、Grey 按状态、职业和时间阶段行动，与他们对话，并完成“失踪的孩子”任务。
+无需 API Key，默认 Mock 模式即可体验完整闭环：
 
-系统刻意拆分两类能力：
+1. 查看曦谷当前时间、四个地点和三名 NPC 的基础状态。
+2. 推进一次 World Tick，观察 NPC 根据状态、人物特点和时间阶段行动。
+3. 查看 NPC Detail，理解本次行动的确定性原因。
+4. 在星辉酒馆接受“失踪的孩子”委托。
+5. 前往 Grey 的实时地点询问；若他随 Tick 移动，任务目标会同步更新。
+6. 在低语森林调查遗落的鞋、烧灼符号和林中低语，再把孩子带回酒馆。
+7. 分别与 Ryan、Shir、Grey 对话，比较三人的立场和知识边界。
+8. 切换真实 OpenAI-compatible 模型；上游失败时自动回退到 Mock。
 
-- World Engine 使用确定性规则推进时间和 NPC 状态，结果可测试、可回放。
-- NPC Chat 使用可切换的 Mock 或 OpenAI-compatible 模型增强表达，但不能修改 Tick、NPC State、Action、Event 或 Quest。
-
-运行时权威数据保存在 SQLite；`data/*.json` 仅用于初始化。即使没有 API Key，默认 Mock 模式也能完整验收 World、NPC、Chat、Player 和 Quest 闭环。
-
-### 一分钟体验路径
-
-1. 打开页面，确认世界为“曦谷”，看到星辉酒馆、中央公园、晨曦城堡、低语森林和三名 NPC。
-2. 在星辉酒馆接受“失踪的孩子”。
-3. 前往 Grey 当前所在地点（初始为晨曦城堡）询问线索。
-4. 前往低语森林，发现鞋子并找到孩子。
-5. 返回星辉酒馆完成任务，查看五条持久化进展。
-6. 与 NPC 对话；在 Mock 与真实模型故障回退时，任务和世界状态都不会被对话改写。
-7. 推进一次 World Tick，观察 NPC 行动和事件；玩家位置与任务进度保持不变。
-
-## 玩法与 NPC 设定
-
-### 四个地点
-
-| 地点 | 稳定 ID | 体验职责 |
-| --- | --- | --- |
-| 星辉酒馆 | `tavern` | 玩家初始地点、接受和交付任务、Shir 日常活动 |
-| 中央公园 | `park` | Ryan 的骑士训练地点 |
-| 晨曦城堡 | `castle` | Grey 的守护与巡逻地点 |
-| 低语森林 | `forest` | Shir 的侦察地点、任务调查区域 |
-
-显示名称可以演进，技术 ID 保持稳定，以免破坏数据库、API 和前端状态。
-
-### 三名 NPC
-
-- **Ryan / Knight**：热情、正直、渴望证明自己；表面勇敢，面对史莱姆时会暴露不愿承认的谨慎。白天倾向在中央公园训练。
-- **Shir / Assassin**：寡言、敏锐、重事实；与人保持距离，却对甜食有不愿承认的偏好。傍晚倾向前往低语森林侦察。
-- **Grey / Guardian**：沉稳、负责、保护欲强；掌握更多灰烬战争线索，但对未经确认的历史保持克制。日间倾向在晨曦城堡巡逻。
-
-NPC 决策优先处理低能量、低心情、低社交等状态需求，再执行角色例程；夜间优先休息。决定基于同一份不可变世界快照，Action 通过规则校验后才在单个事务中落库。
-
-### “失踪的孩子”任务
-
-任务是一个有界、确定性的状态机：
+任务采用六状态、五迁移的确定性状态机：
 
 ```text
-available
-  → accepted
-  → briefed_by_grey
-  → shoe_found
-  → child_found
-  → completed
+available → accepted → briefed_by_grey
+          → shoe_found → child_found → completed
 ```
 
-每次成功迁移写入一条 Quest Event，并令 `version + 1`。跳步、错误地点或过期版本会被 Backend 拒绝。询问 Grey 还要求玩家与 Grey 处于同一地点；若 World Tick 使 Grey 移动，任务目标会跟随他的权威当前位置。
+每次成功交互都会写入 Quest Event 并令 `version + 1`。错误地点、跳步和过期版本都会被 Backend 拒绝。玩家旅行只修改玩家位置，不推进 World Tick；Chat 只写聊天记录，不推进任务或世界。
 
-## 快速启动（默认 Mock，无需 API Key）
+## 世界与角色
+
+### 曦谷
+
+曦谷位于艾莱瑞亚大陆的旧交通线与森林边缘。官方历史说，人类联盟约五百年前在终焉战争中击败魔王；二十多年前，附近的灰烬战争又留下旧封锁线、失踪者和残缺档案。居民共享的是公开历史，真相、传闻与个人记忆并不总是一致。
+
+| 地点 | 稳定 ID | 当前叙事职责 |
+| --- | --- | --- |
+| 星辉酒馆 | `tavern` | 炉火、消息与委托汇聚处，任务起点和终点 |
+| 中央公园 | `park` | 居民生活与骑士训练交错，仍能看见战争旧痕 |
+| 晨曦城堡 | `castle` | Grey 守望之地，深处封存灰烬战争残缺档案 |
+| 低语森林 | `forest` | 古老遗迹与林间低语交织，部分区域仍是旧封锁线 |
+
+稳定 ID 不随显示文案演进，避免破坏数据库、API 和 Frontend Store。
+
+### Ryan、Shir 与 Grey
+
+- **Ryan / Knight**：热情、直率，相信骑士和英雄；父亲却因保护古族幸存者背负“叛徒”污名，使他在信仰与亲情之间摇摆。
+- **Shir / Assassin**：冷静、敏锐，习惯把事实与传闻分开；她追索被删除的档案，却不确定所有真相都应该立刻公开。
+- **Grey / Guardian**：克制、可靠，经历过灰烬战争的遗迹行动；他想保护来之不易的和平，也逐渐意识到沉默可能延续错误。
+
+玩家只有两个确定起点：失去记忆，以及身上存在无法解释的印记。NPC 可以观察、怀疑和提供线索，但不得替玩家补全姓名、职业、过去或命运。
+
+## 快速启动：Mock 模式
 
 前置环境：Python 3.11+、Node.js 20+、npm。
 
-### 1. Backend
+### 1. 启动 Backend
 
 在仓库根目录执行：
 
@@ -88,19 +85,17 @@ python scripts\seed_world.py
 python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
-macOS/Linux 使用 `source .venv/bin/activate`，并将路径分隔符改为 `/`。
+`.env.example` 默认使用 `CHAT_PROVIDER=mock`，不需要 URL、模型名或 API Key。Backend 地址为 `http://127.0.0.1:8000`，Swagger UI 为 `http://127.0.0.1:8000/docs`。
 
-默认配置是 `CHAT_PROVIDER=mock`。Backend 地址为 `http://127.0.0.1:8000`，Swagger UI 为 `http://127.0.0.1:8000/docs`。
-
-已有数据库需要保留状态时，运行非破坏性的增量建表命令：
+`seed_world.py` 用于可重复演示，会重置曦谷的 World、NPC、Player/Quest、Chat 和 Action/Event 数据。已有数据库需要保留状态时，应运行非破坏性的增量建表：
 
 ```powershell
 python scripts\upgrade_schema.py
 ```
 
-`seed_world.py` 用于可重复演示，会重置当前世界、Player/Quest、Chat 和 Action/Event 数据；不要把它当作生产迁移工具。
+macOS/Linux 使用 `source .venv/bin/activate`，并将路径分隔符替换为 `/`。
 
-### 2. Frontend
+### 2. 启动 Frontend
 
 新开终端：
 
@@ -110,13 +105,32 @@ npm install
 npm run dev -- --host 127.0.0.1
 ```
 
-访问 `http://127.0.0.1:5173`。Backend 地址不同可通过 `VITE_API_BASE_URL` 指定。
+访问 `http://127.0.0.1:5173`。Backend 地址不同可通过 `VITE_API_BASE_URL` 配置。
 
-## 真实 AI 与 Mock 模式
+## 真实 AI 与 hy-role 推荐
 
-所有非 Mock 标签都复用同一个 `OpenAICompatibleChatProvider`。`ChatService` 不知道腾讯混元、Gemini、DeepSeek 或本地模型的差异；供应商通过 `.env` 配置切换。
+所有真实模型共用一个 `OpenAICompatibleChatProvider`。`ChatService` 不感知腾讯混元、Gemini、DeepSeek 或本地模型差异；供应商通过 `base_url + api_key + model + output_mode` 配置切换。
 
-### 腾讯混元 / TokenHub：hy3
+基于本项目 NPC 角色对话实测，`hy-role` 在角色一致性、上下文理解和自然表达方面表现最好，因此推荐作为本项目的首选真实模型。该结论只代表本项目场景下的体验，不构成通用模型排名。
+
+### 推荐配置：腾讯混元 hy-role
+
+```env
+CHAT_PROVIDER=hunyuan
+CHAT_LLM_BASE_URL=<TokenHub 控制台提供的 OpenAI-compatible Base URL>
+CHAT_LLM_API_KEY=<仅保存在本地 Backend 的 Key>
+CHAT_LLM_MODEL=hy-role
+CHAT_LLM_AUTH_MODE=bearer
+CHAT_LLM_OUTPUT_MODE=text
+CHAT_LLM_TIMEOUT_SECONDS=30
+CHAT_PROMPT_VERSION=v3
+```
+
+`hy-role` 更擅长自然角色表达，但不稳定遵守 `reply + emotion` JSON 契约，因此推荐 `text` 模式。Adapter 会验证回复长度并确定性派生 emotion，公共 Chat API、ChatService 和 Fallback 均不改变。若模型能够稳定返回结构化 JSON（如项目验证过的 `hy3`），可以改用 `CHAT_LLM_OUTPUT_MODE=structured_json`。
+
+### 其余模型用法
+
+#### 腾讯混元 / TokenHub：hy3
 
 ```env
 CHAT_PROVIDER=hy3
@@ -126,125 +140,160 @@ CHAT_LLM_MODEL=<TokenHub 控制台给出的 hy3 模型 ID>
 CHAT_LLM_AUTH_MODE=bearer
 CHAT_LLM_OUTPUT_MODE=structured_json
 CHAT_LLM_TIMEOUT_SECONDS=30
-CHAT_PROMPT_VERSION=v2
+CHAT_PROMPT_VERSION=v3
 ```
 
-### 腾讯混元 / TokenHub：hy-role
-
-`hy-role` 更倾向返回自然文本，不应强制按 `reply + emotion` JSON 解析：
-
-```env
-CHAT_PROVIDER=hunyuan
-CHAT_LLM_BASE_URL=<TokenHub 控制台给出的 OpenAI-compatible Base URL>
-CHAT_LLM_API_KEY=<仅保存在本地 Backend 的 Key>
-CHAT_LLM_MODEL=hy-role
-CHAT_LLM_AUTH_MODE=bearer
-CHAT_LLM_OUTPUT_MODE=text
-CHAT_LLM_TIMEOUT_SECONDS=30
-CHAT_PROMPT_VERSION=v2
-```
-
-Text 模式仍由 Adapter 生成确定性的安全 emotion，公共 Chat API 不变。
-
-### Gemini OpenAI compatibility
+#### Gemini OpenAI Compatibility
 
 ```env
 CHAT_PROVIDER=gemini
 CHAT_LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 CHAT_LLM_API_KEY=<仅保存在本地 Backend 的 Key>
-CHAT_LLM_MODEL=gemini-2.5-flash
+CHAT_LLM_MODEL=gemini-3.7-flash
 CHAT_LLM_AUTH_MODE=bearer
 CHAT_LLM_OUTPUT_MODE=structured_json
 CHAT_LLM_TIMEOUT_SECONDS=30
-CHAT_PROMPT_VERSION=v2
+CHAT_PROMPT_VERSION=v3
 ```
 
-修改 `.env` 后必须完整重启 Backend。部分本地网络访问 Gemini 需要系统代理，这是网络可达性问题，不应通过业务代码绕过。
+修改 `.env` 后需要完整重启 Backend。
 
-Primary Provider 的 HTTP、超时、传输、响应结构或校验故障会安全回退到 Mock。前端显示“AI 暂不可用，已使用 Mock 回复”，响应同时返回实际 `provider` 与 `fallback_used`；日志只记录安全错误分类，不输出 Key、Authorization、完整 Prompt 或响应正文。
+### 示意对话（非实测响应）
 
-## 架构、数据流与决策流程
+> 玩家：历史书可信吗？
+>
+> Grey：公开记录能告诉你发生过什么，却未必解释每个人为何做出选择。没有证据前，我不会把怀疑当成真相。
 
-```text
-Vue View / Components
-  ├─ World Store  ── World API ── WorldTickService ── deterministic engine
-  ├─ NPC Store    ── NPC Detail API ──────────────── read-only query
-  ├─ Chat Store   ── Chat API ── ChatService ── ChatProvider ── Mock/LLM
-  └─ PlayerQuest Store ── Player/Quest API ── PlayerQuestService
-                                                    │
-data/*.json ── seed_world.py ── SQLite repositories ┘
+当前没有保存可公开引用的真实回复，因此这里明确使用示意对话，不把创作文案伪装成模型实测记录。
+
+Primary Provider 出现超时、网络错误、非 2xx 或响应校验失败时，会自动回退到 Mock。Frontend 会显示实际 `provider` 和 `fallback_used`；安全日志只记录错误分类与 HTTP 状态，不输出敏感内容。
+
+## 架构、接口与决策流程
+
+```mermaid
+flowchart LR
+    Frontend["Vue 3 Frontend<br/>Views · Components · Pinia Stores"]
+    API["FastAPI REST API"]
+
+    subgraph Services["业务服务层"]
+        WorldTick["WorldTickService"]
+        NPC["NPCService"]
+        PlayerQuest["PlayerQuestService"]
+        Chat["ChatService"]
+    end
+
+    subgraph Deterministic["确定性游戏运行链"]
+        WorldEngine["World Tick Engine<br/>Snapshot → Decision → Validation"]
+        QuestRules["Quest Rules<br/>确定性状态迁移"]
+        GameRepositories["World / NPC / Player / Quest Repositories"]
+    end
+
+    subgraph Generative["生成式对话运行链"]
+        Context["Authoritative Context Builder"]
+        Provider["ChatProvider Interface"]
+        Mock["Mock Provider"]
+        Adapter["OpenAI-compatible Adapter"]
+        Models["腾讯混元 · DeepSeek · Gemini · 本地 Qwen"]
+        ChatRepository["Chat Repository"]
+    end
+
+    SQLite[("SQLite")]
+    Seed["data/*.json<br/>seed_world.py"]
+    Boundary["状态隔离：Chat 只读游戏上下文<br/>不修改 World / NPC / Player / Quest"]
+
+    Frontend --> API
+    API --> WorldTick
+    API --> NPC
+    API --> PlayerQuest
+    API --> Chat
+
+    WorldTick --> WorldEngine --> GameRepositories
+    NPC --> GameRepositories
+    PlayerQuest --> QuestRules --> GameRepositories
+    Seed --> GameRepositories
+    GameRepositories --> SQLite
+
+    Chat --> Context
+    Context -. 只读 .-> GameRepositories
+    Chat --> Provider
+    Provider --> Mock
+    Provider --> Adapter --> Models
+    Chat -->|仅保存聊天记录| ChatRepository
+    ChatRepository --> SQLite
+    Chat -. 遵守 .-> Boundary
 ```
 
-关键边界：
+### 两条明确隔离的运行链
 
-- Backend 是 World、NPC、Player 和 Quest 的唯一事实来源。
-- World Tick 一次推进一小时，使用 `expected_tick` 乐观锁；全部 NPC 从同一快照决策并在单事务中更新。
-- Chat 只读 World/NPC/最近 Action 与 Player/Quest 摘要，只写完整的 User/Assistant 会话轮次。
-- Quest 只由明确的 Interaction 推进；旅行只改玩家地点，不推进时间。
-- Frontend 不复制任务迁移规则，只展示 Backend 返回的 objective 和 available interactions。
+- **确定性 World Engine**：`Snapshot → NPC Decision → Action Validation → Persistence`。所有 NPC 从同一不可变快照决策，Tick 通过 `expected_tick` 乐观锁并在单事务中持久化。
+- **生成式 Chat**：`Authoritative Context → Prompt v3 → Provider → Validation → Chat Persistence`。Chat 读取 World/NPC/Quest 摘要，只保存完整 User/Assistant 轮次。
 
-## API 与 Quest 契约
+Backend 是 World、NPC、Player 和 Quest 的唯一事实来源；Frontend 不复制任务迁移规则，只展示 Backend 返回的 objective 和 available interactions。
+
+### 当前 API
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
-| `GET` | `/api/world` | 世界时间、四地点、NPC 基础状态 |
+| `GET` | `/api/world` | 世界时间、四地点和 NPC 基础状态 |
 | `POST` | `/api/world/tick` | 以 `expected_tick` 推进一小时 |
 | `GET` | `/api/npcs/{npc_id}` | NPC 档案、状态和最近行动 |
-| `POST` | `/api/npcs/{npc_id}/chat` | 首轮/续聊，返回完整持久化轮次 |
-| `GET` | `/api/player` | 玩家位置、任务目标、版本和最近事件 |
+| `POST` | `/api/npcs/{npc_id}/chat` | 首轮或续聊，返回持久化聊天轮次 |
+| `GET` | `/api/player` | 玩家位置、Quest objective、版本和事件 |
 | `POST` | `/api/player/travel` | 移动到稳定地点 ID，不推进 Tick |
 | `POST` | `/api/quests/missing-child/interact` | 按 interaction + expected_version 推进任务 |
 
-示例：
+成功响应统一为 `{"success": true, "data": ..., "message": "ok"}`。详细契约见 [`docs/06_API_Contract.md`](docs/06_API_Contract.md)，数据库结构见 [`docs/07_Database_Schema.md`](docs/07_Database_Schema.md)。
 
-```json
-{"interaction": "ask_grey", "expected_version": 1}
-```
+## AI 工具使用与人工修正案例
 
-成功统一返回 `{"success": true, "data": ..., "message": "ok"}`。常见错误包括 404（资源不存在）、409（Tick/Quest 冲突或交互条件不满足）、422（请求结构非法）、503（数据库、上下文或 Provider 不可用）。
+项目采用“人定义目标与边界，AI 加速分析和实现，人工 review 后提交”的协作方式。设计先写入 Spec 和实施计划，开发按模块执行 TDD；AI 不自动 commit，也不能把模型回复直接转换为 World Action。
 
-详细契约见 [`docs/06_API_Contract.md`](docs/06_API_Contract.md)，数据库结构见 [`docs/07_Database_Schema.md`](docs/07_Database_Schema.md)。
+### 人工修正：`hy-role` 已消耗 Token，但页面仍回退到 Mock
 
-## 测试与验收
+1. **Observation**：TokenHub 显示请求已经消耗 Token，Backend 安全日志却记录 `category=response_validation`，Frontend 得到 Mock fallback。
+2. **Diagnosis**：网络和鉴权已经成功；失败发生在响应解析。统一 Adapter 当时强制要求 `reply + emotion` JSON，而 `hy-role` 返回高质量自然文本。
+3. **Minimal Fix**：没有复制 Hunyuan 专用 Provider，也没有修改 ChatService 或 Fallback；只在 OpenAI-compatible Adapter 增加 `structured_json | text` 输出模式。Text 模式保留长度验证，并确定性派生 emotion。
+4. **Regression**：Mock、结构化 Compatible Provider、Text Provider、Fallback、Chat API 和状态隔离测试全部保留；供应商仍通过配置切换。
 
-Backend：
+这个案例体现了项目的工程原则：先根据安全错误分类定位真正失败层，再在协议 Adapter 做最小修正，而不是让供应商差异渗入业务层。
+
+## 测试、限制与路线图
+
+### 自动验证
 
 ```powershell
+# Backend
 .\.venv\Scripts\python.exe -m pytest tests\backend -q -p no:cacheprovider
-```
 
-Phase 1D 跨模块验收：
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests\backend\test_phase1d_acceptance.py -q -p no:cacheprovider
-```
-
-Frontend：
-
-```powershell
+# Frontend
 Set-Location frontend
 npm test
 npm run type-check
 npm run build
 ```
 
-自动测试全部使用 disposable SQLite 和 Mock/假 Provider，不发起真实模型网络请求，也不需要 API Key。
+自动测试使用临时 SQLite、Mock 或假 Provider，不读取 API Key，也不发起真实模型网络请求。`tests/backend/test_phase1e_acceptance.py` 会验证 Prompt v3 Mock 三人回答有区分、Chat 不修改游戏状态，以及失踪孩子五步任务完整闭环。
 
-## AI 工具使用与人工修正案例
+### 当前已完成
 
-本项目使用 AI Coding 辅助拆分 Spec/Plan、生成测试骨架、实现模块和同步文档；每个模块坚持 TDD，并由开发者人工 review diff 后提交。AI 不被允许自动 commit，也不能把模型输出直接作为 World Action 执行。
+- Phase 0：Monorepo、FastAPI、Vue、SQLite 与首个 World API。
+- Phase 1A–1B：确定性 World Tick、NPC Detail、解释层和 Frontend 闭环。
+- Phase 1C：Chat Provider 抽象、Mock、Compatible Adapter、Fallback 与聊天持久化。
+- Phase 1D：四地点、Player、六状态 Quest、共址检查和任务 UI。
+- Phase 1E：Story Bible、Prompt v3、角色知识边界、剧情化任务文案和提交叙事。
 
-一个真实人工修正案例发生在腾讯混元接入：最初 compatible Adapter 强制校验 `reply + emotion` JSON。`hy-role` 已在 TokenHub 消耗 Token，但返回自然文本，Backend 将其分类为 `response_validation` 并触发 Mock fallback。人工结合安全日志和真实响应行为确认问题后，没有复制一个 Hunyuan 专用 Provider，也没有修改 ChatService/Fallback；只在统一 Adapter 增加 `structured_json | text` 输出模式，Text 模式对回复做同样长度校验并确定性派生 emotion。这样既跑通 `hy-role`，也保持了公共契约和未来供应商扩展能力。
+### 已知限制
 
-## 已知限制与路线图
+- 当前 Frontend 是响应式 DOM 界面，还没有像素 RPG 地图、角色精灵或动画。
+- 当前没有线上体验地址、Docker 或演示视频。
+- 任务只有一条确定性主线，没有奖励、背包、账号和分支结局。
+- 尚未实现长期 Memory、Relationship、Reflection、RAG、多人系统或 LLM 驱动 World Tick。
 
-当前已完成并通过自动测试的是 Phase 1D：四地点世界、角色化例程、Prompt/Mock v2、compatible Adapter 双输出模式、Player/Quest Backend、Frontend DOM 任务闭环与持久化验收。
+### 后续路线
 
-尚未实现：
+1. **Phase 2**：像素 RPG 地图与角色交互，复用现有 API 和 Store。
+2. **Phase 2B**：界面动画、响应式布局与体验打磨。
+3. **Phase 3**：Docker、线上部署、截图、演示视频与最终交付。
+4. **Phase 3+**：更多任务、Relationship、有限 Memory 或高级 Agent。
 
-- 线上体验地址、Docker 和 CI/CD；计划在 Phase 1E 完成部署与交付工程化。
-- PixiJS/Canvas/Cocos 地图、角色精灵、碰撞、动画；计划在 Phase 2 迁移展示层，复用现有 API/Store。
-- 任务奖励、背包、账号、多人和通用 Quest DSL。
-- 长期 Memory、Relationship、Reflection、Planning、RAG 和 LLM 驱动 World Tick。
-
-这些能力不会为了“看起来复杂”而提前进入当前确定性核心。完整设计与路线见 [`docs/`](docs/)。
+完整内容事实源见 [`docs/15_Story_Bible_CN.md`](docs/15_Story_Bible_CN.md)，Prompt 工程见 [`docs/08_Prompt_Engineering_CN.md`](docs/08_Prompt_Engineering_CN.md)，开发路线见 [`docs/13_Development_Roadmap.md`](docs/13_Development_Roadmap.md)。

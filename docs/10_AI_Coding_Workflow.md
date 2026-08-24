@@ -598,4 +598,39 @@ Aleria AI Town 的开发方式：
 
 ------------------------------------------------------------------------
 
+
+
+# 14. Phase 1E 实际协作与人工修正案例
+
+当前项目采用以下闭环：
+
+    人定义目标、范围和不可破坏边界
+        ↓
+    AI 协助分析、编写测试和最小实现
+        ↓
+    自动测试、类型检查、构建与 Diff
+        ↓
+    人工 Review
+        ↓
+    由开发者手动提交 Git
+
+AI 不被授权自动 commit，也不能将模型输出直接作为 World Action、Quest Command 或数据库写入。
+
+## Observation
+
+接入腾讯混元 hy-role 时，TokenHub 已显示 Token 消耗，但 Frontend 仍提示使用 Mock；Backend 安全日志记录 category=response_validation。
+
+## Diagnosis
+
+请求已经到达模型，网络和鉴权并非主要失败点。真正原因是 hy-role 返回自然文本，而 Adapter 当时只接受 reply + emotion JSON。
+
+## Minimal Fix
+
+没有复制 Hunyuan 专用 Provider，也没有修改 ChatService 或 Fallback。人工确认边界后，只在统一 OpenAI-compatible Adapter 增加 structured_json | text 输出模式；text mode 继续校验正文，并确定性派生 emotion。
+
+## Regression
+
+补充 Adapter、Provider、Fallback、Chat API 和状态隔离测试；重新验证 Mock、结构化模型和自然文本模型共用同一公共契约，且 Chat 不修改 World、NPC、Player 或 Quest。
+
+------------------------------------------------------------------------
 # End of Document

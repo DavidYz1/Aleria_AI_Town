@@ -34,7 +34,7 @@
 
     │   ├── ...
 
-    │   └── 11_Project_Structure.md
+    │   └── 15_Story_Bible_CN.md
 
 
     ├── frontend/
@@ -54,7 +54,7 @@
 
     └── scripts/
 
-Docker Compose 与 `deployment/` 尚未进入当前仓库，属于 Phase 1E 计划，不应按现有文件使用。
+Docker Compose 与 `deployment/` 尚未进入当前仓库，属于 Phase 3 交付计划，不应按现有文件使用。
 
 ------------------------------------------------------------------------
 
@@ -401,25 +401,30 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
 目录：
 
     prompts/
-    └── v1/
+    ├── v1/                  # 回退资产
+    ├── v2/                  # 回退资产
+    └── v3/                  # 当前默认
         ├── world_lore.md
         ├── chat_system.md
+        ├── player_context.md
         └── characters/
             ├── ryan.md
             ├── shir.md
             └── grey.md
 
-保存：
+当前职责：
 
--   世界背景
--   NPC人格
--   Agent提示词
+-   World Lore 只提供公开历史，不包含完整 Author Truth
+-   Player Context 规定失忆旅人与未知印记的事实边界
+-   Character Prompt 分离三名 NPC 的确认知识、怀疑、误解与隐瞒
+-   v3 由 `CHAT_PROMPT_VERSION=v3` 默认加载
+-   v1/v2 只作为显式回退资产
 
 ------------------------------------------------------------------------
 
 # 7. Tests
 
-Phase 1D 增加 Backend 的 Player/Quest policy、repository、service、API 和 `test_phase1d_acceptance.py`；Frontend 增加 playerQuest API/Store、LocationCard、PlayerLocationPanel、QuestPanel 与 TownView 集成测试。验收测试使用 disposable SQLite 和 Mock/假 Provider，不访问真实网络。
+Phase 1E 增加 Story Bible、Prompt v3、剧情化 Player/Quest 和提交级验收；`test_story_content.py` 固定内容连续性，`test_phase1e_acceptance.py` 验证三角色 Mock、状态隔离与五步任务。验收测试使用临时 SQLite 和 Mock/假 Provider，不访问真实网络。
 
 测试范围：
 
@@ -442,6 +447,8 @@ Phase 1D 增加 Backend 的 Player/Quest policy、repository、service、API 和
     │   ├── test_npc_repository.py
     │   ├── test_npc_service.py
     │   ├── test_seed_world.py
+    │   ├── test_story_content.py
+    │   ├── test_phase1e_acceptance.py
     │   ├── test_world_api.py
     │   ├── test_world_engine.py
     │   └── test_world_tick.py
@@ -469,7 +476,7 @@ Phase 1D 增加 Backend 的 Player/Quest policy、repository、service、API 和
 -   Agent输出校验
 -   角色一致性
 
-World Tick测试已随Phase 1A实现创建，NPC Detail测试已随Phase 1B创建，Chat/Provider/Frontend测试随Phase 1C创建。LLM 驱动的 Action Agent 与 Memory 测试继续随对应行为实现，不预先建立空测试。
+World Tick 测试随 Phase 1A 创建，NPC Detail 随 Phase 1B 创建，Chat/Provider/Frontend 随 Phase 1C 创建，Player/Quest 随 Phase 1D 创建，内容与提交级验收随 Phase 1E 创建。LLM Action Agent 与 Memory 测试继续随对应行为实现，不预先建立空测试。
 
 ------------------------------------------------------------------------
 

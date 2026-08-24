@@ -20,9 +20,11 @@
 
 ## Phase 1D 后的权威推进顺序
 
-1. **Phase 1E：部署与交付工程化**——线上体验地址、Docker、CI 和 README 提交信息。
-2. **Phase 2：地图展示层**——优先 PixiJS，增加场景、角色交互、动画和响应式体验，复用现有 API/Store。
-3. **Phase 3+：Agent 与内容增强**——按演示价值选择 Relationship、长期 Memory、更多任务和 NPC 互动。
+1. **Phase 1E：内容圣经与提交叙事**——统一世界事实、Prompt v3、剧情文案和 README。
+2. **Phase 2：像素 RPG 地图与角色交互**——优先 PixiJS，复用现有 API/Store。
+3. **Phase 2B：动画、响应式与体验打磨**——补充反馈、动效和多尺寸体验。
+4. **Phase 3：交付工程化**——Docker、线上部署、截图、演示视频和最终提交。
+5. **Phase 3+：内容与 Agent 增强**——更多任务、Relationship、有限 Memory 或高级 Agent。
 
 本文后半部分的 Agent/Memory/高级持久化章节保留为能力 backlog，不再代表紧接 Phase 1D 的执行顺序。
 
@@ -191,6 +193,15 @@ Phase 0不实现：
 -   Frontend 完成旅行、任务目标/进展、loading/error/retry/409 和响应式 DOM 闭环。
 -   跨模块 acceptance 验证持久化，以及 Quest/Chat/World/NPC 隔离。
 
+## Phase 1E 完成状态（2026-08-24）
+
+-   建立 `docs/15_Story_Bible_CN.md` 作为唯一内容事实源。
+-   Prompt v3 默认启用，按角色分离确认知识、怀疑、错误相信与隐瞒。
+-   Mock 覆盖失忆、印记、终焉战争和灰烬战争等剧情意图。
+-   四地点、失踪孩子任务和 Frontend 玩家提示连接主线伏笔。
+-   README 改为游戏作品优先，并记录 hy-role 的场景化实测推荐。
+-   Phase 1E 自动验收证明 Chat 隔离和五步任务闭环保持稳定。
+
 Phase 1 MVP 已完成。PixiJS、RAG、复杂 Memory、Relationship、LLM Tick Decision 和多人系统继续延期。
 
 ## 目标
@@ -321,7 +332,7 @@ Phase 1 MVP 已完成。PixiJS、RAG、复杂 Memory、Relationship、LLM Tick D
 
 ------------------------------------------------------------------------
 
-# 6. Phase 3：高级持久化与快照
+# 6. 高级持久化与快照（Phase 3+ backlog）
 
 目标：
 
@@ -361,7 +372,7 @@ SQLite（计划新增）:
 
 ------------------------------------------------------------------------
 
-# 7. Phase 4：AI能力增强
+# 7. 高级 AI 能力（Phase 3+ backlog）
 
 增加：
 
@@ -434,7 +445,17 @@ Web管理页面
 
 ------------------------------------------------------------------------
 
-# 9. Phase 3+：展示级内容增强
+# 9. Phase 2B、Phase 3 与 Phase 3+
+
+## Phase 2B：体验打磨
+
+-   界面动画、交互反馈与响应式布局
+
+## Phase 3：最终交付
+
+-   Docker、线上部署、截图、演示视频与提交信息
+
+## Phase 3+：内容与 Agent 增强
 
 可选：
 
@@ -472,7 +493,7 @@ Alice和Bob：
 
 ------------------------------------------------------------------------
 
-# 10. 推荐开发时间安排
+# 10. 历史开发时间安排参考（非当前权威顺序）
 
 # Day 1
 
@@ -515,7 +536,7 @@ AI和工程增强。
 -   Prompt
 -   Mock模式
 -   测试
--   Docker
+-   回归测试与文档同步
 
 目标：
 
