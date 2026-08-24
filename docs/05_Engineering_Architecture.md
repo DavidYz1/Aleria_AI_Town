@@ -74,6 +74,28 @@ Provider 边界为 `ChatProvider`。默认 `MockChatProvider` 无 Key 运行；�
 
 Frontend 使用第三个独立 `npcChat` Store；World、NPC Detail、NPC Chat 三个 Store 不互相导入，由 `TownView` 协调。切换或关闭 NPC 只隐藏 Chat Panel，不删除页面生命周期内的 per-NPC session；Tick 变化只刷新 Detail。
 
+## Phase 1D implementation status
+
+Phase 1D 在原有三个切片之外增加独立 Player/Quest 纵向切片：
+
+```text
+Vue PlayerQuest Store
+        ↓
+GET /api/player | POST /api/player/travel | POST /api/quests/missing-child/interact
+        ↓
+PlayerQuestService
+        ↓
+MissingChildQuestPolicy + PlayerQuestRepository
+        ↓
+player_states + quest_progress + quest_events
+```
+
+`MissingChildQuestPolicy` 是纯状态机和展示派生；Service 校验 interaction、位置和 expected version；Repository 在一个事务中更新 Progress 并写 Quest Event。`ask_grey` 额外读取 Grey 的实时地点，只有玩家与 Grey 同地点时可执行。
+
+Chat Slice 通过 `PlayerQuestChatContextReader` 只读 Player/Quest objective。依赖方向始终是 Chat Context → Reader，而不是 ChatService → Quest update；Chat、Fallback 和真实 Provider 都不能推进任务。旅行也不调用 World Tick，因此玩家移动、NPC 自主行动和任务交互具有明确独立边界。
+
+Provider 仍只有一个 compatible Adapter。`CHAT_LLM_OUTPUT_MODE=structured_json` 严格解析 `reply + emotion`；`text` 模式校验自然文本并根据 NPC/当前 mood 确定性派生 emotion。两种模式都保留同一 ChatProvider、ChatService、Fallback 和 API 契约。
+
 ## 1.1 Design Goal
 
 本项目采用模块化单体架构（Modular Monolith）。

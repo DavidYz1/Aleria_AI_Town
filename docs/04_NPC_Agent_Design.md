@@ -1,8 +1,16 @@
 # Aleria AI Town NPC Agent Design
 
-Version: v1.0
+Version: v1.1
 
-Last Updated: 2026-08-22
+Last Updated: 2026-08-24
+
+## Phase 1D implementation baseline
+
+当前“Agent”采用可审计的混合边界：World Tick 决策仍为纯确定性规则；LLM 仅用于 Chat 表达。三名 NPC 根据 needs、morning/day/evening/night 和角色职责行动：Ryan 在公园训练，Shir 在森林侦察，Grey 在城堡巡逻。低能量/低社交/低心情优先于角色例程。
+
+Prompt v2 为每个角色定义外显性格、内在矛盾、语言风格和信息边界；Mock v2 对“你是谁、这里是哪里、你在哪里、正在做什么、任务是什么”等高频意图给出角色化确定性回答。Chat 读取权威 Player/Quest objective，但不能改变任务、世界或 NPC。
+
+Memory、Relationship、Goal、Reflection 和 LLM Action Decision 在本文仍是未来架构，不代表当前代码已经实现。
 
 # 1. Overview
 

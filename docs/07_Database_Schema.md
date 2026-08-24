@@ -1,6 +1,6 @@
 # Aleria AI Town Database Schema Design
 
-Version: v1.3
+Version: v1.4
 
 Last Updated: 2026-08-24
 
@@ -106,6 +106,46 @@ conversation_messages(
 
 User 与 Assistant 在同一个事务中成对写入。User 行的 `emotion/provider/prompt_version` 为 `NULL`；Assistant 行记录经过校验的情绪、实际 Provider、fallback 标记和 Prompt 版本。Provider 失败时不创建 Conversation，也不留下半轮消息。
 
+Phase 1D 增加：
+
+-   `player_states`
+-   `quest_progress`
+-   `quest_events`
+
+```text
+player_states(
+  id TEXT PRIMARY KEY,
+  world_id TEXT NOT NULL REFERENCES world_state(id),
+  location_id TEXT NOT NULL REFERENCES locations(id),
+  updated_at DATETIME NOT NULL
+)
+
+quest_progress(
+  player_id TEXT REFERENCES player_states(id),
+  quest_id TEXT,
+  status TEXT NOT NULL,
+  version INTEGER NOT NULL CHECK(version >= 0),
+  updated_tick INTEGER NOT NULL CHECK(updated_tick >= 0),
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY(player_id, quest_id)
+)
+
+quest_events(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  player_id TEXT NOT NULL REFERENCES player_states(id),
+  quest_id TEXT NOT NULL,
+  from_status TEXT NOT NULL,
+  to_status TEXT NOT NULL,
+  interaction TEXT NOT NULL,
+  location_id TEXT NOT NULL REFERENCES locations(id),
+  world_tick INTEGER NOT NULL CHECK(world_tick >= 0),
+  created_at DATETIME NOT NULL,
+  INDEX ix_quest_events_player_quest_id(player_id, quest_id, id)
+)
+```
+
+Quest 更新使用 `player_id + quest_id + expected version` 条件写入；命中行数为 0 表示并发冲突。一次成功 interaction 的 Progress 更新与 Quest Event 插入只提交一次，失败整体回滚。
+
 Phase 2及以后按实际用例增加：
 
 -   `entities`
@@ -116,7 +156,7 @@ Phase 2及以后按实际用例增加：
 
 根目录 `data/*.json` 只作为可读种子输入。运行时状态只保存在SQLite中。
 
-重播种表示把目标世界恢复到种子Tick，因此会在同一事务中按 `conversation_messages → conversations → events → actions` 的依赖顺序删除目标世界历史，再重置当前状态；其他world_id的数据不受影响。
+重播种表示把目标世界恢复到种子 Tick，因此会在同一事务中按 `quest_events → quest_progress → player_states → conversation_messages → conversations → events → actions` 的依赖顺序清理，再插入固定 Player/Quest 初始记录并重置 World/NPC；其他 `world_id` 数据不受影响。
 
 已有Phase 0数据库使用 `python scripts/upgrade_schema.py` 增量创建缺失表。该命令只执行SQLAlchemy `create_all` 的加表操作，不重置当前状态或历史；未来出现改列、数据迁移等需求时再引入版本化迁移工具。
 
@@ -566,7 +606,7 @@ Example:
 ``` json
 {
 "id":"aleria-town",
-"name":"晨曦镇",
+"name":"曦谷",
 "day":1,
 "time":"10:00",
 "tick":10
@@ -642,13 +682,11 @@ Optimistic Lock。
 
 ------------------------------------------------------------------------
 
-# 15. Future Tables
+# 15. Current And Future Tables
 
-预留：
+## player_states / quest_progress / quest_events
 
-## quests
-
-任务系统。
+Phase 1D 已实现固定 Player 和一个专用任务。它们不是通用 Quest Definition、奖励或背包系统。
 
 ## inventory
 
@@ -658,7 +696,7 @@ Optimistic Lock。
 
 Phase 1C 已实现聊天会话与消息历史。Conversation 绑定稳定的 World/NPC 边界；消息按自增 `id` 保持顺序，Repository 只向 Chat Context 返回配置上限内的最新消息，并恢复为时间正序。
 
-当前实现不把 Chat 自动写入 `memories`，也不创建 Player 或 Relationship 外键。上述能力仍由后续阶段按实际用例增加。
+当前实现不把 Chat 自动写入 `memories`，也不创建 Relationship 外键。上述能力仍由后续阶段按实际用例增加。
 
 ------------------------------------------------------------------------
 
@@ -669,36 +707,19 @@ Phase 1C 已实现聊天会话与消息历史。Conversation 绑定稳定的 Wor
 
     world_state
 
-    world_snapshots
-
-
     locations
 
 
-    entities
-
-        |
-
-        |---- npc_profiles
-
-        |
-
-        |---- player_profiles
+    npc_profiles ── npc_states
 
 
-    entity_states
-
-
-    relationships
+    player_states ── quest_progress ── quest_events
 
 
     actions
 
 
     events
-
-
-    memories
 
 
     conversations
@@ -708,7 +729,7 @@ Phase 1C 已实现聊天会话与消息历史。Conversation 绑定稳定的 Wor
         └---- conversation_messages
 
 
-    quests(optional)
+    Future: world_snapshots / relationships / memories / inventory
 
 ------------------------------------------------------------------------
 

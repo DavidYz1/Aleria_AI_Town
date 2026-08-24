@@ -1,8 +1,14 @@
 # Aleria AI Town Project Context
 
-Version: v1.0
+Version: v1.1
 
-Last Updated: 2026-08-22
+Last Updated: 2026-08-24
+
+## Phase 1D implementation baseline
+
+当前可运行世界展示名为“曦谷”，包含 `tavern/park/castle/forest` 四个稳定地点和 Ryan、Shir、Grey 三名 NPC。项目已经完成确定性 World Tick、NPC Detail、Mock/compatible Chat、最小 Player 与“失踪的孩子”任务闭环。
+
+Player 仅保存固定 ID、世界和当前位置；Quest 仅实现一个有界状态机。旅行不推进 Tick，Chat 只读 Player/Quest 摘要，只有显式 Quest Interaction 可以推进任务。长期 Memory、Relationship、通用 Quest、地图渲染和多人系统仍是未来方向，不应被下文的概念设计误认为已实现能力。
 
 # 1. Project Overview
 
@@ -42,7 +48,7 @@ Aleria AI Town 是一个 AI Native Fantasy Simulation Game。
 
 核心体验：
 
-玩家进入晨曦镇
+玩家进入曦谷
 
 ↓
 
@@ -178,7 +184,7 @@ Aleria
 
 中文：
 
-晨曦镇
+曦谷
 
 ## 4.2 Background
 
@@ -186,7 +192,7 @@ Aleria
 
 战争结束后：
 
-冒险者、居民和旅行者来到晨曦镇。
+冒险者、居民和旅行者来到曦谷。
 
 玩家作为冒险者进入小镇，与不同背景的NPC相遇。
 
@@ -419,19 +425,19 @@ NPC聊天
 
 Current Phase:
 
-Context Engineering + System Design
+Phase 1D complete; preparing Phase 1E delivery engineering
 
 Completed:
 
--   Product positioning
--   World concept
--   NPC design
--   World rules
--   Agent concept
+-   曦谷四地点、三名 NPC 与确定性 World Tick
+-   NPC Detail、Prompt v2、Mock/compatible Chat 与 fallback
+-   固定 Player、五步“失踪的孩子”任务与 SQLite 持久化
+-   Vue DOM 旅行、任务、对话和错误/冲突处理
+-   Backend/Frontend 自动化测试与生产构建
 
 Next:
 
-Engineering Architecture Design
+Phase 1E 部署与交付工程化；随后在 Phase 2 迁移地图展示层
 
 # 10. AI Coding Rules
 

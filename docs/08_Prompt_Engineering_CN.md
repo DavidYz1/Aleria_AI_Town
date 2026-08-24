@@ -6,6 +6,25 @@
 
 更新时间：2026-08-24
 
+## Phase 1D 实现基线
+
+运行时代码默认加载 `prompts/v2/`：
+
+```text
+world_lore.md
+chat_system.md
+player_context.md
+characters/ryan.md
+characters/shir.md
+characters/grey.md
+```
+
+World Lore 只定义曦谷和可确认的公共历史；Character Bible 分别规定角色的外显性格、内在矛盾、语言节奏、知道/不知道的信息以及不得越界的内容。Player Context 明确玩家身份为空白旅行者，模型不得擅自补全姓名、职业、经历或关系。
+
+运行时 Context 还包含权威 World/NPC/Location、最近 Action、有界聊天历史和只读 Player/Quest objective。任务摘要用于回答问题，不构成执行任务的指令。
+
+`structured_json` 模式要求只返回 `reply + emotion` JSON；`text` 模式只接收自然回复正文，并由 Adapter 确定性派生 emotion。输出模式是模型能力差异，不进入角色 Prompt，也不改变公共 Chat API。Mock v2 不调用网络，用相同权威 Context 对高频意图产生角色化确定性回复。
+
 # 1. Prompt Engineering 设计理念
 
 ## 1.1 核心思想
@@ -692,15 +711,16 @@ Prompt也是代码资产。
 目录：
 
     prompts/
-    └── v1/
+    └── v2/
         ├── world_lore.md
         ├── chat_system.md
+        ├── player_context.md
         └── characters/
             ├── ryan.md
             ├── shir.md
             └── grey.md
 
-当前配置 `CHAT_PROMPT_VERSION=v1`；未知版本或缺失/空 Prompt 文件返回安全的 `Chat context is unavailable`，不会静默使用不完整上下文。
+默认配置 `CHAT_PROMPT_VERSION=v2`，同时保留 v1 兼容；未知版本或缺失/空 Prompt 文件返回安全的 `Chat context is unavailable`，不会静默使用不完整上下文。
 
 ------------------------------------------------------------------------
 

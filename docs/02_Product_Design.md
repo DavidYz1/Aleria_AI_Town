@@ -1,8 +1,12 @@
 # Aleria AI Town Product Design
 
-Version: v1.0
+Version: v1.1
 
-Last Updated: 2026-08-22
+Last Updated: 2026-08-24
+
+## Phase 1D implementation baseline
+
+当前 MVP 的玩家不是可创建职业的完整 RPG 角色，而是固定 `default-player`。玩家可在曦谷的星辉酒馆、中央公园、晨曦城堡和低语森林之间旅行，观察三名 NPC、推进世界时间、对话，并完成“失踪的孩子”。下文的职业、关系、Memory 和更多地点属于产品演进设想。
 
 # 1. Product Vision
 
@@ -36,11 +40,11 @@ Aleria AI Town is an AI Native Fantasy Simulation Game.
 
 玩家体验流程：
 
-    创建冒险者身份
+    以固定旅行者身份进入
 
     ↓
 
-    进入晨曦镇
+    进入曦谷
 
     ↓
 
@@ -82,7 +86,7 @@ Aleria（晨曦大陆）
 
 战争结束后，大陆进入恢复时期。
 
-大量冒险者、旅行者和居民来到晨曦镇。
+大量冒险者、旅行者和居民来到曦谷。
 
 这里成为：
 
@@ -110,7 +114,7 @@ Aleria（晨曦大陆）
 
 ## 4.1 Town Name
 
-晨曦镇（Aleria Town）
+曦谷（Aleria Town）
 
 定位：
 
@@ -152,7 +156,7 @@ Aleria（晨曦大陆）
 
 ------------------------------------------------------------------------
 
-## 5.1 Tavern（星辰酒馆）
+## 5.1 Tavern（星辉酒馆）
 
 功能：
 
@@ -477,11 +481,13 @@ NPC之间关系
 
 # 10. MVP Scope
 
+Phase 1D 已实现范围：四地点世界、三名角色化 NPC、确定性 Tick、NPC Detail、Mock/真实模型 Chat、固定 Player、五步任务及响应式 DOM 页面。训练场/居民区、玩家职业、长期关系和复杂 Agent 能力不属于当前验收范围。
+
 ## Must Have
 
 实现：
 
--   晨曦镇展示
+-   曦谷展示
 -   NPC展示
 -   NPC详情
 -   Tick推进

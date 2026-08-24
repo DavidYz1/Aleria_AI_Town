@@ -1,6 +1,6 @@
 # Aleria AI Town API Contract
 
-Version: v1.4
+Version: v1.5
 
 Last Updated: 2026-08-24
 
@@ -68,7 +68,7 @@ Response example:
   "data": {
     "world": {
       "id": "aleria-town",
-      "name": "晨曦镇",
+      "name": "曦谷",
       "day": 1,
       "time": "08:00",
       "tick": 0
@@ -76,13 +76,23 @@ Response example:
     "locations": [
       {
         "id": "tavern",
-        "name": "星辰酒馆",
-        "description": "冒险者交流和休息的地方"
+        "name": "星辉酒馆",
+        "description": "旅行者交换消息、接受委托和休息的温暖酒馆"
       },
       {
         "id": "park",
         "name": "中央公园",
-        "description": "居民散步和放松的地方"
+        "description": "居民散步、放松和进行日常训练的开阔绿地"
+      },
+      {
+        "id": "castle",
+        "name": "晨曦城堡",
+        "description": "守卫曦谷、眺望山谷边境的古老城堡"
+      },
+      {
+        "id": "forest",
+        "name": "低语森林",
+        "description": "林间低语与旧日传闻交织的幽深森林"
       }
     ],
     "npcs": [
@@ -91,7 +101,7 @@ Response example:
         "name": "Ryan",
         "role": "Knight",
         "personality": ["optimistic", "brave", "kind"],
-        "location_id": "park",
+        "location_id": "castle",
         "current_action": "rest",
         "status": {
           "energy": 80,
@@ -193,20 +203,22 @@ Response:
     "world": {
       "world": {
         "id": "aleria-town",
-        "name": "晨曦镇",
+        "name": "曦谷",
         "day": 1,
         "time": "09:00",
         "tick": 1
       },
       "locations": [
-        {"id": "tavern", "name": "星辰酒馆", "description": "冒险者交流和休息的地方"},
-        {"id": "park", "name": "中央公园", "description": "居民散步和放松的地方"}
+        {"id": "tavern", "name": "星辉酒馆", "description": "旅行者交换消息、接受委托和休息的温暖酒馆"},
+        {"id": "park", "name": "中央公园", "description": "居民散步、放松和进行日常训练的开阔绿地"},
+        {"id": "castle", "name": "晨曦城堡", "description": "守卫曦谷、眺望山谷边境的古老城堡"},
+        {"id": "forest", "name": "低语森林", "description": "林间低语与旧日传闻交织的幽深森林"}
       ],
       "npcs": [
         {
           "id": "ryan", "name": "Ryan", "role": "Knight",
           "personality": ["optimistic", "brave", "kind"],
-          "location_id": "park", "current_action": "work",
+          "location_id": "castle", "current_action": "work",
           "status": {"energy": 70, "mood": 75, "social": 67}
         },
         {
@@ -231,7 +243,7 @@ Response:
         "action_type": "work",
         "target_kind": null,
         "target_id": null,
-        "reason": "knight_duty",
+        "reason": "knight_training",
         "status": "recorded",
         "world_time": "09:00"
       }
@@ -477,53 +489,84 @@ Backend flow：
 
 # 5. Player APIs
 
-规划中，尚未实现。本节不属于当前公共 API。
+Phase 1D 使用固定玩家 `default-player`，不提供创建、登录或职业 API。
 
-## 5.1 Create Player
+## 5.1 Get Player And Quest
 
 Method:
 
-    POST /api/player
+    GET /api/player
 
 Purpose:
 
-创建轻量玩家档案。
+返回玩家权威位置、任务状态、版本、当前 objective、当前位置可执行 interaction 和最近五条 Quest Event。
 
-不包含：
+Response excerpt:
 
--   登录
--   密码
--   权限系统
+``` json
+{
+  "success": true,
+  "data": {
+    "player": {
+      "id": "default-player",
+      "location_id": "tavern",
+      "location_name": "星辉酒馆"
+    },
+    "quest": {
+      "id": "missing-child",
+      "title": "失踪的孩子",
+      "status": "available",
+      "version": 0,
+      "objective": "查看星辉酒馆的委托板。",
+      "available_interactions": [
+        {"id": "accept_quest", "label": "接受委托"}
+      ],
+      "recent_events": []
+    }
+  },
+  "message": "ok"
+}
+```
+
+Errors: Player/Quest 不存在为 404；数据库不可用为安全 503。
+
+## 5.2 Travel
+
+Method:
+
+    POST /api/player/travel
+
+Request:
+
+``` json
+{"target_location_id": "castle"}
+```
+
+旅行到当前地点是幂等成功。未知地点为 404，非法 ID 为 422，数据库失败为 503。成功旅行只更新 Player location，不推进 World Tick、NPC State 或 Quest。
+
+## 5.3 Interact With Missing Child Quest
+
+Method:
+
+    POST /api/quests/missing-child/interact
 
 Request:
 
 ``` json
 {
-  "name": "Aria",
-  "class": "Mage"
+  "interaction": "ask_grey",
+  "expected_version": 1
 }
 ```
 
-## 5.2 Get Player
+合法 interaction 为 `accept_quest/ask_grey/inspect_shoe/search_child/return_child`。Backend 校验当前状态、玩家位置、Grey 实时位置和版本；成功返回与 `GET /api/player` 相同的完整聚合，并原子写入 Quest Progress + Quest Event。
 
-Method:
+错误契约：
 
-    GET /api/player/{player_id}
-
-## 5.3 Player Action
-
-Method:
-
-    POST /api/player/{player_id}/action
-
-Example:
-
-``` json
-{
-  "action": "move",
-  "target": "park"
-}
-```
+-   404：Player、Quest 或目标资源不存在。
+-   409：`expected_version` 过期，或当前状态/地点不允许该 interaction。
+-   422：字段缺失、非法 ID、未知 interaction 或负版本。
+-   503：读取或事务提交失败；不得留下半次迁移。
 
 # 6. Event APIs
 
@@ -631,7 +674,7 @@ Provider 失败不会修改 World Engine。若 Primary 与 Mock 均失败，则�
 
 -   Canvas/Pixi地图
 -   Memory增强
--   Quest系统
+-   更多任务与通用 Quest 引擎
 -   多玩家扩展
 
 # End of Document

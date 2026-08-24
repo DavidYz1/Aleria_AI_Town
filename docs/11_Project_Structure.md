@@ -1,6 +1,6 @@
 # Aleria AI Town 项目结构设计（Project Structure）
 
-版本：v1.4
+版本：v1.5
 
 更新时间：2026-08-24
 
@@ -22,8 +22,6 @@
     Aleria_AI_Town/
 
     ├── README.md
-
-    ├── docker-compose.yml
 
     ├── .env.example
 
@@ -54,10 +52,9 @@
     ├── tests/
 
 
-    ├── scripts/
+    └── scripts/
 
-
-    └── deployment/
+Docker Compose 与 `deployment/` 尚未进入当前仓库，属于 Phase 1E 计划，不应按现有文件使用。
 
 ------------------------------------------------------------------------
 
@@ -82,7 +79,7 @@ Vue3 + TypeScript + Vite
 -   世界规则
 -   数据持久化
 
-Phase 1C当前目录：
+Phase 1D当前目录：
 
     frontend/
     └── src/
@@ -90,20 +87,25 @@ Phase 1C当前目录：
         │   ├── chat.ts
         │   ├── client.ts
         │   ├── npc.ts
+        │   ├── playerQuest.ts
         │   └── world.ts
         ├── components/
         │   ├── LocationCard.vue
         │   ├── NpcCard.vue
         │   ├── NpcDetailPanel.vue
         │   ├── NpcChatPanel.vue
+        │   ├── PlayerLocationPanel.vue
+        │   ├── QuestPanel.vue
         │   └── TickPanel.vue
         ├── stores/
         │   ├── npcChat.ts
         │   ├── npcDetail.ts
+        │   ├── playerQuest.ts
         │   └── world.ts
         ├── types/
         │   ├── chat.ts
         │   ├── npc.ts
+        │   ├── playerQuest.ts
         │   ├── world.ts
         │   └── worldTick.ts
         ├── views/
@@ -172,7 +174,7 @@ UI组件。
 
     npcChat
 
-`npcDetail` 管理 `selectedNpcId`、loading/error/data、retry/refresh/close 与最新请求版本保护。`npcChat` 按 NPC 管理 conversation/messages/sending/error/pending/provider/fallback，并用独立请求版本阻止迟到响应污染新状态。Player Store 尚未实现。
+`npcDetail` 管理 `selectedNpcId`、loading/error/data、retry/refresh/close 与最新请求版本保护。`npcChat` 按 NPC 管理 conversation/messages/sending/error/pending/provider/fallback，并用独立请求版本阻止迟到响应污染新状态。`playerQuest` 独立管理聚合数据、旅行、交互、409 自动刷新和并发请求保护，不在 Frontend 实现任务迁移 switch。
 
 ------------------------------------------------------------------------
 
@@ -182,7 +184,22 @@ UI组件。
 
 Python + FastAPI
 
-Phase 1C当前目录（新增 Chat Slice 与 Provider 抽象）：
+Phase 1D 在 Chat Slice 之外新增以下 Player/Quest 文件：
+
+```text
+backend/app/
+├── api/player.py
+├── api/quests.py
+├── database/player_quest_repository.py
+├── quests/types.py
+├── quests/missing_child.py
+├── schemas/player.py
+├── schemas/quest.py
+├── services/player_quest_service.py
+└── services/player_quest_context.py
+```
+
+现有 Backend 主体结构：
 
     backend/
     ├── __init__.py
@@ -402,6 +419,8 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
 
 # 7. Tests
 
+Phase 1D 增加 Backend 的 Player/Quest policy、repository、service、API 和 `test_phase1d_acceptance.py`；Frontend 增加 playerQuest API/Store、LocationCard、PlayerLocationPanel、QuestPanel 与 TownView 集成测试。验收测试使用 disposable SQLite 和 Mock/假 Provider，不访问真实网络。
+
 测试范围：
 
     tests/
@@ -513,7 +532,7 @@ World Tick测试已随Phase 1A实现创建，NPC Detail测试已随Phase 1B创�
 
     NPC Chat / Mock / Compatible Provider
 
-Memory、Relationship、Player、LLM Tick Decision、Quest 与多人系统仍为后续范围。
+Memory、Relationship、LLM Tick Decision、通用 Quest 引擎与多人系统仍为后续范围；固定 Player 与一个专用任务已经实现。
 
 ------------------------------------------------------------------------
 
@@ -535,9 +554,9 @@ Memory、Relationship、Player、LLM Tick Decision、Quest 与多人系统仍为
 
 ------------------------------------------------------------------------
 
-## Quest系统
+## 更多 Quest 系统
 
-增加：
+当前已有 `missing-child`；未来增加：
 
     quests/
 

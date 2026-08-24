@@ -1,6 +1,6 @@
 # Aleria AI Town 开发环境设计文档（Development Environment）
 
-版本：v1.2
+版本：v1.3
 
 更新时间：2026-08-24
 
@@ -279,7 +279,7 @@ Phase 0运行时唯一状态源为SQLite。根目录 `data/*.json` 仅作为种�
 python scripts/seed_world.py
 ```
 
-脚本负责创建当前 SQLAlchemy 模型全部表并写入晨曦镇、两个地点及 Ryan/Shir/Grey；重复执行会按依赖顺序清除目标世界的 Chat、Event、Action 历史并恢复种子状态，不产生重复记录。
+脚本负责创建当前 SQLAlchemy 模型全部表并写入曦谷、四个地点、Ryan/Shir/Grey、固定 Player 和初始 Quest；重复执行会按依赖顺序清除目标世界的 Quest、Chat、Event、Action 历史并恢复种子状态，不产生重复记录。
 
 ------------------------------------------------------------------------
 
@@ -315,13 +315,16 @@ CHAT_LLM_MODEL=
 CHAT_LLM_AUTH_MODE=bearer
 
 
-CHAT_LLM_TIMEOUT_SECONDS=10
+CHAT_LLM_OUTPUT_MODE=structured_json
+
+
+CHAT_LLM_TIMEOUT_SECONDS=30
 
 
 CHAT_HISTORY_LIMIT=10
 
 
-CHAT_PROMPT_VERSION=v1
+CHAT_PROMPT_VERSION=v2
 ```
 
 约束：
@@ -330,7 +333,8 @@ CHAT_PROMPT_VERSION=v1
 -   非 Mock 必须配置 `CHAT_LLM_BASE_URL` 和 `CHAT_LLM_MODEL`。
 -   `CHAT_LLM_AUTH_MODE=bearer` 时 Key 必填，且只保存在 Backend 环境中；文档示例使用 `<backend-only-secret>`。
 -   `CHAT_LLM_AUTH_MODE=none` 允许本地服务不配置 Key。
--   timeout 范围 0–120 秒（不含 0），history limit 范围 1–50，当前 Prompt 版本为 `v1`。
+-   `CHAT_LLM_OUTPUT_MODE` 只允许 `structured_json` 或 `text`；前者严格解析 `reply + emotion`，后者兼容自然文本并确定性派生 emotion。
+-   timeout 范围 0–120 秒（不含 0），history limit 范围 1–50，Prompt 版本允许 `v1|v2` 且默认 `v2`。
 
 ------------------------------------------------------------------------
 
@@ -375,6 +379,7 @@ CHAT_LLM_BASE_URL=<provider-compatible-base-url>
 CHAT_LLM_API_KEY=<backend-only-secret>
 CHAT_LLM_MODEL=<compatible-model-name>
 CHAT_LLM_AUTH_MODE=bearer
+CHAT_LLM_OUTPUT_MODE=structured_json
 ```
 
 `CHAT_PROVIDER` 是可观测标签，不选择专用代码分支。腾讯混元或其他 compatible 云端服务替换地址与模型即可。
@@ -387,6 +392,7 @@ CHAT_LLM_BASE_URL=http://127.0.0.1:8001/v1
 CHAT_LLM_API_KEY=
 CHAT_LLM_MODEL=qwen-local
 CHAT_LLM_AUTH_MODE=none
+CHAT_LLM_OUTPUT_MODE=structured_json
 ```
 
 要求：
@@ -401,7 +407,7 @@ CHAT_LLM_AUTH_MODE=none
 
     ↓
 
-    Strict reply + emotion Validation
+    Structured reply + emotion 或 Text reply Validation
 
     ↓
 
@@ -498,10 +504,11 @@ npm run build
 
 1.  Backend运行在 `http://127.0.0.1:8000`。
 2.  Frontend运行在 `http://127.0.0.1:5173`。
-3.  页面展示晨曦镇、Day 1 08:00、星辰酒馆、中央公园以及Ryan/Shir/Grey。
+3.  页面展示曦谷、Day 1 08:00、四地点以及 Ryan/Shir/Grey。
 4.  停止Backend并刷新页面时，Frontend展示可理解的接口失败状态。
 5.  默认 Mock 下选择 Ryan，发送“你害怕史莱姆吗？”，收到 guarded 回复；续聊复用 conversation ID。
-6.  切换 Shir/Grey 时会话互不覆盖；推进 Tick 后 Chat 历史保留。
+6.  从星辉酒馆接取任务，经 Grey 实时地点、低语森林再回酒馆完成五步流程。
+7.  切换 Shir/Grey 时会话互不覆盖；推进 Tick 后 Chat 和 Quest 保留，NPC 状态正常更新。
 
 可选真实 Provider 手动冒烟只在开发者明确配置环境后执行。不得把真实 Key、Authorization Header 或上游错误正文写入终端截图、测试 fixture、Git diff 或文档。
 

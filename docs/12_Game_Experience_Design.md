@@ -1,8 +1,16 @@
 # Aleria AI Town 游戏体验设计文档（Game Experience Design）
 
-版本：v1.0
+版本：v1.1
 
-更新时间：2026-08-22
+更新时间：2026-08-24
+
+## Phase 1D 当前可玩体验
+
+当前 DOM-first 页面已经支持曦谷四地点、Ryan/Shir/Grey 状态与详情、World Tick、NPC Chat、玩家旅行和“失踪的孩子”任务。任务路线为：星辉酒馆接取 → 与 Grey 同地点询问 → 低语森林发现鞋子并找到孩子 → 星辉酒馆完成。
+
+旅行不隐式推进时间，任务不接管 NPC 行为；如果 Grey 随 Tick 移动，目标和交互条件会使用他的实时位置。这样在较小实现成本下保持世界一致性。
+
+当前页面同时覆盖 loading、error/retry、fallback、409 刷新、并发防重和 900px 以下单列布局。下文 PixiJS/Cocos、精灵动画和地图交互仍是 Phase 2 展示层规划。
 
 # 1. 文档目的
 
@@ -90,18 +98,18 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 
     --------------------------------
 
-            Aleria Town
+               曦谷
 
             Day 1 10:00
 
 
-       🌳 森林
+          低语森林
 
 
             Ryan
 
 
-     🏠住宅              ☕酒馆
+     晨曦城堡          星辉酒馆
 
 
             Shir

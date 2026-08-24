@@ -1,8 +1,8 @@
 # Aleria AI Town World Model Design
 
-Version: v1.2
+Version: v1.3
 
-Last Updated: 2026-08-23
+Last Updated: 2026-08-24
 
 # 1. Overview
 
@@ -51,6 +51,16 @@ Phase 1A权威规格为 `docs/superpowers/specs/2026-08-23-phase-1a-deterministi
 -   所有需求值执行后截断到0-100。
 -   Tick状态与Action/Event历史在同一SQLite事务中提交。
 
+## 1.4 Phase 1D Player/Quest Contract
+
+-   世界显示名为“曦谷”；稳定世界 ID 仍为 `aleria-town`。
+-   地点为 `tavern/park/castle/forest`，显示名分别为星辉酒馆、中央公园、晨曦城堡、低语森林。
+-   `default-player` 只保存 `world_id/location_id/updated_at`，旅行只更新位置，不推进 World Tick。
+-   `missing-child` 使用 `available → accepted → briefed_by_grey → shoe_found → child_found → completed` 状态机。
+-   每次迁移校验地点和 `expected_version`，并在同一事务中更新进度、写入一条 Quest Event。
+-   `ask_grey` 动态要求玩家与 Grey 同地点；其 objective 使用 Grey 的权威当前位置。
+-   Chat 可读取任务摘要，但不能推进 Quest 或修改任何 World/NPC 状态。
+
 ------------------------------------------------------------------------
 
 # 2. World Model Architecture
@@ -97,7 +107,7 @@ World 表示整个模拟世界。
 ``` json
 {
   "id":"aleria-town",
-  "name":"晨曦镇",
+  "name":"曦谷",
   "day":1,
   "tick":10,
   "time":"18:00",
@@ -471,6 +481,14 @@ Example:
 
 # 12. Player Entity
 
+当前实现是最小 Player State，不包含姓名、职业、等级、背包、账号或认证：
+
+```text
+PlayerState(default-player, aleria-town, location_id, updated_at)
+```
+
+下文更完整的 Player 属性仅为未来设计。
+
 玩家作为外部角色。
 
 第一版：
@@ -526,6 +544,8 @@ Example:
 ------------------------------------------------------------------------
 
 # 14. Quest Entity
+
+当前不实现通用 Quest Definition/Condition/Reward 引擎，只实现 `missing-child` 的专用 Policy、Progress 与 Event。这样既形成可持久化游戏闭环，也避免为一个任务提前引入 DSL。
 
 任务系统预留。
 

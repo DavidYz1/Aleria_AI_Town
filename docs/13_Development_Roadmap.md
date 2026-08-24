@@ -1,6 +1,6 @@
 # Aleria AI Town 开发路线规划（Development Roadmap）
 
-版本：v1.4
+版本：v1.5
 
 更新时间：2026-08-24
 
@@ -17,6 +17,14 @@
 核心原则：
 
 > 先完成可运行MVP，再增加体验和技术亮点。
+
+## Phase 1D 后的权威推进顺序
+
+1. **Phase 1E：部署与交付工程化**——线上体验地址、Docker、CI 和 README 提交信息。
+2. **Phase 2：地图展示层**——优先 PixiJS，增加场景、角色交互、动画和响应式体验，复用现有 API/Store。
+3. **Phase 3+：Agent 与内容增强**——按演示价值选择 Relationship、长期 Memory、更多任务和 NPC 互动。
+
+本文后半部分的 Agent/Memory/高级持久化章节保留为能力 backlog，不再代表紧接 Phase 1D 的执行顺序。
 
 ------------------------------------------------------------------------
 
@@ -120,7 +128,7 @@ Phase 0功能范围：
 
 -   SQLite创建 `world_state`、`locations`、`npc_profiles`、`npc_states`。
 -   JSON只作为种子输入，不作为运行时状态源。
--   `GET /api/world` 返回晨曦镇、Day 1 08:00、两个地点和Ryan/Shir/Grey基础状态。
+-   Phase 0 最初以晨曦镇、两个地点和 Ryan/Shir/Grey 完成 `GET /api/world` 闭环；Phase 1D 已迁移为曦谷四地点。
 -   Frontend实现loading、success、empty和error状态。
 -   完成Backend API测试、Frontend Store/Component测试、TypeScript检查和生产构建。
 
@@ -174,7 +182,16 @@ Phase 0不实现：
 -   Frontend per-NPC session、sending、失败重试、fallback 提示、切换/关闭恢复和迟到响应保护。
 -   Acceptance 证明 Chat 不改变 World Tick、NPC State、Action 或 Event。
 
-尚未开始的 Phase 1 范围只剩 Player 交互。PixiJS、Quest、RAG、复杂 Memory、Relationship、LLM Tick Decision 和多人系统继续延期。
+## Phase 1D完成状态（2026-08-24）
+
+-   世界显示升级为曦谷，扩展为四地点，并为三名 NPC 增加角色职责例程。
+-   Prompt/Mock 升级 v2；compatible Adapter 支持 structured JSON 与 text 输出模式。
+-   固定 Player、旅行 API、`missing-child` 五步状态机、version 乐观锁和 Quest Event 持久化。
+-   `ask_grey` 使用 Grey 实时地点共址校验；Chat 只读 Quest objective。
+-   Frontend 完成旅行、任务目标/进展、loading/error/retry/409 和响应式 DOM 闭环。
+-   跨模块 acceptance 验证持久化，以及 Quest/Chat/World/NPC 隔离。
+
+Phase 1 MVP 已完成。PixiJS、RAG、复杂 Memory、Relationship、LLM Tick Decision 和多人系统继续延期。
 
 ## 目标
 
@@ -253,10 +270,11 @@ Phase 0不实现：
 -   Tick按钮
 -   Chat窗口
 -   三个 NPC 的独立 Chat session、错误重试和 Provider/fallback 状态
+-   玩家位置、四地点旅行和五步任务面板
 
 ------------------------------------------------------------------------
 
-# 5. Phase 2：Agent系统增强
+# 5. Agent系统增强（Phase 3+ backlog）
 
 目标：
 
@@ -377,7 +395,7 @@ Ryan：
 
 ------------------------------------------------------------------------
 
-# 8. Phase 5：游戏体验增强
+# 8. Phase 2：游戏体验与地图展示层
 
 ## 目标
 
@@ -416,11 +434,11 @@ Web管理页面
 
 ------------------------------------------------------------------------
 
-# 9. Phase 6：展示级增强
+# 9. Phase 3+：展示级内容增强
 
 可选：
 
-## Quest系统
+## 更多 Quest 系统
 
 例如：
 
