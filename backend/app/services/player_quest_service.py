@@ -70,6 +70,7 @@ class PlayerQuestService:
                 version=records.version,
                 player_location_id=records.location_id,
                 world_tick=records.world_tick,
+                target_npc_location_id=records.target_npc_location_id,
             ),
             QuestCommand(
                 interaction=request.interaction,
@@ -91,6 +92,8 @@ class PlayerQuestService:
             presentation = self._policy.present(
                 status,
                 records.location_id,
+                target_npc_location_id=records.target_npc_location_id,
+                target_npc_location_name=records.target_npc_location_name,
             )
             return PlayerQuestData(
                 player=PlayerData(

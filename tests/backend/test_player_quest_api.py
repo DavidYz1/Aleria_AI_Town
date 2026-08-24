@@ -7,6 +7,7 @@ from backend.app.api.dependencies import get_session
 from backend.app.core.config import Settings
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import (
+    NpcState,
     PlayerState,
     QuestEvent,
     QuestProgress,
@@ -168,6 +169,69 @@ async def test_missing_child_api_completes_all_five_versioned_transitions(
         assert session.scalar(
             select(func.count()).select_from(QuestEvent)
         ) == 5
+
+
+@pytest.mark.anyio
+async def test_ask_grey_follows_his_live_location_and_requires_colocation(
+    database_url,
+    seed_dir,
+):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    transport = ASGITransport(app=_app(database_url))
+
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as client:
+        accepted = await client.post(
+            "/api/quests/missing-child/interact",
+            json={"interaction": "accept_quest", "expected_version": 0},
+        )
+        await client.post(
+            "/api/player/travel",
+            json={"target_location_id": "castle"},
+        )
+
+    with session_factory() as session:
+        grey = session.get(NpcState, "grey")
+        assert grey is not None
+        grey.location_id = "park"
+        session.commit()
+
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as client:
+        separated = await client.get("/api/player")
+        unavailable = await client.post(
+            "/api/quests/missing-child/interact",
+            json={"interaction": "ask_grey", "expected_version": 1},
+        )
+        await client.post(
+            "/api/player/travel",
+            json={"target_location_id": "park"},
+        )
+        together = await client.get("/api/player")
+        briefed = await client.post(
+            "/api/quests/missing-child/interact",
+            json={"interaction": "ask_grey", "expected_version": 1},
+        )
+
+    assert accepted.status_code == 200
+    assert separated.json()["data"]["quest"]["objective"] == (
+        "前往中央公园询问 Grey。"
+    )
+    assert separated.json()["data"]["quest"]["available_interactions"] == []
+    assert unavailable.status_code == 409
+    assert unavailable.json()["message"] == (
+        "Quest interaction is not available"
+    )
+    assert together.json()["data"]["quest"]["available_interactions"] == [
+        {"id": "ask_grey", "label": "询问 Grey"}
+    ]
+    assert briefed.status_code == 200
+    assert briefed.json()["data"]["quest"]["status"] == "briefed_by_grey"
 
 
 @pytest.mark.anyio

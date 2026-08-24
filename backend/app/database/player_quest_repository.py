@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database.models import (
     Location,
+    NpcState,
     PlayerState,
     QuestEvent,
     QuestProgress,
@@ -60,6 +61,8 @@ class PlayerQuestRecords:
     version: int
     updated_tick: int
     world_tick: int
+    target_npc_location_id: str
+    target_npc_location_name: str
     recent_events: tuple[QuestEventRecord, ...]
 
 
@@ -86,7 +89,18 @@ class PlayerQuestRepository:
 
             location = self._session.get(Location, player.location_id)
             world = self._session.get(WorldState, player.world_id)
-            if location is None or world is None:
+            target_npc = self._session.get(NpcState, "grey")
+            target_npc_location = (
+                self._session.get(Location, target_npc.location_id)
+                if target_npc is not None
+                else None
+            )
+            if (
+                location is None
+                or world is None
+                or target_npc is None
+                or target_npc_location is None
+            ):
                 raise PlayerQuestPersistenceError(
                     "Player quest service is unavailable"
                 )
@@ -123,6 +137,8 @@ class PlayerQuestRepository:
                 version=progress.version,
                 updated_tick=progress.updated_tick,
                 world_tick=world.tick,
+                target_npc_location_id=target_npc.location_id,
+                target_npc_location_name=target_npc_location.name,
                 recent_events=recent_events,
             )
         except (
@@ -188,10 +204,15 @@ class PlayerQuestRepository:
             progress = self._session.get(
                 QuestProgress,
                 (player_id, quest_id),
+                populate_existing=True,
             )
             if progress is None:
                 raise QuestNotFoundError("Quest not found")
-            world = self._session.get(WorldState, player.world_id)
+            world = self._session.get(
+                WorldState,
+                player.world_id,
+                populate_existing=True,
+            )
             if world is None:
                 raise PlayerQuestPersistenceError(
                     "Player quest service is unavailable"
@@ -200,6 +221,20 @@ class PlayerQuestRepository:
                 raise QuestInteractionUnavailableError(
                     "Quest interaction is not available"
                 )
+            if transition.required_npc_id is not None:
+                target_npc = self._session.get(
+                    NpcState,
+                    transition.required_npc_id,
+                    populate_existing=True,
+                )
+                if target_npc is None:
+                    raise PlayerQuestPersistenceError(
+                        "Player quest service is unavailable"
+                    )
+                if target_npc.location_id != player.location_id:
+                    raise QuestInteractionUnavailableError(
+                        "Quest interaction is not available"
+                    )
 
             now = datetime.now(UTC)
             updated = self._session.execute(

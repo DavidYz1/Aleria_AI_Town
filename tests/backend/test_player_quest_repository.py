@@ -1,11 +1,11 @@
 import importlib
 
 import pytest
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import QuestEvent, QuestProgress
+from backend.app.database.models import NpcState, QuestEvent, QuestProgress
 from backend.app.quests.missing_child import MissingChildQuestPolicy
 from backend.app.quests.types import QuestCommand, QuestSnapshot
 from scripts.seed_world import seed_database
@@ -75,6 +75,10 @@ def test_repository_reads_authoritative_state_and_latest_five_events(
         records.updated_tick,
         records.world_tick,
     ) == ("missing-child", "available", 0, 0, 0)
+    assert (
+        records.target_npc_location_id,
+        records.target_npc_location_name,
+    ) == ("castle", "晨曦城堡")
     assert [event.id for event in records.recent_events] == [2, 3, 4, 5, 6]
 
 
@@ -235,6 +239,71 @@ def test_repository_rechecks_player_location_before_transition(
                 expected_version=0,
                 transition=_available_transition(),
             )
+
+
+def test_repository_rechecks_required_npc_location_before_transition(
+    database_url,
+    seed_dir,
+):
+    repository_module = _repository_module()
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        repository = repository_module.PlayerQuestRepository(session)
+        repository.apply_transition(
+            player_id="default-player",
+            quest_id="missing-child",
+            expected_version=0,
+            transition=_available_transition(),
+        )
+        repository.travel(
+            "default-player",
+            "missing-child",
+            "castle",
+        )
+        records = repository.get_state("default-player", "missing-child")
+        transition = MissingChildQuestPolicy().transition(
+            QuestSnapshot(
+                quest_id=records.quest_id,
+                status="accepted",
+                version=records.version,
+                player_location_id=records.location_id,
+                world_tick=records.world_tick,
+                target_npc_location_id=records.target_npc_location_id,
+            ),
+            QuestCommand(interaction="ask_grey", expected_version=1),
+        )
+
+        session.execute(
+            update(NpcState)
+            .where(NpcState.npc_id == "grey")
+            .values(location_id="park")
+            .execution_options(synchronize_session=False)
+        )
+
+        with pytest.raises(
+            repository_module.QuestInteractionUnavailableError,
+            match="^Quest interaction is not available$",
+        ):
+            repository.apply_transition(
+                player_id="default-player",
+                quest_id="missing-child",
+                expected_version=1,
+                transition=transition,
+            )
+
+    with session_factory() as session:
+        progress = session.get(
+            QuestProgress,
+            ("default-player", "missing-child"),
+        )
+        event_count = session.scalar(
+            select(func.count()).select_from(QuestEvent)
+        )
+
+    assert progress is not None
+    assert (progress.status, progress.version) == ("accepted", 1)
+    assert event_count == 1
 
 
 def test_repository_rolls_back_progress_and_event_when_commit_fails(

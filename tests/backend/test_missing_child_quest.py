@@ -77,6 +77,9 @@ def test_missing_child_policy_applies_each_valid_transition(
         version=3,
         player_location_id=location_id,
         world_tick=7,
+        target_npc_location_id=(
+            location_id if interaction == "ask_grey" else None
+        ),
     )
     command = types.QuestCommand(
         interaction=interaction,
@@ -94,6 +97,7 @@ def test_missing_child_policy_applies_each_valid_transition(
         interaction=interaction,
         location_id=location_id,
         event_text_code=event_text_code,
+        required_npc_id="grey" if interaction == "ask_grey" else None,
     )
 
 
@@ -115,6 +119,9 @@ def test_missing_child_policy_rejects_stale_version_before_transition(
         version=4,
         player_location_id=location_id,
         world_tick=7,
+        target_npc_location_id=(
+            location_id if interaction == "ask_grey" else None
+        ),
     )
 
     with pytest.raises(
@@ -149,6 +156,9 @@ def test_missing_child_policy_rejects_valid_interaction_at_wrong_location(
         version=2,
         player_location_id=wrong_location,
         world_tick=7,
+        target_npc_location_id=(
+            required_location if interaction == "ask_grey" else None
+        ),
     )
 
     with pytest.raises(
@@ -198,45 +208,79 @@ def test_missing_child_policy_rejects_interaction_for_wrong_status(
 
 
 @pytest.mark.parametrize(
-    ("status", "location_id", "objective", "available_interactions"),
+    (
+        "status",
+        "location_id",
+        "target_npc_location_id",
+        "target_npc_location_name",
+        "objective",
+        "available_interactions",
+    ),
     [
         (
             "available",
             "tavern",
+            None,
+            None,
             "查看星辉酒馆的委托板。",
             (("accept_quest", "接受委托"),),
         ),
-        ("available", "park", "查看星辉酒馆的委托板。", ()),
+        (
+            "available",
+            "park",
+            None,
+            None,
+            "查看星辉酒馆的委托板。",
+            (),
+        ),
         (
             "accepted",
             "castle",
-            "前往晨曦城堡询问 Grey。",
+            "park",
+            "中央公园",
+            "前往中央公园询问 Grey。",
+            (),
+        ),
+        (
+            "accepted",
+            "park",
+            "park",
+            "中央公园",
+            "前往中央公园询问 Grey。",
             (("ask_grey", "询问 Grey"),),
         ),
         (
             "briefed_by_grey",
             "forest",
+            None,
+            None,
             "前往低语森林寻找线索。",
             (("inspect_shoe", "查看遗落的鞋子"),),
         ),
         (
             "shoe_found",
             "forest",
+            None,
+            None,
             "沿鞋子附近的痕迹继续寻找。",
             (("search_child", "沿痕迹寻找孩子"),),
         ),
         (
             "child_found",
             "tavern",
+            None,
+            None,
             "护送孩子返回星辉酒馆。",
             (("return_child", "将孩子带回酒馆"),),
         ),
-        ("completed", "tavern", "任务已完成。", ()),
+        ("completed", "tavern", None, None, "任务已完成。", ()),
     ],
 )
 def test_missing_child_policy_presents_authoritative_objective_and_actions(
     status,
     location_id,
+    target_npc_location_id,
+    target_npc_location_name,
     objective,
     available_interactions,
 ):
@@ -245,6 +289,8 @@ def test_missing_child_policy_presents_authoritative_objective_and_actions(
     presentation = missing_child.MissingChildQuestPolicy().present(
         status,
         location_id,
+        target_npc_location_id=target_npc_location_id,
+        target_npc_location_name=target_npc_location_name,
     )
 
     assert presentation.title == "失踪的孩子"

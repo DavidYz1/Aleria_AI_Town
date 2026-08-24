@@ -75,7 +75,19 @@ class MissingChildQuestPolicy:
             )
 
         required_location, to_status, event_text_code = rule
-        if snapshot.player_location_id != required_location:
+        required_npc_id = None
+        if command.interaction == "ask_grey":
+            if (
+                snapshot.target_npc_location_id is None
+                or snapshot.player_location_id
+                != snapshot.target_npc_location_id
+            ):
+                raise QuestInteractionUnavailableError(
+                    "Quest interaction is not available"
+                )
+            required_location = snapshot.player_location_id
+            required_npc_id = "grey"
+        elif snapshot.player_location_id != required_location:
             raise QuestInteractionUnavailableError(
                 "Quest interaction is not available"
             )
@@ -86,17 +98,28 @@ class MissingChildQuestPolicy:
             interaction=command.interaction,
             location_id=required_location,
             event_text_code=event_text_code,
+            required_npc_id=required_npc_id,
         )
 
     def present(
         self,
         status: QuestStatus,
         location_id: str,
+        *,
+        target_npc_location_id: str | None = None,
+        target_npc_location_name: str | None = None,
     ) -> QuestPresentation:
         available_interactions: tuple[QuestAvailableInteraction, ...] = ()
         for (from_status, interaction), rule in self._TRANSITIONS.items():
             required_location, _, _ = rule
-            if from_status == status and required_location == location_id:
+            if interaction == "ask_grey":
+                interaction_is_available = (
+                    target_npc_location_id is not None
+                    and target_npc_location_id == location_id
+                )
+            else:
+                interaction_is_available = required_location == location_id
+            if from_status == status and interaction_is_available:
                 available_interactions = (
                     QuestAvailableInteraction(
                         id=interaction,
@@ -105,8 +128,12 @@ class MissingChildQuestPolicy:
                 )
                 break
 
+        objective = self._OBJECTIVES[status]
+        if status == "accepted" and target_npc_location_name is not None:
+            objective = f"前往{target_npc_location_name}询问 Grey。"
+
         return QuestPresentation(
             title="失踪的孩子",
-            objective=self._OBJECTIVES[status],
+            objective=objective,
             available_interactions=available_interactions,
         )

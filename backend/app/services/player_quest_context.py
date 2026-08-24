@@ -32,6 +32,8 @@ class PlayerQuestChatContextReader:
             presentation = self._policy.present(
                 cast(QuestStatus, records.status),
                 records.location_id,
+                target_npc_location_id=records.target_npc_location_id,
+                target_npc_location_name=records.target_npc_location_name,
             )
             return PlayerQuestChatContext(
                 player_id=records.player_id,

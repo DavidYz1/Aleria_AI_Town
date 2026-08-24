@@ -34,6 +34,7 @@ class QuestSnapshot:
     version: int
     player_location_id: str
     world_tick: int
+    target_npc_location_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,7 @@ class QuestTransition:
     interaction: QuestInteraction
     location_id: str
     event_text_code: str
+    required_npc_id: str | None = None
 
 
 @dataclass(frozen=True)
