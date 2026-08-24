@@ -1,6 +1,6 @@
 # Aleria AI Town Project Context
 
-Version: v1.1
+Version: v1.2
 
 Last Updated: 2026-08-24
 
@@ -9,6 +9,14 @@ Last Updated: 2026-08-24
 当前可运行世界展示名为“曦谷”，包含 `tavern/park/castle/forest` 四个稳定地点和 Ryan、Shir、Grey 三名 NPC。项目已经完成确定性 World Tick、NPC Detail、Mock/compatible Chat、最小 Player 与“失踪的孩子”任务闭环。
 
 Player 仅保存固定 ID、世界和当前位置；Quest 仅实现一个有界状态机。旅行不推进 Tick，Chat 只读 Player/Quest 摘要，只有显式 Quest Interaction 可以推进任务。长期 Memory、Relationship、通用 Quest、地图渲染和多人系统仍是未来方向，不应被下文的概念设计误认为已实现能力。
+
+## Phase 1E content authority
+
+`docs/15_Story_Bible_CN.md` 是当前世界观、玩家、NPC、地点和任务叙事的唯一内容事实源。艾莱瑞亚的曦谷表面温暖而平静，但当前秩序建立在被改写的终焉战争历史之上；约二十余年前的灰烬战争再次触碰了旧遗迹和封锁线。
+
+玩家是固定的失忆旅人，身上带有无法解释的印记。这个事实只用于叙事，不新增数据库字段、职业系统或分支身份。现有“失踪的孩子”任务会轻触印记与旧封锁线谜团，但仍保持既有六状态和五次交互。
+
+Author Truth 只保存在内容圣经和内部设计文档中。Public Lore、Character Knowledge 与 Player Context 必须分层使用，任何 NPC 都不能因为模型掌握世界设定而成为全知叙述者。
 
 # 1. Project Overview
 
@@ -180,21 +188,17 @@ LLM只负责生成候选决策。
 
 ## 4.1 World Name
 
-Aleria
+世界：艾莱瑞亚（Aleria）
 
-中文：
-
-曦谷
+当前小镇：曦谷
 
 ## 4.2 Background
 
-魔王战争结束后的幻想大陆。
+官方历史称，约五百年前的人类英雄在终焉战争中击败魔王伊萨尔，使大陆重获和平。完整历史则涉及衰弱的世界本源、古族的牺牲、最后盟约和战后的主动改写。
 
-战争结束后：
+约二十余年前，人类重新勘探遗迹引发灰烬战争。曦谷位于旧战场和近代封锁区附近，居民在战争阴影中恢复了真实而值得保护的日常生活。
 
-冒险者、居民和旅行者来到曦谷。
-
-玩家作为冒险者进入小镇，与不同背景的NPC相遇。
+玩家作为失去记忆、身带陌生印记的旅人进入小镇，与立场和知识边界不同的 NPC 相遇。
 
 # 5. Main Characters
 
@@ -213,6 +217,10 @@ Personality:
 Hidden Trait:
 
 害怕史莱姆。
+
+Character Conflict:
+
+相信英雄史，却被父亲因保护古族幸存者而被视为叛徒的过去困扰。
 
 Behavior:
 
@@ -235,6 +243,10 @@ Hidden Trait:
 
 喜欢甜食。
 
+Character Conflict:
+
+接触过被删除的档案；追索真相，却不确定所有真相都应立刻公开。
+
 Behavior:
 
 -   夜间散步
@@ -254,7 +266,11 @@ Personality:
 
 Background:
 
-过去没有保护好重要的人，因此希望保护现在的伙伴。
+参与约二十余年前的灰烬战争和遗迹行动，失去同伴，因此希望保护现在的伙伴。
+
+Character Conflict:
+
+知道官方历史并不完整，却担心公开秘密会制造下一场战争。Grey 没有经历约五百年前的终焉战争。
 
 Behavior:
 
@@ -407,10 +423,9 @@ NPC聊天
 
 增加：
 
--   Memory
--   Relationship
--   Event
--   Quest
+-   PixiJS 像素地图
+-   角色精灵与移动动画
+-   场景交互与响应式体验
 
 ## Phase 3
 
@@ -418,14 +433,14 @@ NPC聊天
 
 -   Docker
 -   部署
--   Canvas/Pixi
+-   演示视频与提交资产
 -   自动化测试
 
 # 9. Current Status
 
 Current Phase:
 
-Phase 1D complete; preparing Phase 1E delivery engineering
+Phase 1D complete; Phase 1E content bible and submission narrative in progress
 
 Completed:
 
@@ -437,7 +452,7 @@ Completed:
 
 Next:
 
-Phase 1E 部署与交付工程化；随后在 Phase 2 迁移地图展示层
+完成 Phase 1E 内容、Prompt/Mock、任务叙事和 README 收口；随后在 Phase 2 迁移像素地图展示层，Phase 3 再完成部署与交付工程化
 
 # 10. AI Coding Rules
 

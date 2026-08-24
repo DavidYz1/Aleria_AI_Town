@@ -1,6 +1,6 @@
 # Aleria AI Town NPC Agent Design
 
-Version: v1.1
+Version: v1.2
 
 Last Updated: 2026-08-24
 
@@ -11,6 +11,20 @@ Last Updated: 2026-08-24
 Prompt v2 为每个角色定义外显性格、内在矛盾、语言风格和信息边界；Mock v2 对“你是谁、这里是哪里、你在哪里、正在做什么、任务是什么”等高频意图给出角色化确定性回答。Chat 读取权威 Player/Quest objective，但不能改变任务、世界或 NPC。
 
 Memory、Relationship、Goal、Reflection 和 LLM Action Decision 在本文仍是未来架构，不代表当前代码已经实现。
+
+## Phase 1E content and knowledge boundary
+
+`docs/15_Story_Bible_CN.md` 是角色内容事实源。运行时 Chat 只获得 Public Lore、Player Context、当前角色的 Character Knowledge 与 Backend 动态上下文，不能注入完整 Author Truth。
+
+三名 NPC 的核心差异不是“知道同一份真相但语气不同”，而是拥有不同事实、怀疑、误解和保留：
+
+| NPC | 确认知道 | 核心怀疑 | 主要误解 | 不愿透露 |
+| --- | --- | --- | --- | --- |
+| Ryan | 官方英雄史、父亲曾保护古族幸存者 | 父亲可能被误解 | 英雄与反派最终总能清楚区分 | 父亲事件细节、自己害怕史莱姆 |
+| Shir | 官方档案有删除痕迹、森林路线、夜幕掌握碎片资料 | Grey 知道更多；玩家印记可能与遗迹有关 | 沉默者大多在保护权力 | 夜幕接触方式和资料来源 |
+| Grey | 灰烬战争、封锁线风险、部分档案矛盾 | 旧盟约可能存在；玩家印记可能危险 | 继续沉默仍是最安全的选择 | 同伴死亡、封存记录和异常符号 |
+
+Grey 只经历约二十余年前的灰烬战争及遗迹调查，没有经历约五百年前的终焉战争。三人都不知道玩家真实身份，也不能证明印记来源。
 
 # 1. Overview
 
@@ -507,9 +521,11 @@ Action。
 输入：
 
 -   NPC人格
--   玩家信息
+-   对应角色的 Character Knowledge
+-   Public Lore
+-   Player Context 与权威 Player/Quest 摘要
 -   对话历史
--   Memory
+-   最近 Action
 
 输出：
 
@@ -519,7 +535,7 @@ Action。
 
 # 11. Prompt Architecture
 
-Prompt分层。
+Prompt 分层。完整 Story Bible 不直接作为一个长文本注入；公共世界信息只写一次，每个角色只携带自己的知识边界。
 
 ## System Prompt
 
@@ -610,6 +626,8 @@ Example:
 Mock不是随机。
 
 基于规则。
+
+Mock 同样遵循 Character Knowledge：常见问题必须按 Ryan、Shir、Grey 的不同立场回答；不知道的事实明确表示未知，不能因为是离线模式就提前公开 Author Truth。身份、印记、终焉战争、灰烬战争和当前任务问题都需要保持确定性和角色区分。
 
 Example:
 

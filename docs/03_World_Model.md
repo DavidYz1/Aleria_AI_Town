@@ -1,6 +1,6 @@
 # Aleria AI Town World Model Design
 
-Version: v1.3
+Version: v1.4
 
 Last Updated: 2026-08-24
 
@@ -60,6 +60,16 @@ Phase 1A权威规格为 `docs/superpowers/specs/2026-08-23-phase-1a-deterministi
 -   每次迁移校验地点和 `expected_version`，并在同一事务中更新进度、写入一条 Quest Event。
 -   `ask_grey` 动态要求玩家与 Grey 同地点；其 objective 使用 Grey 的权威当前位置。
 -   Chat 可读取任务摘要，但不能推进 Quest 或修改任何 World/NPC 状态。
+
+## 1.5 Phase 1E Narrative Context Boundary
+
+世界观事实以 `docs/15_Story_Bible_CN.md` 为内容权威，但不成为新的运行时 World State：
+
+-   艾莱瑞亚约五百年前发生终焉战争；官方历史与 Author Truth 不同。
+-   约二十余年前的灰烬战争由遗迹勘探失控引发；Grey 参与的是这场近代战争。
+-   当前玩家是失忆旅人，身上的印记属于 Player Context，不是数据库道具或技能字段。
+-   Public Lore、Character Knowledge、Player Context 只影响内容表达，不改变 Tick、Action、Event 或 Quest 迁移权限。
+-   Dynamic Facts 仍以 SQLite 与 Backend API 为唯一事实来源；剧情文档不能覆盖 NPC 实时位置、世界时间或任务状态。
 
 ------------------------------------------------------------------------
 
@@ -169,6 +179,15 @@ World 表示整个模拟世界。
 # 5. Location Entity
 
 Location 描述世界中的空间。
+
+当前四个稳定地点为：
+
+| ID | 显示名 | 当前体验职责 |
+| --- | --- | --- |
+| `tavern` | 星辉酒馆 | 玩家初始地点、委托和公共消息中心 |
+| `park` | 中央公园 | 居民活动与 Ryan 日常训练区域 |
+| `castle` | 晨曦城堡 | Grey 守备区域与残缺战争档案所在地 |
+| `forest` | 低语森林 | Shir 侦察区域、旧遗迹与灰烬战争封锁线 |
 
 ## Example
 
@@ -487,6 +506,8 @@ Example:
 PlayerState(default-player, aleria-town, location_id, updated_at)
 ```
 
+当前固定叙事事实是：玩家在曦谷附近醒来、此前记忆缺失、身上存在无法解释的印记。这些内容属于 Player Context，不在 Phase 1E 增加数据库字段，也不能被 NPC 擅自解释为某个确定身份。
+
 下文更完整的 Player 属性仅为未来设计。
 
 玩家作为外部角色。
@@ -546,6 +567,14 @@ Example:
 # 14. Quest Entity
 
 当前不实现通用 Quest Definition/Condition/Reward 引擎，只实现 `missing-child` 的专用 Policy、Progress 与 Event。这样既形成可持久化游戏闭环，也避免为一个任务提前引入 DSL。
+
+该任务的状态机保持：
+
+```text
+available → accepted → briefed_by_grey → shoe_found → child_found → completed
+```
+
+Phase 1E 只增强现有交互结果的叙事：Grey 指向灰烬战争旧封锁线；鞋边烧灼符号与玩家印记轮廓相似；孩子提到林中低语。上述信息不增加 Quest Status、Quest Flag 或第二条任务链。
 
 任务系统预留。
 
