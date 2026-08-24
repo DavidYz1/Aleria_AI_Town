@@ -3,11 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useNpcDetailStore } from '../../frontend/src/stores/npcDetail'
 import { useNpcChatStore } from '../../frontend/src/stores/npcChat'
+import type { LocalPlayerProfileV1 } from '../../frontend/src/player/playerProfile'
 import type {
   ChatFetcher,
   NpcChatData,
 } from '../../frontend/src/types/chat'
 import { chatResponseFixture } from './fixtures'
+
+
+const profile: LocalPlayerProfileV1 = {
+  version: 1,
+  displayName: '洛恩',
+  adventurerClass: 'ranger',
+  introCompleted: true,
+}
 
 
 function deferred<T>() {
@@ -54,11 +63,15 @@ describe('NPC Chat store', () => {
     const fetcher = vi.fn<ChatFetcher>().mockResolvedValue(chatResponseFixture)
     store.setPendingMessage('ryan', '  你害怕史莱姆吗？  ')
 
-    await store.send('ryan', fetcher)
+    await store.send('ryan', profile, fetcher)
 
     expect(fetcher).toHaveBeenCalledWith('ryan', {
       conversation_id: null,
       message: '你害怕史莱姆吗？',
+      player_profile: {
+        display_name: '洛恩',
+        adventurer_class: 'ranger',
+      },
     })
     expect(store.sessionFor('ryan')).toMatchObject({
       conversationId: '5e547c21-a228-4e86-940d-a1bf5d65702f',
@@ -89,9 +102,9 @@ describe('NPC Chat store', () => {
       store.setPendingMessage(npcId, `${npcId} hi`)
     }
     await Promise.all([
-      store.send('ryan', fetcher),
-      store.send('shir', fetcher),
-      store.send('grey', fetcher),
+      store.send('ryan', null, fetcher),
+      store.send('shir', null, fetcher),
+      store.send('grey', null, fetcher),
     ])
 
     expect(store.sessionFor('ryan').conversationId).toBe(results.ryan.conversation_id)
@@ -113,7 +126,7 @@ describe('NPC Chat store', () => {
     )
     store.setPendingMessage('grey', '你好')
 
-    await store.send('grey', () => Promise.resolve(result))
+    await store.send('grey', null, () => Promise.resolve(result))
 
     expect(store.sessionFor('grey')).toMatchObject({
       provider: 'mock',
@@ -129,12 +142,12 @@ describe('NPC Chat store', () => {
     const fetcher = vi.fn<ChatFetcher>().mockReturnValue(request.promise)
 
     store.setPendingMessage('ryan', '   ')
-    await store.send('ryan', fetcher)
+    await store.send('ryan', null, fetcher)
     expect(fetcher).not.toHaveBeenCalled()
 
     store.setPendingMessage('ryan', '你好')
-    const first = store.send('ryan', fetcher)
-    const second = store.send('ryan', fetcher)
+    const first = store.send('ryan', null, fetcher)
+    const second = store.send('ryan', null, fetcher)
     expect(store.sessionFor('ryan').sending).toBe(true)
     expect(fetcher).toHaveBeenCalledTimes(1)
 
@@ -153,7 +166,7 @@ describe('NPC Chat store', () => {
     const session = store.sessionFor('shir')
     session.conversationId = '00000000-0000-0000-0000-000000000006'
     store.setPendingMessage('shir', '继续聊')
-    await store.send('shir', () => Promise.reject(new Error('offline')))
+    await store.send('shir', null, () => Promise.reject(new Error('offline')))
 
     expect(session.pendingMessage).toBe('继续聊')
     expect(session.error).toBe('消息发送失败，请稍后重试。')
@@ -165,11 +178,15 @@ describe('NPC Chat store', () => {
       3,
       '继续聊',
     ))
-    await store.retry('shir', retryFetcher)
+    await store.retry('shir', profile, retryFetcher)
 
     expect(retryFetcher).toHaveBeenCalledWith('shir', {
       conversation_id: '00000000-0000-0000-0000-000000000006',
       message: '继续聊',
+      player_profile: {
+        display_name: '洛恩',
+        adventurer_class: 'ranger',
+      },
     })
     expect(session.error).toBeNull()
     expect(session.pendingMessage).toBe('')
@@ -183,11 +200,11 @@ describe('NPC Chat store', () => {
       .mockReturnValueOnce(firstRequest.promise)
       .mockReturnValueOnce(secondRequest.promise)
     store.setPendingMessage('ryan', 'first')
-    const first = store.send('ryan', fetcher)
+    const first = store.send('ryan', null, fetcher)
 
     store.sessionFor('ryan').sending = false
     store.setPendingMessage('ryan', 'second')
-    const second = store.send('ryan', fetcher)
+    const second = store.send('ryan', null, fetcher)
     secondRequest.reject(new Error('new failure'))
     await second
 
@@ -210,11 +227,11 @@ describe('NPC Chat store', () => {
     const ryanRequest = deferred<NpcChatData>()
     detailStore.selectedNpcId = 'ryan'
     store.setPendingMessage('ryan', 'Ryan hi')
-    const ryanPending = store.send('ryan', () => ryanRequest.promise)
+    const ryanPending = store.send('ryan', null, () => ryanRequest.promise)
 
     detailStore.selectedNpcId = 'shir'
     store.setPendingMessage('shir', 'Shir hi')
-    await store.send('shir', () => Promise.resolve(chatResult(
+    await store.send('shir', null, () => Promise.resolve(chatResult(
       'shir',
       '00000000-0000-0000-0000-000000000008',
       1,
@@ -231,6 +248,20 @@ describe('NPC Chat store', () => {
     expect(detailStore.selectedNpcId).toBe('shir')
     expect(store.sessionFor('shir').messages[1].content).toBe('shir 回复 Shir hi')
     expect(store.sessionFor('ryan').messages[1].content).toBe('ryan 回复 Ryan hi')
+  })
+
+  it('omits player_profile entirely when no local profile is available', async () => {
+    const store = useNpcChatStore()
+    const fetcher = vi.fn<ChatFetcher>().mockResolvedValue(chatResponseFixture)
+    store.setPendingMessage('ryan', '你好')
+
+    await store.send('ryan', null, fetcher)
+
+    expect(fetcher).toHaveBeenCalledWith('ryan', {
+      conversation_id: null,
+      message: '你好',
+    })
+    expect(fetcher.mock.calls[0]?.[1]).not.toHaveProperty('player_profile')
   })
 
   it('keeps chat sessions when NPC detail closes', () => {

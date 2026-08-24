@@ -10,6 +10,7 @@ import QuestPanel from '../components/QuestPanel.vue'
 import TickPanel from '../components/TickPanel.vue'
 import { useNpcChatStore } from '../stores/npcChat'
 import { useNpcDetailStore } from '../stores/npcDetail'
+import { usePlayerProfileStore } from '../stores/playerProfile'
 import { usePlayerQuestStore } from '../stores/playerQuest'
 import { useWorldStore } from '../stores/world'
 import type { QuestInteraction } from '../types/playerQuest'
@@ -17,6 +18,7 @@ import type { QuestInteraction } from '../types/playerQuest'
 const store = useWorldStore()
 const npcDetailStore = useNpcDetailStore()
 const npcChatStore = useNpcChatStore()
+const playerProfileStore = usePlayerProfileStore()
 const playerQuestStore = usePlayerQuestStore()
 
 const locationNames = computed(
@@ -74,12 +76,12 @@ function updatePendingMessage(value: string): void {
 
 function sendChatMessage(): void {
   const npcId = npcDetailStore.selectedNpcId
-  if (npcId !== null) void npcChatStore.send(npcId)
+  if (npcId !== null) void npcChatStore.send(npcId, playerProfileStore.profile)
 }
 
 function retryChatMessage(): void {
   const npcId = npcDetailStore.selectedNpcId
-  if (npcId !== null) void npcChatStore.retry(npcId)
+  if (npcId !== null) void npcChatStore.retry(npcId, playerProfileStore.profile)
 }
 
 watch(

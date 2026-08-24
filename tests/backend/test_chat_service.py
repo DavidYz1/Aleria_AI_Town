@@ -18,6 +18,7 @@ from backend.app.database.models import (
 )
 from backend.app.database.npc_repository import NpcNotFoundError, NpcRepository
 from backend.app.llm.provider import ChatProviderError, ChatProviderResult
+from backend.app.llm.types import PlayerProfileChatContext
 from backend.app.schemas.chat import NpcChatRequest
 from backend.app.services.chat_context import ChatContextAssembler, PromptLoader
 from backend.app.services.chat_service import (
@@ -73,6 +74,63 @@ def _service(
         history_limit=10,
         prompt_version="v1",
     )
+
+
+def _game_snapshot(session):
+    return {
+        "world": tuple(
+            session.execute(
+                select(
+                    WorldState.id,
+                    WorldState.name,
+                    WorldState.day,
+                    WorldState.time,
+                    WorldState.tick,
+                ).order_by(WorldState.id)
+            ).all()
+        ),
+        "players": tuple(
+            session.execute(
+                select(
+                    PlayerState.id,
+                    PlayerState.location_id,
+                ).order_by(PlayerState.id)
+            ).all()
+        ),
+        "npcs": tuple(
+            session.execute(
+                select(
+                    NpcState.npc_id,
+                    NpcState.location_id,
+                    NpcState.current_action,
+                    NpcState.energy,
+                    NpcState.mood,
+                    NpcState.social,
+                ).order_by(NpcState.npc_id)
+            ).all()
+        ),
+        "quests": tuple(
+            session.execute(
+                select(
+                    QuestProgress.player_id,
+                    QuestProgress.quest_id,
+                    QuestProgress.status,
+                    QuestProgress.version,
+                    QuestProgress.updated_tick,
+                ).order_by(
+                    QuestProgress.player_id,
+                    QuestProgress.quest_id,
+                )
+            ).all()
+        ),
+        "world_actions": session.scalar(
+            select(func.count()).select_from(WorldAction)
+        ),
+        "events": session.scalar(select(func.count()).select_from(Event)),
+        "quest_events": session.scalar(
+            select(func.count()).select_from(QuestEvent)
+        ),
+    }
 
 
 @pytest.mark.anyio
@@ -150,6 +208,47 @@ async def test_service_reuses_conversation_and_supplies_prior_turn_as_history(
         "Shir 回复：第一句",
     ]
     assert provider.requests[1].player_message == "第二句"
+
+
+@pytest.mark.anyio
+async def test_service_passes_player_profile_without_mutating_game_state(
+    database_url,
+    seed_dir,
+):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    provider = _CapturingProvider()
+
+    with session_factory() as session:
+        before = _game_snapshot(session)
+        result = await _service(session, provider).chat(
+            npc_id="ryan",
+            request=NpcChatRequest.model_validate(
+                {
+                    "message": "你认识我吗？",
+                    "player_profile": {
+                        "display_name": "洛恩",
+                        "adventurer_class": "ranger",
+                    },
+                }
+            ),
+        )
+        session.expire_all()
+        after = _game_snapshot(session)
+        messages = tuple(
+            session.scalars(
+                select(ConversationMessage).order_by(ConversationMessage.id)
+            )
+        )
+
+    assert provider.requests[0].player_profile == PlayerProfileChatContext(
+        display_name="洛恩",
+        adventurer_class="ranger",
+        class_title="游侠",
+    )
+    assert after == before
+    assert result.turn.user.content == "你认识我吗？"
+    assert [message.role for message in messages] == ["user", "assistant"]
 
 
 @pytest.mark.anyio

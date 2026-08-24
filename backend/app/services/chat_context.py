@@ -16,6 +16,7 @@ from backend.app.llm.types import (
     ChatActionContext,
     ChatHistoryMessage,
     ChatProviderRequest,
+    PlayerProfileChatContext,
     PlayerQuestChatContext,
     PromptBundle,
 )
@@ -96,6 +97,7 @@ class ChatContextAssembler:
         player_message: str,
         history_limit: int,
         prompt_version: str,
+        player_profile: PlayerProfileChatContext | None = None,
     ) -> ChatProviderRequest:
         try:
             records = self._npc_repository.get_detail_records(npc_id)
@@ -168,6 +170,7 @@ class ChatContextAssembler:
             ),
             conversation_history=history,
             player_message=player_message,
+            player_profile=player_profile,
         )
 
     @staticmethod

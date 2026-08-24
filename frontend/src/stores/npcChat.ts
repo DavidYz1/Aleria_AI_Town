@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 
 import { sendNpcChat } from '../api/chat'
+import type { LocalPlayerProfileV1 } from '../player/playerProfile'
 import type {
   ChatFetcher,
   ChatMessage,
@@ -44,6 +45,7 @@ export const useNpcChatStore = defineStore('npcChat', () => {
 
   async function send(
     npcId: string,
+    profile: LocalPlayerProfileV1 | null,
     fetcher: ChatFetcher = sendNpcChat,
   ): Promise<void> {
     const session = sessionFor(npcId)
@@ -59,6 +61,14 @@ export const useNpcChatStore = defineStore('npcChat', () => {
       const result = await fetcher(npcId, {
         conversation_id: session.conversationId,
         message,
+        ...(profile === null
+          ? {}
+          : {
+              player_profile: {
+                display_name: profile.displayName,
+                adventurer_class: profile.adventurerClass,
+              },
+            }),
       })
       if (requestVersions.get(npcId) !== version) return
       applyResult(session, npcId, result, message)
@@ -74,9 +84,10 @@ export const useNpcChatStore = defineStore('npcChat', () => {
 
   async function retry(
     npcId: string,
+    profile: LocalPlayerProfileV1 | null,
     fetcher: ChatFetcher = sendNpcChat,
   ): Promise<void> {
-    await send(npcId, fetcher)
+    await send(npcId, profile, fetcher)
   }
 
   return { sessionsByNpc, sessionFor, setPendingMessage, send, retry }

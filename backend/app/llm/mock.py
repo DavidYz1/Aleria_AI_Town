@@ -104,10 +104,16 @@ class MockChatProvider:
             request.current_action,
             request.current_action,
         )
+        player_address = self._player_address(request)
+        profile_prefix = (
+            ""
+            if request.player_profile is None
+            else f"{player_address}，"
+        )
         replies = {
             "ryan": {
                 "identity": f"我是 {request.npc_name}，{request.world_name}的年轻骑士。需要帮忙就告诉我！",
-                "player_identity": "我不认识你失去记忆前的过去。但你从现在起选择成为什么样的人，比旧名字更重要。",
+                "player_identity": f"{profile_prefix}我不认识你失去记忆前的过去。但你从现在起选择成为什么样的人，比旧名字更重要。",
                 "mark": "我不认识这个印记，不过晨曦城堡或许有旧纹章记录。我可以陪你去查。",
                 "ancient_history": "我学过的历史说，人类英雄在终焉战争中击败了魔王。可父亲的旧事让我不敢说书上每一页都完整。",
                 "ash_war": "我知道的灰烬战争多是骑士课本上的公开故事。Grey 经历过那段时间，但别逼他一次说完。",
@@ -117,12 +123,12 @@ class MockChatProvider:
                 "mood": f"我现在心情不错，状态大约是 {request.mood}/100。继续向前就对了！",
                 "help": "当然能帮！先把你遇到的麻烦说清楚，我们一起想办法。",
                 "history": "灰烬战争留下了不少伤痕，我知道的多是公开故事；城堡里的旧记录得问 Grey。",
-                "greeting": "你好，旅行者！今天也要打起精神来。",
+                "greeting": f"你好，{player_address}！今天也要打起精神来。",
                 "default": "别担心，只要愿意向前走，我们总能找到办法。我会尽力帮你。",
             },
             "shir": {
                 "identity": f"{request.npc_name}。侦察者。身份够用了。",
-                "player_identity": "失去记忆不等于没有过去。先找能验证的痕迹；在那之前，我不会替你编一个身份。",
+                "player_identity": f"{profile_prefix}失去记忆不等于没有过去。先找能验证的痕迹；在那之前，我不会替你编一个身份。",
                 "mark": "这个印记不像普通纹章，但相似不等于答案。我只会把它当成需要验证的线索。",
                 "ancient_history": "终焉战争的历史档案有缺页。有人希望你只记得‘英雄击败魔王’，我还没有足够证据补全剩下的部分。",
                 "ash_war": "灰烬战争的旧封锁线还在森林里，相关档案却少得不正常。先把传闻和痕迹分开。",
@@ -132,12 +138,16 @@ class MockChatProvider:
                 "mood": f"心情稳定，{request.mood}/100。不影响判断。",
                 "help": "可以帮，但先说事实。线索比情绪有用。",
                 "history": "灰烬战争的公开历史缺了很多页。听到传闻，先别急着相信。",
-                "greeting": "……你好。直接说正事吧。",
+                "greeting": (
+                    "……你好。直接说正事吧。"
+                    if request.player_profile is None
+                    else f"……你好，{player_address}。直接说正事吧。"
+                ),
                 "default": "……我听见了。说重点吧。",
             },
             "grey": {
                 "identity": f"我是 {request.npc_name}，负责守护{request.world_name}的 Guardian。",
-                "player_identity": "我无法证明你失去记忆前是谁。先确保你在曦谷安全，再从可以核实的线索查起。",
+                "player_identity": f"{profile_prefix}我无法证明你失去记忆前是谁。先确保你在曦谷安全，再从可以核实的线索查起。",
                 "mark": "这个印记的轮廓让我不安，但熟悉感不是证据。在查到记录前，我不会给你一个危险的结论。",
                 "ancient_history": "公开历史把终焉战争写得很简单，现实往往没有那么整齐。没有证据的猜测，不能代替真相。",
                 "ash_war": "灰烬战争留下的伤口还在。相关记录并不完整，我只会告诉你能够确认的部分。",
@@ -147,7 +157,7 @@ class MockChatProvider:
                 "mood": f"我的心情尚稳，{request.mood}/100。职责不会因情绪而改变。",
                 "help": "我会帮你。先说明时间、地点和相关人员，我们从可确认的事实开始。",
                 "history": "灰烬战争的历史很沉重，公开记录也不完整；未经确认的部分，我不会妄下结论。",
-                "greeting": "你好，旅行者。愿你在曦谷平安。",
+                "greeting": f"你好，{player_address}。愿你在曦谷平安。",
                 "default": "慢慢说。我会听着，也会留意周围是否安全。",
             },
         }
@@ -155,6 +165,13 @@ class MockChatProvider:
             replies[request.npc_id][intent],
             self._default_emotion(request),
         )
+
+    @staticmethod
+    def _player_address(request: ChatProviderRequest) -> str:
+        profile = request.player_profile
+        if profile is None:
+            return "旅行者"
+        return f"{profile.display_name}，{profile.class_title}"
 
     def _match_intent(self, message: str) -> str:
         for intent, keywords in self._INTENT_KEYWORDS:

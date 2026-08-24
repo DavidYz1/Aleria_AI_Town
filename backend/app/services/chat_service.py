@@ -5,6 +5,7 @@ from backend.app.database.chat_repository import (
     ChatRepository,
 )
 from backend.app.llm.provider import ChatProvider, ChatProviderError
+from backend.app.llm.types import PlayerProfileChatContext
 from backend.app.schemas.chat import (
     ChatAssistantMessageData,
     ChatTurnData,
@@ -16,6 +17,13 @@ from backend.app.services.chat_context import (
     ChatContextAssembler,
     PromptUnavailableError,
 )
+
+
+PLAYER_CLASS_TITLES = {
+    "mage": "法师",
+    "ranger": "游侠",
+    "cleric": "牧师",
+}
 
 
 class ChatContextUnavailableError(RuntimeError):
@@ -50,6 +58,16 @@ class ChatService:
     ) -> NpcChatData:
         create_conversation = request.conversation_id is None
         conversation_id = str(request.conversation_id or uuid4())
+        profile = request.player_profile
+        player_profile = (
+            None
+            if profile is None
+            else PlayerProfileChatContext(
+                display_name=profile.display_name,
+                adventurer_class=profile.adventurer_class,
+                class_title=PLAYER_CLASS_TITLES[profile.adventurer_class],
+            )
+        )
 
         try:
             context = self._context_assembler.assemble(
@@ -60,6 +78,7 @@ class ChatService:
                 player_message=request.message,
                 history_limit=self._history_limit,
                 prompt_version=self._prompt_version,
+                player_profile=player_profile,
             )
         except PromptUnavailableError:
             raise ChatContextUnavailableError(

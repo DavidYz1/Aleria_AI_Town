@@ -3,7 +3,11 @@ from pydantic import ValidationError
 
 from backend.app.llm.mock import MockChatProvider
 from backend.app.llm.provider import ChatProviderResult
-from backend.app.llm.types import ChatProviderRequest, PlayerQuestChatContext
+from backend.app.llm.types import (
+    ChatProviderRequest,
+    PlayerProfileChatContext,
+    PlayerQuestChatContext,
+)
 
 
 def _request(
@@ -11,6 +15,7 @@ def _request(
     player_message: str,
     *,
     player_quest_context: PlayerQuestChatContext | None = None,
+    player_profile: PlayerProfileChatContext | None = None,
 ) -> ChatProviderRequest:
     identity = {
         "ryan": ("Ryan", "Knight", ("optimistic", "brave", "kind")),
@@ -46,6 +51,7 @@ def _request(
         player_quest_context=player_quest_context,
         conversation_history=(),
         player_message=player_message,
+        player_profile=player_profile,
     )
 
 
@@ -143,6 +149,51 @@ async def test_mock_story_intents_respect_character_and_knowledge_boundaries(
     assert all(fact_fragment in result.reply for result in results)
     assert all("我知道你的真实身份" not in result.reply for result in results)
     assert all("五百年前我亲眼见过" not in result.reply for result in results)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("npc_id", ["ryan", "shir", "grey"])
+async def test_mock_uses_player_name_and_title_for_greetings(npc_id):
+    profile = PlayerProfileChatContext(
+        display_name="洛恩",
+        adventurer_class="ranger",
+        class_title="游侠",
+    )
+
+    result = await MockChatProvider().generate_reply(
+        _request(npc_id, "你好", player_profile=profile)
+    )
+
+    assert "洛恩" in result.reply
+    assert "游侠" in result.reply
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("npc_id", ["ryan", "shir", "grey"])
+async def test_mock_uses_profile_without_inventing_a_past_identity(npc_id):
+    profile = PlayerProfileChatContext(
+        display_name="洛恩",
+        adventurer_class="ranger",
+        class_title="游侠",
+    )
+
+    result = await MockChatProvider().generate_reply(
+        _request(npc_id, "我是谁", player_profile=profile)
+    )
+
+    assert "洛恩" in result.reply
+    assert "游侠" in result.reply
+    assert "失去记忆" in result.reply
+    assert any(
+        boundary in result.reply for boundary in ("不认识", "不会", "无法证明")
+    )
+
+
+@pytest.mark.anyio
+async def test_mock_keeps_the_traveler_address_without_a_profile():
+    result = await MockChatProvider().generate_reply(_request("ryan", "你好"))
+
+    assert "旅行者" in result.reply
 
 
 @pytest.mark.anyio

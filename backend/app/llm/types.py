@@ -36,6 +36,13 @@ class PlayerQuestChatContext:
 
 
 @dataclass(frozen=True)
+class PlayerProfileChatContext:
+    display_name: str
+    adventurer_class: Literal["mage", "ranger", "cleric"]
+    class_title: str
+
+
+@dataclass(frozen=True)
 class ChatProviderRequest:
     npc_id: str
     npc_name: str
@@ -61,3 +68,4 @@ class ChatProviderRequest:
     player_quest_context: PlayerQuestChatContext | None
     conversation_history: tuple[ChatHistoryMessage, ...]
     player_message: str
+    player_profile: PlayerProfileChatContext | None = None

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../frontend/src/api/client'
 import { useNpcChatStore } from '../../frontend/src/stores/npcChat'
 import { useNpcDetailStore } from '../../frontend/src/stores/npcDetail'
+import { usePlayerProfileStore } from '../../frontend/src/stores/playerProfile'
 import { usePlayerQuestStore } from '../../frontend/src/stores/playerQuest'
 import { useWorldStore } from '../../frontend/src/stores/world'
 import type { NpcChatData } from '../../frontend/src/types/chat'
@@ -263,12 +264,18 @@ describe('TownView', () => {
 
   it('sends through the real chat store and renders Backend messages', async () => {
     const { pinia, store } = createStore()
+    usePlayerProfileStore().profile = {
+      version: 1,
+      displayName: '洛恩',
+      adventurerClass: 'ranger',
+      introCompleted: true,
+    }
     store.data = worldFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
     vi.spyOn(api, 'get').mockResolvedValue({
       data: { success: true, data: npcDetailFixture, message: 'ok' },
     } as Awaited<ReturnType<typeof api.get>>)
-    vi.spyOn(api, 'post').mockResolvedValue({
+    const post = vi.spyOn(api, 'post').mockResolvedValue({
       data: { success: true, data: chatResponseFixture, message: 'ok' },
     } as Awaited<ReturnType<typeof api.post>>)
 
@@ -287,6 +294,14 @@ describe('TownView', () => {
     expect(chat.text()).toContain('你害怕史莱姆吗？')
     expect(chat.text()).toContain('害怕？当然不是')
     expect(chat.text()).toContain('Mock 模式')
+    expect(post).toHaveBeenCalledWith('/api/npcs/ryan/chat', {
+      conversation_id: null,
+      message: '你害怕史莱姆吗？',
+      player_profile: {
+        display_name: '洛恩',
+        adventurer_class: 'ranger',
+      },
+    })
   })
 
   it('restores each NPC chat after switching and closing detail', async () => {

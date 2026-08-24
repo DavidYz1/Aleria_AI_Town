@@ -1,3 +1,6 @@
+import type { AdventurerClass } from '../player/playerProfile'
+
+
 export type ChatEmotion =
   | 'neutral'
   | 'cheerful'
@@ -6,9 +9,15 @@ export type ChatEmotion =
   | 'thoughtful'
   | 'concerned'
 
+export interface NpcChatPlayerProfile {
+  display_name: string
+  adventurer_class: AdventurerClass
+}
+
 export interface NpcChatRequest {
   conversation_id: string | null
   message: string
+  player_profile?: NpcChatPlayerProfile
 }
 
 export interface ChatUserMessage {

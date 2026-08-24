@@ -8,6 +8,7 @@ from backend.app.database.chat_repository import ChatRepository
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import NpcState, QuestProgress
 from backend.app.database.npc_repository import NpcNotFoundError, NpcRepository
+from backend.app.llm.types import PlayerProfileChatContext
 from backend.app.database.world_tick_repository import WorldTickRepository
 from backend.app.services.chat_context import (
     ChatContextAssembler,
@@ -247,6 +248,34 @@ def test_context_assembler_includes_optional_read_only_player_quest_context(
         )
 
     assert context.player_quest_context is player_quest_context
+
+
+def test_context_assembler_passes_through_optional_player_profile_context(
+    database_url,
+    seed_dir,
+):
+    player_profile = PlayerProfileChatContext(
+        display_name="洛恩",
+        adventurer_class="ranger",
+        class_title="游侠",
+    )
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        context = ChatContextAssembler(
+            NpcRepository(session),
+            ChatRepository(session),
+            PromptLoader(),
+        ).assemble(
+            npc_id="grey",
+            conversation_id=None,
+            player_message="你认识我吗？",
+            player_profile=player_profile,
+            history_limit=10,
+            prompt_version="v2",
+        )
+
+    assert context.player_profile == player_profile
 
 
 def test_context_assembler_uses_empty_history_for_new_conversation(

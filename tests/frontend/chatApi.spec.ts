@@ -61,6 +61,30 @@ describe('Chat API adapter', () => {
     })
   })
 
+  it('passes the optional player profile through in the wire payload', async () => {
+    const post = vi.spyOn(api, 'post').mockResolvedValue({
+      data: { success: true, data: chatResponseFixture, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.post>>)
+
+    await sendNpcChat('ryan', {
+      conversation_id: null,
+      message: '你好',
+      player_profile: {
+        display_name: '洛恩',
+        adventurer_class: 'ranger',
+      },
+    })
+
+    expect(post).toHaveBeenCalledWith('/api/npcs/ryan/chat', {
+      conversation_id: null,
+      message: '你好',
+      player_profile: {
+        display_name: '洛恩',
+        adventurer_class: 'ranger',
+      },
+    })
+  })
+
   it.each([
     [404, 'Conversation not found'],
     [503, 'Chat service is unavailable'],
