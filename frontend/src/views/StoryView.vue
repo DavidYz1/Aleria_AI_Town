@@ -21,7 +21,16 @@ const passageIndex = ref(0)
 const isLastPassage = computed(() => passageIndex.value === passages.length - 1)
 
 function continueStory(): void {
-  if (!isLastPassage.value) passageIndex.value += 1
+  if (isLastPassage.value) return
+  passageIndex.value += 1
+
+  try {
+    const cue = new Audio('/assets/phase2/audio/page-turn.ogg')
+    cue.volume = 0.2
+    void cue.play().catch(() => undefined)
+  } catch {
+    // The story remains readable when audio is unavailable.
+  }
 }
 </script>
 

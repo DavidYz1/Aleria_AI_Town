@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../frontend/src/App.vue'
 import {
@@ -40,6 +40,10 @@ function mountAppWithTownLandmark() {
 describe('adventurer onboarding flow', () => {
   beforeEach(() => {
     localStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('moves a new adventurer from boot through story and persists completion', async () => {
@@ -110,5 +114,37 @@ describe('adventurer onboarding flow', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.find('.storage-warning + [data-scene="create"]').exists()).toBe(true)
+  })
+
+  it('plays a non-blocking page cue only when advancing the story', async () => {
+    const play = vi.fn().mockRejectedValue(new Error('autoplay blocked'))
+    const instances: Array<{ src: string, volume: number }> = []
+    class FakeAudio {
+      volume = 1
+
+      constructor(readonly src: string) {
+        instances.push(this)
+      }
+
+      play = play
+    }
+    vi.stubGlobal('Audio', FakeAudio)
+    const wrapper = mountApp()
+
+    await wrapper.get('[data-action="continue"]').trigger('click')
+    await wrapper.get('input[name="displayName"]').setValue('洛恩')
+    await wrapper.get('[data-class="ranger"]').trigger('click')
+    await wrapper.get('form').trigger('submit')
+    expect(play).not.toHaveBeenCalled()
+
+    await wrapper.get('[data-action="continue-story"]').trigger('click')
+    expect(wrapper.get('.story-progress').text()).toBe('2 / 4')
+    expect(play).toHaveBeenCalledTimes(1)
+    expect(instances).toMatchObject([
+      { src: '/assets/phase2/audio/page-turn.ogg', volume: 0.2 },
+    ])
+
+    await wrapper.get('[data-action="skip-story"]').trigger('click')
+    expect(play).toHaveBeenCalledTimes(1)
   })
 })

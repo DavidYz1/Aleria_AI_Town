@@ -12,6 +12,7 @@
       "vitest": ["node_modules/vitest"]
     },
     "strict": true,
+    "skipLibCheck": true,
     "jsx": "preserve",
     "resolveJsonModule": true,
     "isolatedModules": true,
