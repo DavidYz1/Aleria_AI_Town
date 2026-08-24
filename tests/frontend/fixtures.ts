@@ -7,10 +7,10 @@ import type { WorldTickData } from '../../frontend/src/types/worldTick'
 export const worldFixture: WorldData = {
   world: { id: 'aleria-town', name: '曦谷', day: 1, time: '08:00', tick: 0 },
   locations: [
-    { id: 'tavern', name: '星辉酒馆', description: '冒险者交流和休息的地方' },
-    { id: 'park', name: '中央公园', description: '居民散步和放松的地方' },
-    { id: 'castle', name: '晨曦城堡', description: '守卫曦谷、眺望山谷边境的古老城堡' },
-    { id: 'forest', name: '低语森林', description: '林间低语与旧日传闻交织的幽深森林' },
+    { id: 'tavern', name: '星辉酒馆', description: '炉火、消息与委托汇聚的温暖酒馆，许多旅人故事从这里开始' },
+    { id: 'park', name: '中央公园', description: '居民散步与骑士训练的开阔绿地，日常生活掩映着战争旧痕' },
+    { id: 'castle', name: '晨曦城堡', description: '守望曦谷的古老城堡，深处封存着灰烬战争留下的残缺档案' },
+    { id: 'forest', name: '低语森林', description: '林间低语与古老遗迹交织的幽深森林，部分区域仍属于旧封锁线' },
   ],
   npcs: [
     {
@@ -120,7 +120,7 @@ export const availablePlayerQuestFixture: PlayerQuestData = {
     title: '失踪的孩子',
     status: 'available',
     version: 0,
-    objective: '查看星辉酒馆的委托板。',
+    objective: '查看星辉酒馆告示板上的失踪委托。',
     available_interactions: [
       { id: 'accept_quest', label: '接受委托' },
     ],

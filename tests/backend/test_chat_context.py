@@ -362,6 +362,6 @@ def test_player_quest_chat_context_reader_returns_summary_or_none(
         "星辉酒馆",
         "missing-child",
         "available",
-        "查看星辉酒馆的委托板。",
+        "查看星辉酒馆告示板上的失踪委托。",
     )
     assert unavailable is None

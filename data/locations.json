@@ -2,25 +2,25 @@
   {
     "id": "tavern",
     "name": "星辉酒馆",
-    "description": "旅行者交换消息、接受委托和休息的温暖酒馆",
+    "description": "炉火、消息与委托汇聚的温暖酒馆，许多旅人故事从这里开始",
     "sort_order": 1
   },
   {
     "id": "park",
     "name": "中央公园",
-    "description": "居民散步、放松和进行日常训练的开阔绿地",
+    "description": "居民散步与骑士训练的开阔绿地，日常生活掩映着战争旧痕",
     "sort_order": 2
   },
   {
     "id": "castle",
     "name": "晨曦城堡",
-    "description": "守卫曦谷、眺望山谷边境的古老城堡",
+    "description": "守望曦谷的古老城堡，深处封存着灰烬战争留下的残缺档案",
     "sort_order": 3
   },
   {
     "id": "forest",
     "name": "低语森林",
-    "description": "林间低语与旧日传闻交织的幽深森林",
+    "description": "林间低语与古老遗迹交织的幽深森林，部分区域仍属于旧封锁线",
     "sort_order": 4
   }
 ]

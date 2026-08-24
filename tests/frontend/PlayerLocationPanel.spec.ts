@@ -40,6 +40,8 @@ describe('PlayerLocationPanel', () => {
 
     expect(wrapper.text()).toContain('当前位置')
     expect(wrapper.get('h3').text()).toBe('星辉酒馆')
+    expect(wrapper.text()).toContain('失去记忆')
+    expect(wrapper.text()).toContain('无法解释的印记')
     expect(wrapper.get('[role="status"]').text()).toContain('正在刷新')
   })
 })

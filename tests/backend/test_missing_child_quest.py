@@ -222,7 +222,7 @@ def test_missing_child_policy_rejects_interaction_for_wrong_status(
             "tavern",
             None,
             None,
-            "查看星辉酒馆的委托板。",
+            "查看星辉酒馆告示板上的失踪委托。",
             (("accept_quest", "接受委托"),),
         ),
         (
@@ -230,7 +230,7 @@ def test_missing_child_policy_rejects_interaction_for_wrong_status(
             "park",
             None,
             None,
-            "查看星辉酒馆的委托板。",
+            "查看星辉酒馆告示板上的失踪委托。",
             (),
         ),
         (
@@ -254,7 +254,7 @@ def test_missing_child_policy_rejects_interaction_for_wrong_status(
             "forest",
             None,
             None,
-            "前往低语森林寻找线索。",
+            "前往低语森林，在灰烬战争旧封锁线附近寻找线索。",
             (("inspect_shoe", "查看遗落的鞋子"),),
         ),
         (
@@ -262,7 +262,7 @@ def test_missing_child_policy_rejects_interaction_for_wrong_status(
             "forest",
             None,
             None,
-            "沿鞋子附近的痕迹继续寻找。",
+            "调查鞋边的灼痕，并沿孩子留下的痕迹继续寻找。",
             (("search_child", "沿痕迹寻找孩子"),),
         ),
         (
@@ -270,10 +270,17 @@ def test_missing_child_policy_rejects_interaction_for_wrong_status(
             "tavern",
             None,
             None,
-            "护送孩子返回星辉酒馆。",
+            "护送孩子返回星辉酒馆，并记下他提到的林中低语。",
             (("return_child", "将孩子带回酒馆"),),
         ),
-        ("completed", "tavern", None, None, "任务已完成。", ()),
+        (
+            "completed",
+            "tavern",
+            None,
+            None,
+            "孩子已经安全回家；鞋边印记仍没有答案。",
+            (),
+        ),
     ],
 )
 def test_missing_child_policy_presents_authoritative_objective_and_actions(

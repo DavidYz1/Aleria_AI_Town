@@ -43,12 +43,12 @@ class MissingChildQuestPolicy:
         ),
     }
     _OBJECTIVES: dict[QuestStatus, str] = {
-        "available": "查看星辉酒馆的委托板。",
+        "available": "查看星辉酒馆告示板上的失踪委托。",
         "accepted": "前往晨曦城堡询问 Grey。",
-        "briefed_by_grey": "前往低语森林寻找线索。",
-        "shoe_found": "沿鞋子附近的痕迹继续寻找。",
-        "child_found": "护送孩子返回星辉酒馆。",
-        "completed": "任务已完成。",
+        "briefed_by_grey": "前往低语森林，在灰烬战争旧封锁线附近寻找线索。",
+        "shoe_found": "调查鞋边的灼痕，并沿孩子留下的痕迹继续寻找。",
+        "child_found": "护送孩子返回星辉酒馆，并记下他提到的林中低语。",
+        "completed": "孩子已经安全回家；鞋边印记仍没有答案。",
     }
     _INTERACTION_LABELS: dict[QuestInteraction, str] = {
         "accept_quest": "接受委托",

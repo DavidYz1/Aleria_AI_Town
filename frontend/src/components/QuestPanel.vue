@@ -57,7 +57,7 @@ const statusLabels: Record<QuestStatus, string> = {
       </button>
     </div>
     <p v-else-if="quest.status === 'completed'" class="quest-complete">
-      任务已经完成，孩子安全回到了星辉酒馆。
+      任务已经完成，孩子安全回到了星辉酒馆；鞋边的印记仍没有答案。
     </p>
 
     <div v-if="quest.recent_events.length > 0" class="quest-history">

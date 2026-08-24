@@ -87,7 +87,7 @@ describe('player quest store', () => {
           ...acceptedPlayerQuestFixture.quest,
           status: 'briefed_by_grey',
           version: 2,
-          objective: '前往低语森林寻找线索。',
+          objective: '前往低语森林，在灰烬战争旧封锁线附近寻找线索。',
           available_interactions: [],
         },
       }

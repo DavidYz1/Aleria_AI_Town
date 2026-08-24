@@ -235,7 +235,7 @@ async def test_chat_and_fallback_read_quest_context_without_mutating_game_state(
         "前往晨曦城堡询问 Grey。"
     )
     assert provider.requests[1].player_quest_context.quest_objective == (
-        "前往低语森林寻找线索。"
+        "前往低语森林，在灰烬战争旧封锁线附近寻找线索。"
     )
     assert accepted_after == accepted_before
     assert briefed_after == briefed_before

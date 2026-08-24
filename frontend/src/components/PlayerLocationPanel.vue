@@ -17,6 +17,7 @@ defineEmits<{
   <section class="card player-location-panel" aria-labelledby="player-location-heading">
     <p class="card-label">玩家位置</p>
     <h2 id="player-location-heading">旅行者</h2>
+    <p class="player-hook">失去记忆，只留下一个无法解释的印记。</p>
 
     <p v-if="loading" class="panel-status" role="status" aria-live="polite">
       {{ player === null ? '正在读取玩家位置…' : '正在刷新玩家位置…' }}
@@ -41,6 +42,13 @@ defineEmits<{
   font-size: 1.15rem;
 }
 
+.player-hook {
+  margin: -0.45rem 0 1rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.player-hook,
 .panel-status,
 .panel-alert,
 .player-location-data p {

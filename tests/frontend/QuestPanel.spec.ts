@@ -71,7 +71,7 @@ describe('QuestPanel', () => {
       ...acceptedPlayerQuestFixture.quest,
       status: 'completed',
       version: 5,
-      objective: '任务已完成。',
+      objective: '孩子已经安全回家；鞋边印记仍没有答案。',
       available_interactions: [],
     }
     const wrapper = mount(QuestPanel, {
@@ -79,7 +79,9 @@ describe('QuestPanel', () => {
     })
 
     expect(wrapper.text()).toContain('已完成')
-    expect(wrapper.text()).toContain('任务已经完成')
+    const completion = wrapper.get('.quest-complete').text()
+    expect(completion).toContain('孩子安全回到了星辉酒馆')
+    expect(completion).toContain('印记仍没有答案')
     expect(wrapper.find('.quest-actions button').exists()).toBe(false)
   })
 

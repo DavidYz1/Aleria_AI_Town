@@ -48,7 +48,7 @@ async def test_get_player_returns_seeded_player_and_quest_envelope(
                 "title": "失踪的孩子",
                 "status": "available",
                 "version": 0,
-                "objective": "查看星辉酒馆的委托板。",
+                "objective": "查看星辉酒馆告示板上的失踪委托。",
                 "available_interactions": [
                     {"id": "accept_quest", "label": "接受委托"}
                 ],
@@ -160,7 +160,9 @@ async def test_missing_child_api_completes_all_five_versioned_transitions(
     ]
     completed = responses[-1].json()["data"]
     assert completed["quest"]["version"] == 5
-    assert completed["quest"]["objective"] == "任务已完成。"
+    assert completed["quest"]["objective"] == (
+        "孩子已经安全回家；鞋边印记仍没有答案。"
+    )
     assert completed["quest"]["available_interactions"] == []
     assert len(completed["quest"]["recent_events"]) == 5
 

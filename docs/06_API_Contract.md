@@ -517,7 +517,7 @@ Response excerpt:
       "title": "失踪的孩子",
       "status": "available",
       "version": 0,
-      "objective": "查看星辉酒馆的委托板。",
+      "objective": "查看星辉酒馆告示板上的失踪委托。",
       "available_interactions": [
         {"id": "accept_quest", "label": "接受委托"}
       ],

@@ -342,5 +342,5 @@ async def test_chat_reads_player_quest_context_without_mutating_it(
 
     context = provider.requests[0].player_quest_context
     assert context is not None
-    assert context.quest_objective == "查看星辉酒馆的委托板。"
+    assert context.quest_objective == "查看星辉酒馆告示板上的失踪委托。"
     assert state_after == state_before

@@ -117,6 +117,20 @@ def test_seed_data_defines_four_story_locations_and_grey_at_the_castle(seed_dir)
         ("castle", "晨曦城堡"),
         ("forest", "低语森林"),
     ]
+    descriptions = {
+        location.id: location.description for location in seed.locations
+    }
+    required_fragments = {
+        "tavern": ("炉火", "委托"),
+        "park": ("骑士训练", "战争旧痕"),
+        "castle": ("灰烬战争", "残缺档案"),
+        "forest": ("古老遗迹", "旧封锁线"),
+    }
+    for location_id, fragments in required_fragments.items():
+        assert all(
+            fragment in descriptions[location_id] for fragment in fragments
+        )
+
     grey = next(npc for npc in seed.npcs if npc.id == "grey")
     assert grey.state.location_id == "castle"
 

@@ -8,6 +8,15 @@ from backend.app.database.player_quest_repository import PlayerQuestRepository
 from backend.app.quests.missing_child import MissingChildQuestPolicy
 from scripts.seed_world import seed_database
 
+EXPECTED_EVENT_FRAGMENTS = {
+    "accept_quest": ("星辉酒馆", "接受"),
+    "ask_grey": ("Grey", "灰烬战争旧封锁线"),
+    "inspect_shoe": ("烧灼符号", "身上的印记"),
+    "search_child": ("找到", "林中传来的低语"),
+    "return_child": ("安全带回", "印记之谜"),
+}
+
+
 
 def _service_modules():
     try:
@@ -79,7 +88,7 @@ def test_service_derives_initial_player_quest_presentation_from_backend_state(
             "title": "失踪的孩子",
             "status": "available",
             "version": 0,
-            "objective": "查看星辉酒馆的委托板。",
+            "objective": "查看星辉酒馆告示板上的失踪委托。",
             "available_interactions": [
                 {"id": "accept_quest", "label": "接受委托"}
             ],
@@ -126,3 +135,51 @@ def test_service_travel_and_interact_return_fresh_authoritative_state(
     assert [item.id for item in at_castle.quest.available_interactions] == [
         "ask_grey"
     ]
+
+
+def test_service_returns_story_event_descriptions_for_the_full_quest(
+    database_url,
+    seed_dir,
+):
+    player_schema, quest_schema, service_module = _service_modules()
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        service = service_module.PlayerQuestService(
+            PlayerQuestRepository(session),
+            MissingChildQuestPolicy(),
+        )
+
+        def interact(interaction, version):
+            return service.interact(
+                quest_schema.QuestInteractRequest(
+                    interaction=interaction,
+                    expected_version=version,
+                )
+            )
+
+        def travel(location_id):
+            return service.travel(
+                player_schema.PlayerTravelRequest(
+                    target_location_id=location_id
+                )
+            )
+
+        interact("accept_quest", 0)
+        travel("castle")
+        interact("ask_grey", 1)
+        travel("forest")
+        interact("inspect_shoe", 2)
+        interact("search_child", 3)
+        travel("tavern")
+        completed = interact("return_child", 4)
+
+    events = completed.quest.recent_events
+    assert [event.interaction for event in events] == list(
+        EXPECTED_EVENT_FRAGMENTS
+    )
+    for event in events:
+        assert all(
+            fragment in event.description
+            for fragment in EXPECTED_EVENT_FRAGMENTS[event.interaction]
+        )

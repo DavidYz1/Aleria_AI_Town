@@ -33,10 +33,10 @@ class PlayerQuestService:
 
     _EVENT_DESCRIPTIONS = {
         "accept_quest": "你在星辉酒馆接受了寻找失踪孩子的委托。",
-        "ask_grey": "Grey 告诉你，孩子最后可能前往了低语森林。",
-        "inspect_shoe": "你在低语森林发现了一只遗落的鞋子。",
-        "search_child": "你沿着痕迹找到了失踪的孩子。",
-        "return_child": "你把孩子安全带回星辉酒馆，完成了委托。",
+        "ask_grey": "Grey 告诉你，孩子最后出现在低语森林的灰烬战争旧封锁线附近。",
+        "inspect_shoe": "你在鞋旁发现烧灼符号，轮廓与你身上的印记相似。",
+        "search_child": "你沿着痕迹找到了孩子；他反复提到林中传来的低语。",
+        "return_child": "你把孩子安全带回星辉酒馆；委托结束，印记之谜却刚刚开始。",
     }
 
     def __init__(
