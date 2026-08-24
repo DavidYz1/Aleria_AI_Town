@@ -1,5 +1,6 @@
 import type { NpcDetailData } from '../../frontend/src/types/npc'
 import type { NpcChatData } from '../../frontend/src/types/chat'
+import type { PlayerQuestData } from '../../frontend/src/types/playerQuest'
 import type { WorldData } from '../../frontend/src/types/world'
 import type { WorldTickData } from '../../frontend/src/types/worldTick'
 
@@ -106,4 +107,50 @@ export const chatResponseFixture: NpcChatData = {
   },
   provider: 'mock',
   fallback_used: false,
+}
+
+export const availablePlayerQuestFixture: PlayerQuestData = {
+  player: {
+    id: 'default-player',
+    location_id: 'tavern',
+    location_name: '星辉酒馆',
+  },
+  quest: {
+    id: 'missing-child',
+    title: '失踪的孩子',
+    status: 'available',
+    version: 0,
+    objective: '查看星辉酒馆的委托板。',
+    available_interactions: [
+      { id: 'accept_quest', label: '接受委托' },
+    ],
+    recent_events: [],
+  },
+}
+
+export const acceptedPlayerQuestFixture: PlayerQuestData = {
+  player: {
+    id: 'default-player',
+    location_id: 'castle',
+    location_name: '晨曦城堡',
+  },
+  quest: {
+    id: 'missing-child',
+    title: '失踪的孩子',
+    status: 'accepted',
+    version: 1,
+    objective: '前往晨曦城堡询问 Grey。',
+    available_interactions: [
+      { id: 'ask_grey', label: '询问 Grey' },
+    ],
+    recent_events: [
+      {
+        id: 1,
+        from_status: 'available',
+        to_status: 'accepted',
+        interaction: 'accept_quest',
+        description: '你在星辉酒馆接受了寻找失踪孩子的委托。',
+      },
+    ],
+  },
 }

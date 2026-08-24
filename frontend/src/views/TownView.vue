@@ -5,14 +5,19 @@ import LocationCard from '../components/LocationCard.vue'
 import NpcCard from '../components/NpcCard.vue'
 import NpcChatPanel from '../components/NpcChatPanel.vue'
 import NpcDetailPanel from '../components/NpcDetailPanel.vue'
+import PlayerLocationPanel from '../components/PlayerLocationPanel.vue'
+import QuestPanel from '../components/QuestPanel.vue'
 import TickPanel from '../components/TickPanel.vue'
 import { useNpcChatStore } from '../stores/npcChat'
 import { useNpcDetailStore } from '../stores/npcDetail'
+import { usePlayerQuestStore } from '../stores/playerQuest'
 import { useWorldStore } from '../stores/world'
+import type { QuestInteraction } from '../types/playerQuest'
 
 const store = useWorldStore()
 const npcDetailStore = useNpcDetailStore()
 const npcChatStore = useNpcChatStore()
+const playerQuestStore = usePlayerQuestStore()
 
 const locationNames = computed(
   () => new Map(store.data?.locations.map((location) => [location.id, location.name]) ?? []),
@@ -29,6 +34,25 @@ const selectedChatSession = computed(() => {
 
 function reloadWorld(): void {
   void store.loadWorld()
+}
+
+function loadTown(): void {
+  void Promise.all([
+    store.loadWorld(),
+    playerQuestStore.load(),
+  ])
+}
+
+function retryPlayerQuest(): void {
+  void playerQuestStore.retry()
+}
+
+function travelPlayer(locationId: string): void {
+  void playerQuestStore.travel(locationId)
+}
+
+function interactWithQuest(interaction: QuestInteraction): void {
+  void playerQuestStore.interact(interaction)
 }
 
 function advanceWorld(): void {
@@ -72,7 +96,7 @@ watch(
   },
 )
 
-onMounted(reloadWorld)
+onMounted(loadTown)
 </script>
 
 <template>
@@ -106,9 +130,31 @@ onMounted(reloadWorld)
         @advance="advanceWorld"
       />
 
-      <section class="town-section" aria-labelledby="locations-heading">
+      <section class="town-section" aria-labelledby="journey-heading">
         <div class="section-heading">
           <p class="section-number">02</p>
+          <h2 id="journey-heading">旅行与委托</h2>
+        </div>
+        <div class="player-quest-layout">
+          <PlayerLocationPanel
+            :player="playerQuestStore.data?.player ?? null"
+            :loading="playerQuestStore.loading"
+            :error="playerQuestStore.error"
+            @retry="retryPlayerQuest"
+          />
+          <QuestPanel
+            v-if="playerQuestStore.data"
+            :quest="playerQuestStore.data.quest"
+            :mutating="playerQuestStore.mutating"
+            :mutation-error="playerQuestStore.mutationError"
+            @interact="interactWithQuest"
+          />
+        </div>
+      </section>
+
+      <section class="town-section" aria-labelledby="locations-heading">
+        <div class="section-heading">
+          <p class="section-number">03</p>
           <h2 id="locations-heading">城镇地点</h2>
         </div>
         <div class="location-grid">
@@ -116,13 +162,16 @@ onMounted(reloadWorld)
             v-for="location in store.data.locations"
             :key="location.id"
             :location="location"
+            :is-current="playerQuestStore.data?.player.location_id === location.id"
+            :travelling="playerQuestStore.mutating"
+            @travel="travelPlayer"
           />
         </div>
       </section>
 
       <section class="town-section" aria-labelledby="npcs-heading">
         <div class="section-heading">
-          <p class="section-number">03</p>
+          <p class="section-number">04</p>
           <h2 id="npcs-heading">居民状态</h2>
         </div>
         <div

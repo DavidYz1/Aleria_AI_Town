@@ -38,6 +38,16 @@ button:hover {
   background: #244634;
 }
 
+button:disabled {
+  color: #eef1ec;
+  background: #78867c;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  background: #78867c;
+}
+
 button:focus-visible {
   outline: 3px solid #d18a32;
   outline-offset: 3px;
@@ -126,6 +136,13 @@ h1 {
   gap: 1rem;
 }
 
+.player-quest-layout {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.75fr) minmax(0, 1.6fr);
+  align-items: start;
+  gap: 1rem;
+}
+
 .location-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -152,6 +169,27 @@ h1 {
   margin-bottom: 0;
   color: #59645c;
   line-height: 1.6;
+}
+
+.location-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.location-card > p:not(.card-label) {
+  flex: 1;
+  color: #59645c;
+  line-height: 1.6;
+}
+
+.location-card button {
+  margin-top: 0.85rem;
+}
+
+.location-card.is-current {
+  border-color: #5e8168;
+  box-shadow: 0 0 0 2px rgb(94 129 104 / 15%);
 }
 
 .npc-heading {
@@ -238,6 +276,12 @@ progress::-webkit-progress-value {
 
 progress::-moz-progress-bar {
   background: #c47b32;
+}
+
+@media (max-width: 900px) {
+  .player-quest-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
