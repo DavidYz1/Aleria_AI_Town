@@ -41,9 +41,17 @@ describe('TownView', () => {
     const wrapper = mount(TownView, { global: { plugins: [pinia] } })
     await flushPromises()
 
-    expect(wrapper.get('h1').text()).toContain('晨曦镇')
+    expect(wrapper.get('h1').text()).toContain('曦谷')
     expect(wrapper.text()).toContain('Day 1 · 08:00')
-    for (const text of ['星辰酒馆', '中央公园', 'Ryan', 'Shir', 'Grey']) {
+    for (const text of [
+      '星辉酒馆',
+      '中央公园',
+      '晨曦城堡',
+      '低语森林',
+      'Ryan',
+      'Shir',
+      'Grey',
+    ]) {
       expect(wrapper.text()).toContain(text)
     }
   })
@@ -56,7 +64,8 @@ describe('TownView', () => {
     const wrapper = mount(TownView, { global: { plugins: [pinia] } })
     await flushPromises()
 
-    expect(wrapper.get('[role="status"]').text()).toContain('正在读取晨曦镇…')
+    expect(wrapper.get('h1').text()).toContain('曦谷')
+    expect(wrapper.get('[role="status"]').text()).toContain('正在读取曦谷…')
   })
 
   it('shows a retry action after loading fails', async () => {

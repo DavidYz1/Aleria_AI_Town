@@ -57,8 +57,8 @@ async def test_get_npc_detail_returns_complete_public_contract_after_tick(
                     "target_kind": None,
                     "target_id": None,
                     "target_name": None,
-                    "reason_code": "knight_duty",
-                    "reason_text": "当前处于骑士履行训练职责的时间。",
+                    "reason_code": "knight_training",
+                    "reason_text": "当前处于骑士训练时间，因此执行训练。",
                 }
             ],
         },

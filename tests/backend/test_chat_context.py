@@ -140,7 +140,7 @@ def test_context_assembler_uses_authoritative_state_actions_and_bounded_history(
     assert context.role == "Knight"
     assert context.personality == ("optimistic", "brave", "kind")
     assert context.world_id == "aleria-town"
-    assert context.world_name == "晨曦镇"
+    assert context.world_name == "曦谷"
     assert (
         context.world_day,
         context.world_time,
@@ -155,9 +155,9 @@ def test_context_assembler_uses_authoritative_state_actions_and_bounded_history(
     assert (context.energy, context.mood, context.social) == (40, 66, 58)
     assert [action.tick for action in context.recent_actions] == [4, 3, 2]
     assert [action.reason_code for action in context.recent_actions] == [
-        "knight_duty",
-        "knight_duty",
-        "knight_duty",
+        "knight_training",
+        "knight_training",
+        "knight_training",
     ]
     assert len(context.conversation_history) == 10
     assert context.conversation_history[0].content == "user-2"

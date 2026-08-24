@@ -65,9 +65,9 @@ def test_repository_returns_only_three_most_recent_actions_in_stable_order(
         )
         for action in records.actions
     ] == [
-        ("12:00", "work", None, None, "knight_duty"),
-        ("11:00", "work", None, None, "knight_duty"),
-        ("10:00", "work", None, None, "knight_duty"),
+        ("12:00", "work", None, None, "knight_training"),
+        ("11:00", "work", None, None, "knight_training"),
+        ("10:00", "work", None, None, "knight_training"),
     ]
     assert all(action.id > 0 for action in records.actions)
 

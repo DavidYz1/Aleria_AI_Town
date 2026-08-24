@@ -22,7 +22,7 @@ describe('world tick store', () => {
 
     expect(advance).toHaveBeenCalledWith(0)
     expect(store.data?.world).toEqual({
-      id: 'aleria-town', name: '晨曦镇', day: 1, time: '09:00', tick: 1,
+      id: 'aleria-town', name: '曦谷', day: 1, time: '09:00', tick: 1,
     })
     expect(store.lastTick?.actions).toHaveLength(3)
     expect(store.tickError).toBeNull()

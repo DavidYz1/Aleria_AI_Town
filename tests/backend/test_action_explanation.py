@@ -21,8 +21,8 @@ from backend.app.services.action_explanation import explain_action
         ("low_mood_eat", None, "心情较低，因此选择用餐调整状态。"),
         (
             "low_mood_find_food",
-            "星辰酒馆",
-            "心情较低，因此前往星辰酒馆用餐。",
+            "星辉酒馆",
+            "心情较低，因此前往星辉酒馆用餐。",
         ),
         (
             "knight_duty_travel",
@@ -30,6 +30,12 @@ from backend.app.services.action_explanation import explain_action
             "当前处于骑士履行职责的时间，因此前往中央公园。",
         ),
         ("knight_duty", None, "当前处于骑士履行训练职责的时间。"),
+        (
+            "knight_training_travel",
+            "中央公园",
+            "当前是训练时间，因此前往中央公园。",
+        ),
+        ("knight_training", None, "当前处于骑士训练时间，因此执行训练。"),
         (
             "knight_evening_social",
             "Grey",
@@ -42,8 +48,8 @@ from backend.app.services.action_explanation import explain_action
         ),
         (
             "assassin_meal_travel",
-            "星辰酒馆",
-            "当前符合刺客的用餐安排，因此前往星辰酒馆。",
+            "星辉酒馆",
+            "当前符合刺客的用餐安排，因此前往星辉酒馆。",
         ),
         (
             "assassin_meal",
@@ -51,14 +57,20 @@ from backend.app.services.action_explanation import explain_action
             "当前符合刺客的用餐安排，因此选择用餐。",
         ),
         (
+            "assassin_scout_travel",
+            "低语森林",
+            "当前是侦察时间，因此前往低语森林。",
+        ),
+        ("assassin_scout", None, "当前处于刺客侦察时间，因此执行侦察。"),
+        (
             "guardian_patrol_travel",
-            "中央公园",
-            "当前处于守护者巡查时间，因此前往中央公园。",
+            "晨曦城堡",
+            "当前是巡逻时间，因此前往晨曦城堡。",
         ),
         (
             "guardian_patrol",
             None,
-            "当前处于守护者巡查时间，因此执行工作。",
+            "当前处于守护者巡逻时间，因此执行巡逻。",
         ),
         (
             "unknown_role_rest",

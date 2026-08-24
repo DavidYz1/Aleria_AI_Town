@@ -86,14 +86,14 @@ def test_seed_database_is_idempotent(database_url, seed_dir):
 
     with session_factory() as session:
         assert session.scalar(select(func.count()).select_from(WorldState)) == 1
-        assert session.scalar(select(func.count()).select_from(Location)) == 2
+        assert session.scalar(select(func.count()).select_from(Location)) == 4
         assert session.scalar(select(func.count()).select_from(NpcProfile)) == 3
         assert session.scalar(select(func.count()).select_from(NpcState)) == 3
         world = session.get(WorldState, "aleria-town")
         ryan = session.get(NpcState, "ryan")
 
     assert world is not None
-    assert (world.name, world.day, world.time, world.tick) == ("晨曦镇", 1, "08:00", 0)
+    assert (world.name, world.day, world.time, world.tick) == ("曦谷", 1, "08:00", 0)
     assert ryan is not None
     assert (ryan.location_id, ryan.energy, ryan.mood, ryan.social) == (
         "park",
@@ -101,6 +101,21 @@ def test_seed_database_is_idempotent(database_url, seed_dir):
         78,
         70,
     )
+
+
+def test_seed_data_defines_four_story_locations_and_grey_at_the_castle(seed_dir):
+    seed = load_seed_data(seed_dir)
+
+    assert seed.world.id == "aleria-town"
+    assert seed.world.name == "曦谷"
+    assert [(location.id, location.name) for location in seed.locations] == [
+        ("tavern", "星辉酒馆"),
+        ("park", "中央公园"),
+        ("castle", "晨曦城堡"),
+        ("forest", "低语森林"),
+    ]
+    grey = next(npc for npc in seed.npcs if npc.id == "grey")
+    assert grey.state.location_id == "castle"
 
 
 def test_reseed_resets_tick_history_consistently(database_url, seed_dir):

@@ -79,14 +79,14 @@ onMounted(reloadWorld)
   <main class="town-shell">
     <header class="town-header">
       <p class="eyebrow">Aleria AI Town</p>
-      <h1>{{ store.data?.world.name ?? '晨曦镇' }}</h1>
+      <h1>{{ store.data?.world.name ?? '曦谷' }}</h1>
       <p v-if="store.data" class="world-time">
         Day {{ store.data.world.day }} · {{ store.data.world.time }}
       </p>
     </header>
 
     <section v-if="store.loading" class="state-panel" role="status" aria-live="polite">
-      正在读取晨曦镇…
+      正在读取曦谷…
     </section>
 
     <section v-else-if="store.error" class="state-panel error-panel" role="alert">

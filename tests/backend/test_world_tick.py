@@ -38,7 +38,7 @@ async def test_tick_advances_world_and_records_three_actions_and_events(
     assert body["success"] is True
     assert body["data"]["world"]["world"] == {
         "id": "aleria-town",
-        "name": "晨曦镇",
+        "name": "曦谷",
         "day": 1,
         "time": "09:00",
         "tick": 1,

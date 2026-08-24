@@ -4,10 +4,12 @@ import type { WorldData } from '../../frontend/src/types/world'
 import type { WorldTickData } from '../../frontend/src/types/worldTick'
 
 export const worldFixture: WorldData = {
-  world: { id: 'aleria-town', name: '晨曦镇', day: 1, time: '08:00', tick: 0 },
+  world: { id: 'aleria-town', name: '曦谷', day: 1, time: '08:00', tick: 0 },
   locations: [
-    { id: 'tavern', name: '星辰酒馆', description: '冒险者交流和休息的地方' },
+    { id: 'tavern', name: '星辉酒馆', description: '冒险者交流和休息的地方' },
     { id: 'park', name: '中央公园', description: '居民散步和放松的地方' },
+    { id: 'castle', name: '晨曦城堡', description: '守卫曦谷、眺望山谷边境的古老城堡' },
+    { id: 'forest', name: '低语森林', description: '林间低语与旧日传闻交织的幽深森林' },
   ],
   npcs: [
     {
@@ -22,7 +24,7 @@ export const worldFixture: WorldData = {
     },
     {
       id: 'grey', name: 'Grey', role: 'Guardian',
-      personality: ['reliable', 'calm', 'protective'], location_id: 'park',
+      personality: ['reliable', 'calm', 'protective'], location_id: 'castle',
       current_action: 'work', status: { energy: 88, mood: 74, social: 55 },
     },
   ],
@@ -37,7 +39,7 @@ export const tickFixture: WorldTickData = {
       : npc),
   },
   actions: [
-    { id: 1, tick: 1, actor_id: 'ryan', action_type: 'work', target_kind: null, target_id: null, reason: 'knight_duty', status: 'recorded', world_time: '09:00' },
+    { id: 1, tick: 1, actor_id: 'ryan', action_type: 'work', target_kind: null, target_id: null, reason: 'knight_training', status: 'recorded', world_time: '09:00' },
     { id: 2, tick: 1, actor_id: 'shir', action_type: 'move', target_kind: 'location', target_id: 'park', reason: 'low_social_find_companion', status: 'recorded', world_time: '09:00' },
     { id: 3, tick: 1, actor_id: 'grey', action_type: 'work', target_kind: null, target_id: null, reason: 'guardian_patrol', status: 'recorded', world_time: '09:00' },
   ],
@@ -80,8 +82,8 @@ export const npcDetailFixture: NpcDetailData = {
       target_kind: null,
       target_id: null,
       target_name: null,
-      reason_code: 'knight_duty',
-      reason_text: '当前处于骑士履行训练职责的时间。',
+      reason_code: 'knight_training',
+      reason_text: '当前处于骑士训练时间，因此执行训练。',
     },
   ],
 }

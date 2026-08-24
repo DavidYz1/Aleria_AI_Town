@@ -34,7 +34,7 @@
     "personality": ["reliable", "calm", "protective"],
     "sort_order": 3,
     "state": {
-      "location_id": "park",
+      "location_id": "castle",
       "current_action": "work",
       "energy": 88,
       "mood": 74,

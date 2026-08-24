@@ -26,7 +26,7 @@ describe('world store', () => {
     await pending
 
     expect(store.loading).toBe(false)
-    expect(store.data?.world.name).toBe('晨曦镇')
+    expect(store.data?.world.name).toBe('曦谷')
   })
 
   it('clears stale data and exposes a retryable error when loading fails', async () => {

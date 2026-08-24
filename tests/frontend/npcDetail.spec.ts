@@ -90,7 +90,7 @@ describe('NPC detail store', () => {
     await store.selectNpc('ryan', () => Promise.resolve(npcDetailFixture))
 
     expect(store.selectedNpcId).toBe('ryan')
-    expect(store.data?.recent_actions[0].reason_code).toBe('knight_duty')
+    expect(store.data?.recent_actions[0].reason_code).toBe('knight_training')
     expect(store.loading).toBe(false)
     expect(store.error).toBeNull()
   })

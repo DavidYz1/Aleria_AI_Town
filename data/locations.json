@@ -1,14 +1,26 @@
 [
   {
     "id": "tavern",
-    "name": "星辰酒馆",
-    "description": "冒险者交流和休息的地方",
+    "name": "星辉酒馆",
+    "description": "旅行者交换消息、接受委托和休息的温暖酒馆",
     "sort_order": 1
   },
   {
     "id": "park",
     "name": "中央公园",
-    "description": "居民散步和放松的地方",
+    "description": "居民散步、放松和进行日常训练的开阔绿地",
     "sort_order": 2
+  },
+  {
+    "id": "castle",
+    "name": "晨曦城堡",
+    "description": "守卫曦谷、眺望山谷边境的古老城堡",
+    "sort_order": 3
+  },
+  {
+    "id": "forest",
+    "name": "低语森林",
+    "description": "林间低语与旧日传闻交织的幽深森林",
+    "sort_order": 4
   }
 ]

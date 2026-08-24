@@ -6,6 +6,7 @@ import pytest
 
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import Conversation, ConversationMessage
+from backend.app.core.config import Settings
 from backend.app.llm.provider import ChatProviderError
 from backend.app.main import create_app
 from scripts.seed_world import seed_database
@@ -18,13 +19,21 @@ class _FailingProvider:
         raise ChatProviderError("private upstream failure")
 
 
+def _create_test_app(database_url: str, *, chat_provider=None):
+    return create_app(
+        database_url,
+        settings=Settings(_env_file=None, chat_provider="mock"),
+        chat_provider=chat_provider,
+    )
+
+
 @pytest.mark.anyio
 async def test_post_npc_chat_completes_mock_acceptance_loop(
     database_url,
     seed_dir,
 ):
     seed_database(database_url, seed_dir)
-    transport = ASGITransport(app=create_app(database_url))
+    transport = ASGITransport(app=_create_test_app(database_url))
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -52,7 +61,7 @@ async def test_post_npc_chat_continues_existing_conversation_and_persists_pairs(
     seed_dir,
 ):
     seed_database(database_url, seed_dir)
-    transport = ASGITransport(app=create_app(database_url))
+    transport = ASGITransport(app=_create_test_app(database_url))
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         first = await client.post(
@@ -95,7 +104,7 @@ async def test_post_npc_chat_continues_existing_conversation_and_persists_pairs(
 @pytest.mark.anyio
 async def test_post_npc_chat_returns_404_for_unknown_npc(database_url, seed_dir):
     seed_database(database_url, seed_dir)
-    transport = ASGITransport(app=create_app(database_url))
+    transport = ASGITransport(app=_create_test_app(database_url))
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -117,7 +126,7 @@ async def test_post_npc_chat_returns_404_for_missing_conversation(
     seed_dir,
 ):
     seed_database(database_url, seed_dir)
-    transport = ASGITransport(app=create_app(database_url))
+    transport = ASGITransport(app=_create_test_app(database_url))
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -141,7 +150,7 @@ async def test_post_npc_chat_returns_404_for_missing_conversation(
 )
 async def test_post_npc_chat_rejects_invalid_input(database_url, seed_dir, payload):
     seed_database(database_url, seed_dir)
-    transport = ASGITransport(app=create_app(database_url))
+    transport = ASGITransport(app=_create_test_app(database_url))
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post("/api/npcs/ryan/chat", json=payload)
@@ -156,7 +165,7 @@ async def test_post_npc_chat_returns_safe_503_and_no_rows_on_provider_failure(
 ):
     seed_database(database_url, seed_dir)
     transport = ASGITransport(
-        app=create_app(database_url, chat_provider=_FailingProvider())
+        app=_create_test_app(database_url, chat_provider=_FailingProvider())
     )
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:

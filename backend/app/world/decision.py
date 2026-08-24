@@ -1,4 +1,9 @@
 from backend.app.world.clock import get_time_phase
+from backend.app.world.role_routines import (
+    WORK_LOCATION_BY_ROLE,
+    WORK_REASON_BY_ROLE,
+    WORK_TRAVEL_REASON_BY_ROLE,
+)
 from backend.app.world.types import ActionPlan, NpcSnapshot, WorldSnapshot
 
 
@@ -53,9 +58,18 @@ def decide_action(actor: NpcSnapshot, world: WorldSnapshot) -> ActionPlan:
 
     if actor.role == "Knight":
         if phase in ("morning", "day"):
-            if actor.location_id != "park":
-                return _move(actor, "park", "knight_duty_travel")
-            return ActionPlan(actor.id, "work", reason="knight_duty")
+            duty_location = WORK_LOCATION_BY_ROLE[actor.role]
+            if actor.location_id != duty_location:
+                return _move(
+                    actor,
+                    duty_location,
+                    WORK_TRAVEL_REASON_BY_ROLE[actor.role],
+                )
+            return ActionPlan(
+                actor.id,
+                "work",
+                reason=WORK_REASON_BY_ROLE[actor.role],
+            )
         companion = _social_target(actor, world)
         if companion is not None:
             return ActionPlan(
@@ -68,13 +82,36 @@ def decide_action(actor: NpcSnapshot, world: WorldSnapshot) -> ActionPlan:
         return ActionPlan(actor.id, "rest", reason="knight_evening_rest")
 
     if actor.role == "Assassin":
-        if actor.location_id != "tavern":
-            return _move(actor, "tavern", "assassin_meal_travel")
-        return ActionPlan(actor.id, "eat", reason="assassin_meal")
+        if phase in ("morning", "day"):
+            if actor.location_id != "tavern":
+                return _move(actor, "tavern", "assassin_meal_travel")
+            return ActionPlan(actor.id, "eat", reason="assassin_meal")
+
+        duty_location = WORK_LOCATION_BY_ROLE[actor.role]
+        if actor.location_id != duty_location:
+            return _move(
+                actor,
+                duty_location,
+                WORK_TRAVEL_REASON_BY_ROLE[actor.role],
+            )
+        return ActionPlan(
+            actor.id,
+            "work",
+            reason=WORK_REASON_BY_ROLE[actor.role],
+        )
 
     if actor.role == "Guardian":
-        if actor.location_id != "park":
-            return _move(actor, "park", "guardian_patrol_travel")
-        return ActionPlan(actor.id, "work", reason="guardian_patrol")
+        duty_location = WORK_LOCATION_BY_ROLE[actor.role]
+        if actor.location_id != duty_location:
+            return _move(
+                actor,
+                duty_location,
+                WORK_TRAVEL_REASON_BY_ROLE[actor.role],
+            )
+        return ActionPlan(
+            actor.id,
+            "work",
+            reason=WORK_REASON_BY_ROLE[actor.role],
+        )
 
     return ActionPlan(actor.id, "rest", reason="unknown_role_rest")

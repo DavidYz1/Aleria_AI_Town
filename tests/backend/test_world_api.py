@@ -20,14 +20,19 @@ async def test_get_world_returns_canonical_seeded_world(database_url, seed_dir):
     assert body["message"] == "ok"
     assert body["data"]["world"] == {
         "id": "aleria-town",
-        "name": "晨曦镇",
+        "name": "曦谷",
         "day": 1,
         "time": "08:00",
         "tick": 0,
     }
-    assert [item["id"] for item in body["data"]["locations"]] == [
-        "tavern",
-        "park",
+    assert [
+        (item["id"], item["name"])
+        for item in body["data"]["locations"]
+    ] == [
+        ("tavern", "星辉酒馆"),
+        ("park", "中央公园"),
+        ("castle", "晨曦城堡"),
+        ("forest", "低语森林"),
     ]
     assert [item["id"] for item in body["data"]["npcs"]] == [
         "ryan",

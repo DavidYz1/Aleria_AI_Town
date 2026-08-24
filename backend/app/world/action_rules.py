@@ -1,5 +1,6 @@
 from dataclasses import replace
 
+from backend.app.world.role_routines import WORK_LOCATION_BY_ROLE
 from backend.app.world.types import ActionPlan, NpcSnapshot, WorldSnapshot
 
 
@@ -41,8 +42,10 @@ def _validate_action(
 
     if action.target_kind is not None or action.target_id is not None:
         raise ActionValidationError(f"{action.action_type} does not accept a target")
-    if action.action_type == "work" and actor.location_id != "park":
-        raise ActionValidationError("work requires the park location")
+    if action.action_type == "work":
+        duty_location = WORK_LOCATION_BY_ROLE.get(actor.role)
+        if duty_location is None or actor.location_id != duty_location:
+            raise ActionValidationError("work requires the actor duty location")
     if action.action_type == "eat" and actor.location_id != "tavern":
         raise ActionValidationError("eat requires the tavern location")
     if action.action_type not in {"rest", "work", "eat"}:
