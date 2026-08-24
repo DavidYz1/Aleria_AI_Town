@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     )
     chat_llm_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     chat_history_limit: int = Field(default=10, ge=1, le=50)
-    chat_prompt_version: Literal["v1", "v2"] = "v2"
+    chat_prompt_version: Literal["v1", "v2", "v3"] = "v3"
 
     model_config = SettingsConfigDict(
         env_file=REPO_ROOT / ".env",

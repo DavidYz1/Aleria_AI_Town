@@ -62,7 +62,7 @@ def _write_prompt_tree(root: Path, character_content: str = "Ryan") -> None:
 def test_prompt_loader_reads_non_empty_versioned_assets_for_known_npcs():
     loader = PromptLoader()
 
-    for version in ("v1", "v2"):
+    for version in ("v1", "v2", "v3"):
         for npc_id, npc_name in [
             ("ryan", "Ryan"),
             ("shir", "Shir"),
@@ -79,10 +79,44 @@ def test_prompt_loader_reads_non_empty_versioned_assets_for_known_npcs():
     assert "旅行者" in v2_bundle.player_context
 
 
+def test_v3_prompt_separates_public_lore_player_facts_and_character_knowledge():
+    loader = PromptLoader()
+    bundles = {
+        npc_id: loader.load(version="v3", npc_id=npc_id)
+        for npc_id in ("ryan", "shir", "grey")
+    }
+
+    shared = bundles["ryan"]
+    assert "官方历史" in shared.world_lore
+    assert "以自身作为“锚”" not in shared.world_lore
+    assert "失去记忆" in shared.player_context
+    assert "印记" in shared.player_context
+    assert "不得替玩家补全" in shared.player_context
+
+    assert "父亲" in bundles["ryan"].character_prompt
+    assert "删除的档案" in bundles["shir"].character_prompt
+    assert "灰烬战争" in bundles["grey"].character_prompt
+    assert "亲历终焉战争" not in bundles["grey"].character_prompt
+    assert len(
+        {bundle.character_prompt for bundle in bundles.values()}
+    ) == 3
+    for bundle in bundles.values():
+        prompt_chars = sum(
+            len(content)
+            for content in (
+                bundle.world_lore,
+                bundle.chat_system_prompt,
+                bundle.player_context,
+                bundle.character_prompt,
+            )
+        )
+        assert prompt_chars < 12_000
+
+
 @pytest.mark.parametrize(
     ("version", "npc_id"),
     [
-        ("v3", "ryan"),
+        ("v4", "ryan"),
         ("../v1", "ryan"),
         ("v1", "../world_lore"),
         ("v1", "unknown"),

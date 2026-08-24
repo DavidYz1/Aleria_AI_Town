@@ -7,13 +7,17 @@ class MockChatProvider:
     name = "mock"
 
     _INTENT_KEYWORDS = (
+        ("player_identity", ("我是谁", "认识我", "我的记忆", "who am i")),
+        ("mark", ("印记", "烙印", "符号", "mark")),
+        ("ancient_history", ("终焉战争", "古族", "魔王", "伊萨尔")),
+        ("ash_war", ("灰烬战争", "灰烬", "ash war")),
         ("identity", ("你是谁", "叫什么", "身份", "who are you")),
         ("world", ("这里是哪里", "什么地方", "这个小镇", "where am i")),
         ("location", ("你现在在哪里", "你在哪", "当前位置", "where are you")),
         ("action", ("你在做什么", "正在做什么", "忙什么", "what are you doing")),
         ("mood", ("心情", "感觉怎么样", "过得怎么样", "how are you")),
         ("help", ("需要帮助", "帮帮我", "帮忙", "帮我", "help")),
-        ("history", ("灰烬战争", "历史", "过去", "ash war", "history")),
+        ("history", ("历史", "过去", "history")),
         ("greeting", ("你好", "早上好", "晚上好", "hello", "hi")),
     )
     _QUEST_KEYWORDS = ("任务", "委托", "孩子", "线索", "quest")
@@ -61,11 +65,11 @@ class MockChatProvider:
         if request.npc_id == "grey":
             if self._contains(
                 message,
-                ("ash war", "war", "ruin", "战争", "灰烬", "遗迹"),
+                ("ash war", "ruin", "灰烬战争", "灰烬", "遗迹"),
             ):
                 return self._result(
-                    "灰烬战争的记录并不完整，有些旧事需要谨慎核实。"
-                    "我只会告诉你能确认的部分。",
+                    "我经历过灰烬战争，也失去过同伴。相关记录并不完整；"
+                    "在证据足够前，我只能谨慎告诉你能确认的部分。",
                     "concerned",
                 )
 
@@ -103,6 +107,10 @@ class MockChatProvider:
         replies = {
             "ryan": {
                 "identity": f"我是 {request.npc_name}，{request.world_name}的年轻骑士。需要帮忙就告诉我！",
+                "player_identity": "我不认识你失去记忆前的过去。但你从现在起选择成为什么样的人，比旧名字更重要。",
+                "mark": "我不认识这个印记，不过晨曦城堡或许有旧纹章记录。我可以陪你去查。",
+                "ancient_history": "我学过的历史说，人类英雄在终焉战争中击败了魔王。可父亲的旧事让我不敢说书上每一页都完整。",
+                "ash_war": "我知道的灰烬战争多是骑士课本上的公开故事。Grey 经历过那段时间，但别逼他一次说完。",
                 "world": f"这里是{request.world_name}，一座正在从灰烬战争中恢复的小镇。欢迎你，旅行者！",
                 "location": f"我现在在{request.location_name}。这里很适合活动筋骨。",
                 "action": f"我正在{action_name}。休整好了，才能精神十足地帮助大家。",
@@ -114,6 +122,10 @@ class MockChatProvider:
             },
             "shir": {
                 "identity": f"{request.npc_name}。侦察者。身份够用了。",
+                "player_identity": "失去记忆不等于没有过去。先找能验证的痕迹；在那之前，我不会替你编一个身份。",
+                "mark": "这个印记不像普通纹章，但相似不等于答案。我只会把它当成需要验证的线索。",
+                "ancient_history": "终焉战争的历史档案有缺页。有人希望你只记得‘英雄击败魔王’，我还没有足够证据补全剩下的部分。",
+                "ash_war": "灰烬战争的旧封锁线还在森林里，相关档案却少得不正常。先把传闻和痕迹分开。",
                 "world": f"这里是{request.world_name}。表面平静，森林的传闻还需要查证。",
                 "location": f"我在{request.location_name}。别把我的位置告诉太多人。",
                 "action": f"正在{action_name}。观察环境也是工作的一部分。",
@@ -125,6 +137,10 @@ class MockChatProvider:
             },
             "grey": {
                 "identity": f"我是 {request.npc_name}，负责守护{request.world_name}的 Guardian。",
+                "player_identity": "我无法证明你失去记忆前是谁。先确保你在曦谷安全，再从可以核实的线索查起。",
+                "mark": "这个印记的轮廓让我不安，但熟悉感不是证据。在查到记录前，我不会给你一个危险的结论。",
+                "ancient_history": "公开历史把终焉战争写得很简单，现实往往没有那么整齐。没有证据的猜测，不能代替真相。",
+                "ash_war": "灰烬战争留下的伤口还在。相关记录并不完整，我只会告诉你能够确认的部分。",
                 "world": f"这里是{request.world_name}。战争已经过去，守护这里的责任还没有结束。",
                 "location": f"我目前在{request.location_name}，这里的安全情况由我持续留意。",
                 "action": f"我正在{action_name}。保持秩序往往从这些小事开始。",

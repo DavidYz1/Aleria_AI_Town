@@ -324,7 +324,7 @@ CHAT_LLM_TIMEOUT_SECONDS=30
 CHAT_HISTORY_LIMIT=10
 
 
-CHAT_PROMPT_VERSION=v2
+CHAT_PROMPT_VERSION=v3
 ```
 
 约束：
@@ -334,7 +334,7 @@ CHAT_PROMPT_VERSION=v2
 -   `CHAT_LLM_AUTH_MODE=bearer` 时 Key 必填，且只保存在 Backend 环境中；文档示例使用 `<backend-only-secret>`。
 -   `CHAT_LLM_AUTH_MODE=none` 允许本地服务不配置 Key。
 -   `CHAT_LLM_OUTPUT_MODE` 只允许 `structured_json` 或 `text`；前者严格解析 `reply + emotion`，后者兼容自然文本并确定性派生 emotion。
--   timeout 范围 0–120 秒（不含 0），history limit 范围 1–50，Prompt 版本允许 `v1|v2` 且默认 `v2`。
+-   timeout 范围 0–120 秒（不含 0），history limit 范围 1–50，Prompt 版本允许 `v1|v2|v3` 且默认 `v3`。
 
 ------------------------------------------------------------------------
 
@@ -383,6 +383,23 @@ CHAT_LLM_OUTPUT_MODE=structured_json
 ```
 
 `CHAT_PROVIDER` 是可观测标签，不选择专用代码分支。腾讯混元或其他 compatible 云端服务替换地址与模型即可。
+
+腾讯混元 `hy-role` 角色对话示例（推荐用于更自然的人设演绎）：
+
+``` env
+CHAT_PROVIDER=hunyuan
+CHAT_LLM_BASE_URL=<hunyuan-compatible-base-url>
+CHAT_LLM_API_KEY=<backend-only-secret>
+CHAT_LLM_MODEL=hy-role
+CHAT_LLM_AUTH_MODE=bearer
+CHAT_LLM_OUTPUT_MODE=text
+CHAT_LLM_TIMEOUT_SECONDS=30
+CHAT_PROMPT_VERSION=v3
+```
+
+`hy-role` 的角色表达效果较好，但不稳定遵守 `reply + emotion` JSON 契约，因此使用 `text` 模式更稳妥；Adapter 会校验自然文本并确定性派生 emotion，ChatService 与 Fallback 无需改动。真实 URL、Key 和模型权限只在本地 Backend 环境中配置，禁止提交或记录到日志。
+
+若使用能够稳定遵守 JSON 契约的混元模型（例如项目已验证的 `hy3`），可改回 `CHAT_LLM_OUTPUT_MODE=structured_json`。两种模型仍共用同一个 OpenAI-compatible Adapter。
 
 本地无鉴权 Qwen 示例：
 

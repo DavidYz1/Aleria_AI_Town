@@ -24,7 +24,7 @@ from backend.app.world.clock import get_time_phase
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_PROMPT_ROOT = REPO_ROOT / "prompts"
-SUPPORTED_PROMPT_VERSIONS = {"v1", "v2"}
+SUPPORTED_PROMPT_VERSIONS = {"v1", "v2", "v3"}
 SUPPORTED_NPC_IDS = {"ryan", "shir", "grey"}
 
 

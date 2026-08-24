@@ -122,6 +122,31 @@ async def test_mock_common_intents_are_deterministic_characterful_and_grounded(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
+    ("message", "fact_fragment"),
+    [
+        ("你认识我吗，我是谁？", "记忆"),
+        ("我身上的印记是什么？", "印记"),
+        ("终焉战争和古族是什么？", "历史"),
+    ],
+)
+async def test_mock_story_intents_respect_character_and_knowledge_boundaries(
+    message,
+    fact_fragment,
+):
+    provider = MockChatProvider()
+    results = [
+        await provider.generate_reply(_request(npc_id, message))
+        for npc_id in ("ryan", "shir", "grey")
+    ]
+
+    assert len({result.reply for result in results}) == 3
+    assert all(fact_fragment in result.reply for result in results)
+    assert all("我知道你的真实身份" not in result.reply for result in results)
+    assert all("五百年前我亲眼见过" not in result.reply for result in results)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
     ("npc_id", "message", "emotion", "reply_fragment"),
     [
         ("ryan", "你害怕史莱姆吗？", "guarded", "史莱姆"),
