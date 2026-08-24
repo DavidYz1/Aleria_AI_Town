@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Protocol
 
 from backend.app.database.chat_repository import (
     ChatPersistenceError,
@@ -15,6 +16,7 @@ from backend.app.llm.types import (
     ChatActionContext,
     ChatHistoryMessage,
     ChatProviderRequest,
+    PlayerQuestChatContext,
     PromptBundle,
 )
 from backend.app.world.clock import get_time_phase
@@ -22,12 +24,17 @@ from backend.app.world.clock import get_time_phase
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_PROMPT_ROOT = REPO_ROOT / "prompts"
-SUPPORTED_PROMPT_VERSION = "v1"
+SUPPORTED_PROMPT_VERSIONS = {"v1", "v2"}
 SUPPORTED_NPC_IDS = {"ryan", "shir", "grey"}
 
 
 class PromptUnavailableError(RuntimeError):
     pass
+
+
+class PlayerQuestContextReader(Protocol):
+    def get_chat_context(self) -> PlayerQuestChatContext | None:
+        raise NotImplementedError
 
 
 class PromptLoader:
@@ -36,7 +43,7 @@ class PromptLoader:
 
     def load(self, *, version: str, npc_id: str) -> PromptBundle:
         if (
-            version != SUPPORTED_PROMPT_VERSION
+            version not in SUPPORTED_PROMPT_VERSIONS
             or npc_id not in SUPPORTED_NPC_IDS
         ):
             raise PromptUnavailableError("Chat context is unavailable")
@@ -45,6 +52,7 @@ class PromptLoader:
         paths = (
             version_root / "world_lore.md",
             version_root / "chat_system.md",
+            version_root / "player_context.md",
             version_root / "characters" / f"{npc_id}.md",
         )
         try:
@@ -62,7 +70,8 @@ class PromptLoader:
         return PromptBundle(
             world_lore=contents[0],
             chat_system_prompt=contents[1],
-            character_prompt=contents[2],
+            player_context=contents[2],
+            character_prompt=contents[3],
         )
 
 
@@ -72,10 +81,12 @@ class ChatContextAssembler:
         npc_repository: NpcRepository,
         chat_repository: ChatRepository,
         prompt_loader: PromptLoader,
+        player_quest_context_reader: PlayerQuestContextReader | None = None,
     ) -> None:
         self._npc_repository = npc_repository
         self._chat_repository = chat_repository
         self._prompt_loader = prompt_loader
+        self._player_quest_context_reader = player_quest_context_reader
 
     def assemble(
         self,
@@ -136,6 +147,7 @@ class ChatContextAssembler:
             character_prompt=prompts.character_prompt,
             world_lore=prompts.world_lore,
             chat_system_prompt=prompts.chat_system_prompt,
+            player_context_prompt=prompts.player_context,
             world_id=records.world.id,
             world_name=records.world.name,
             world_day=records.world.day,
@@ -149,6 +161,11 @@ class ChatContextAssembler:
             mood=records.state.mood,
             social=records.state.social,
             recent_actions=actions,
+            player_quest_context=(
+                None
+                if self._player_quest_context_reader is None
+                else self._player_quest_context_reader.get_chat_context()
+            ),
             conversation_history=history,
             player_message=player_message,
         )

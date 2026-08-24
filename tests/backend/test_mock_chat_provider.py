@@ -3,10 +3,15 @@ from pydantic import ValidationError
 
 from backend.app.llm.mock import MockChatProvider
 from backend.app.llm.provider import ChatProviderResult
-from backend.app.llm.types import ChatProviderRequest
+from backend.app.llm.types import ChatProviderRequest, PlayerQuestChatContext
 
 
-def _request(npc_id: str, player_message: str) -> ChatProviderRequest:
+def _request(
+    npc_id: str,
+    player_message: str,
+    *,
+    player_quest_context: PlayerQuestChatContext | None = None,
+) -> ChatProviderRequest:
     identity = {
         "ryan": ("Ryan", "Knight", ("optimistic", "brave", "kind")),
         "shir": ("Shir", "Assassin", ("quiet", "observant")),
@@ -22,10 +27,11 @@ def _request(npc_id: str, player_message: str) -> ChatProviderRequest:
         role=role,
         personality=personality,
         character_prompt=f"{npc_name} character prompt",
-        world_lore="艾莱瑞亚世界背景",
+        world_lore="曦谷世界背景",
         chat_system_prompt="只返回 reply 和 emotion",
+        player_context_prompt="玩家是新到曦谷的旅行者",
         world_id="aleria-town",
-        world_name="晨曦镇",
+        world_name="曦谷",
         world_day=1,
         world_time="08:00",
         world_tick=0,
@@ -37,6 +43,7 @@ def _request(npc_id: str, player_message: str) -> ChatProviderRequest:
         mood=78,
         social=70,
         recent_actions=(),
+        player_quest_context=player_quest_context,
         conversation_history=(),
         player_message=player_message,
     )
@@ -74,6 +81,47 @@ async def test_mock_is_deterministic_for_the_same_request():
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
+    ("message", "fact_fragment"),
+    [
+        ("你好", None),
+        ("你是谁", None),
+        ("这里是哪里", "曦谷"),
+        ("你现在在哪里", "中央公园"),
+        ("你在做什么", "休息"),
+        ("你心情怎么样", "心情"),
+        ("我需要帮助", "帮"),
+        ("灰烬战争发生了什么", "战争"),
+    ],
+)
+async def test_mock_common_intents_are_deterministic_characterful_and_grounded(
+    message,
+    fact_fragment,
+):
+    provider = MockChatProvider()
+    requests = [_request(npc_id, message) for npc_id in ("ryan", "shir", "grey")]
+
+    first_results = [
+        await provider.generate_reply(request) for request in requests
+    ]
+    second_results = [
+        await provider.generate_reply(request) for request in requests
+    ]
+
+    assert first_results == second_results
+    assert len({result.reply for result in first_results}) == 3
+    assert all("晨曦镇" not in result.reply for result in first_results)
+    assert all("星辰酒馆" not in result.reply for result in first_results)
+    if fact_fragment is not None:
+        assert all(fact_fragment in result.reply for result in first_results)
+    if message == "你是谁":
+        assert all(
+            request.npc_name in result.reply
+            for request, result in zip(requests, first_results, strict=True)
+        )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
     ("npc_id", "message", "emotion", "reply_fragment"),
     [
         ("ryan", "你害怕史莱姆吗？", "guarded", "史莱姆"),
@@ -91,6 +139,34 @@ async def test_mock_applies_character_specific_keyword_behavior(
 
     assert result.emotion == emotion
     assert reply_fragment in result.reply
+
+
+@pytest.mark.anyio
+async def test_mock_reads_quest_objective_without_mutating_context_or_commanding():
+    quest_context = PlayerQuestChatContext(
+        player_id="player-1",
+        location_id="tavern",
+        location_name="星辉酒馆",
+        quest_id="missing-child",
+        quest_status="accepted",
+        quest_objective="去曦谷城堡向 Grey 询问失踪孩子的线索",
+    )
+    provider = MockChatProvider()
+    requests = [
+        _request(
+            npc_id,
+            "这个任务下一步做什么？",
+            player_quest_context=quest_context,
+        )
+        for npc_id in ("ryan", "shir", "grey")
+    ]
+
+    results = [await provider.generate_reply(request) for request in requests]
+
+    assert len({result.reply for result in results}) == 3
+    assert all(quest_context.quest_objective in result.reply for result in results)
+    assert all(request.player_quest_context is quest_context for request in requests)
+    assert all(not hasattr(result, "command") for result in results)
 
 
 @pytest.mark.anyio

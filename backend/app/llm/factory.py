@@ -22,6 +22,7 @@ def build_chat_provider(
         api_key=settings.chat_llm_api_key,
         model=settings.chat_llm_model,
         auth_mode=settings.chat_llm_auth_mode,
+        output_mode=settings.chat_llm_output_mode,
         timeout_seconds=settings.chat_llm_timeout_seconds,
         client=client,
     )

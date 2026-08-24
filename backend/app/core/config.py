@@ -20,9 +20,12 @@ class Settings(BaseSettings):
     chat_llm_api_key: str = ""
     chat_llm_model: str = ""
     chat_llm_auth_mode: Literal["bearer", "none"] = "bearer"
+    chat_llm_output_mode: Literal["structured_json", "text"] = (
+        "structured_json"
+    )
     chat_llm_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     chat_history_limit: int = Field(default=10, ge=1, le=50)
-    chat_prompt_version: Literal["v1"] = "v1"
+    chat_prompt_version: Literal["v1", "v2"] = "v2"
 
     model_config = SettingsConfigDict(
         env_file=REPO_ROOT / ".env",

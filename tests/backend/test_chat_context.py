@@ -47,6 +47,10 @@ def _write_prompt_tree(root: Path, character_content: str = "Ryan") -> None:
         "只返回安全的角色回复",
         encoding="utf-8",
     )
+    (root / "v1" / "player_context.md").write_text(
+        "玩家是初次来到小镇的旅行者",
+        encoding="utf-8",
+    )
     (characters / "ryan.md").write_text(
         character_content,
         encoding="utf-8",
@@ -56,21 +60,27 @@ def _write_prompt_tree(root: Path, character_content: str = "Ryan") -> None:
 def test_prompt_loader_reads_non_empty_versioned_assets_for_known_npcs():
     loader = PromptLoader()
 
-    for npc_id, npc_name in [
-        ("ryan", "Ryan"),
-        ("shir", "Shir"),
-        ("grey", "Grey"),
-    ]:
-        bundle = loader.load(version="v1", npc_id=npc_id)
-        assert "艾莱瑞亚" in bundle.world_lore
-        assert "reply" in bundle.chat_system_prompt
-        assert npc_name in bundle.character_prompt
+    for version in ("v1", "v2"):
+        for npc_id, npc_name in [
+            ("ryan", "Ryan"),
+            ("shir", "Shir"),
+            ("grey", "Grey"),
+        ]:
+            bundle = loader.load(version=version, npc_id=npc_id)
+            assert bundle.world_lore.strip()
+            assert bundle.chat_system_prompt.strip()
+            assert bundle.player_context.strip()
+            assert npc_name in bundle.character_prompt
+
+    v2_bundle = loader.load(version="v2", npc_id="ryan")
+    assert "曦谷" in v2_bundle.world_lore
+    assert "旅行者" in v2_bundle.player_context
 
 
 @pytest.mark.parametrize(
     ("version", "npc_id"),
     [
-        ("v2", "ryan"),
+        ("v3", "ryan"),
         ("../v1", "ryan"),
         ("v1", "../world_lore"),
         ("v1", "unknown"),
@@ -165,7 +175,42 @@ def test_context_assembler_uses_authoritative_state_actions_and_bounded_history(
     assert context.player_message == "当前情况怎么样？"
     assert context.player_message not in context.chat_system_prompt
     assert context.player_message not in context.world_lore
+    assert context.player_message not in context.player_context_prompt
     assert context.player_message not in context.character_prompt
+    assert context.player_quest_context is None
+
+
+def test_context_assembler_includes_optional_read_only_player_quest_context(
+    database_url,
+    seed_dir,
+):
+    class StubPlayerQuestContextReader:
+        def __init__(self, player_quest_context):
+            self.player_quest_context = player_quest_context
+
+        def get_chat_context(self):
+            return self.player_quest_context
+
+    player_quest_context = object()
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        context = ChatContextAssembler(
+            NpcRepository(session),
+            ChatRepository(session),
+            PromptLoader(),
+            player_quest_context_reader=StubPlayerQuestContextReader(
+                player_quest_context,
+            ),
+        ).assemble(
+            npc_id="grey",
+            conversation_id=None,
+            player_message="有什么线索？",
+            history_limit=10,
+            prompt_version="v2",
+        )
+
+    assert context.player_quest_context is player_quest_context
 
 
 def test_context_assembler_uses_empty_history_for_new_conversation(

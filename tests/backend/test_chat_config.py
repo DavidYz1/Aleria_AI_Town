@@ -12,9 +12,10 @@ def test_mock_settings_require_no_llm_connection_details():
     assert settings.chat_llm_api_key == ""
     assert settings.chat_llm_model == ""
     assert settings.chat_llm_auth_mode == "bearer"
+    assert settings.chat_llm_output_mode == "structured_json"
     assert settings.chat_llm_timeout_seconds == 10
     assert settings.chat_history_limit == 10
-    assert settings.chat_prompt_version == "v1"
+    assert settings.chat_prompt_version == "v2"
 
 
 def test_non_mock_settings_are_stripped_and_provider_is_normalized():
@@ -95,6 +96,18 @@ def test_settings_reject_unknown_auth_mode():
         Settings(_env_file=None, chat_llm_auth_mode="query")
 
 
+@pytest.mark.parametrize("mode", ["structured_json", "text"])
+def test_settings_accept_supported_chat_output_modes(mode):
+    settings = Settings(_env_file=None, chat_llm_output_mode=mode)
+
+    assert settings.chat_llm_output_mode == mode
+
+
+def test_settings_reject_unknown_chat_output_mode():
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, chat_llm_output_mode="provider_specific")
+
+
 def test_settings_reject_unknown_prompt_version():
     with pytest.raises(ValidationError):
-        Settings(_env_file=None, chat_prompt_version="v2")
+        Settings(_env_file=None, chat_prompt_version="v3")

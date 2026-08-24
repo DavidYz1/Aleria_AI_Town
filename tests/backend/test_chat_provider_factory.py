@@ -18,10 +18,11 @@ def _request() -> ChatProviderRequest:
         role="Knight",
         personality=("optimistic",),
         character_prompt="Ryan character prompt",
-        world_lore="晨曦镇",
+        world_lore="曦谷",
         chat_system_prompt="Return JSON",
+        player_context_prompt="玩家是旅行者",
         world_id="aleria-town",
-        world_name="晨曦镇",
+        world_name="曦谷",
         world_day=1,
         world_time="08:00",
         world_tick=0,
@@ -33,6 +34,7 @@ def _request() -> ChatProviderRequest:
         mood=78,
         social=70,
         recent_actions=(),
+        player_quest_context=None,
         conversation_history=(),
         player_message="你好",
     )
@@ -105,6 +107,37 @@ async def test_factory_routes_all_non_mock_labels_through_one_compatible_adapter
     assert isinstance(provider, FallbackChatProvider)
     assert provider.name == provider_name
     assert result.provider == provider_name
+    assert result.fallback_used is False
+
+
+@pytest.mark.anyio
+async def test_factory_passes_text_output_mode_to_the_same_compatible_adapter():
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        assert set(body) == {"model", "messages", "temperature"}
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "自然文本回复"}}]},
+        )
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    settings = Settings(
+        _env_file=None,
+        chat_provider="hunyuan",
+        chat_llm_base_url="https://llm.example.test/v1",
+        chat_llm_api_key="secret",
+        chat_llm_model="hy-role",
+        chat_llm_output_mode="text",
+    )
+    provider = build_chat_provider(settings, client=client)
+    try:
+        result = await provider.generate_reply(_request())
+    finally:
+        await client.aclose()
+
+    assert isinstance(provider, FallbackChatProvider)
+    assert result.reply == "自然文本回复"
+    assert result.provider == "hunyuan"
     assert result.fallback_used is False
 
 

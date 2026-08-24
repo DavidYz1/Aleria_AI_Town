@@ -6,6 +6,7 @@ from typing import Literal
 class PromptBundle:
     world_lore: str
     chat_system_prompt: str
+    player_context: str
     character_prompt: str
 
 
@@ -25,6 +26,16 @@ class ChatActionContext:
 
 
 @dataclass(frozen=True)
+class PlayerQuestChatContext:
+    player_id: str
+    location_id: str
+    location_name: str
+    quest_id: str
+    quest_status: str
+    quest_objective: str
+
+
+@dataclass(frozen=True)
 class ChatProviderRequest:
     npc_id: str
     npc_name: str
@@ -33,6 +44,7 @@ class ChatProviderRequest:
     character_prompt: str
     world_lore: str
     chat_system_prompt: str
+    player_context_prompt: str
     world_id: str
     world_name: str
     world_day: int
@@ -46,5 +58,6 @@ class ChatProviderRequest:
     mood: int
     social: int
     recent_actions: tuple[ChatActionContext, ...]
+    player_quest_context: PlayerQuestChatContext | None
     conversation_history: tuple[ChatHistoryMessage, ...]
     player_message: str
