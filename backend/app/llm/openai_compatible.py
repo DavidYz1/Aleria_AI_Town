@@ -1,3 +1,4 @@
+import logging
 from typing import Literal
 
 import httpx
@@ -10,6 +11,9 @@ from backend.app.llm.provider import (
 )
 from backend.app.llm.types import ChatProviderRequest
 from backend.app.schemas.chat import ChatEmotion
+
+
+logger = logging.getLogger(__name__)
 
 
 class _ProviderPayload(BaseModel):
@@ -90,15 +94,40 @@ class OpenAICompatibleChatProvider:
                 emotion=payload.emotion,
                 provider=self.name,
             )
-        except (
-            httpx.HTTPError,
-            ValidationError,
-            ValueError,
-            KeyError,
-            IndexError,
-            TypeError,
-        ):
-            raise ChatProviderError(PROVIDER_UNAVAILABLE_MESSAGE) from None
+        except httpx.HTTPStatusError as exc:
+            self._raise_provider_error(
+                category="http_status",
+                status_code=exc.response.status_code,
+            )
+        except httpx.TimeoutException:
+            self._raise_provider_error(category="timeout")
+        except httpx.RequestError:
+            self._raise_provider_error(category="transport")
+        except ValidationError:
+            self._raise_provider_error(category="response_validation")
+        except ValueError:
+            self._raise_provider_error(category="response_json")
+        except (KeyError, IndexError, TypeError):
+            self._raise_provider_error(category="response_shape")
+
+    def _raise_provider_error(
+        self,
+        *,
+        category: str,
+        status_code: int | None = None,
+    ) -> None:
+        logger.warning(
+            "Chat provider request failed provider=%s category=%s status=%s",
+            self.name,
+            category,
+            status_code if status_code is not None else "-",
+            extra={
+                "provider": self.name,
+                "category": category,
+                "status_code": status_code,
+            },
+        )
+        raise ChatProviderError(PROVIDER_UNAVAILABLE_MESSAGE) from None
 
     @staticmethod
     def _build_messages(request: ChatProviderRequest) -> list[dict[str, str]]:

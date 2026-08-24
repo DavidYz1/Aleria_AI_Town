@@ -1,4 +1,5 @@
 import json
+import logging
 
 import httpx
 import pytest
@@ -184,6 +185,105 @@ async def test_adapter_normalizes_transport_errors():
         await client.aclose()
 
     assert str(caught.value) == "Chat provider is unavailable"
+
+
+@pytest.mark.anyio
+async def test_adapter_classifies_http_failure_without_logging_upstream_details(
+    caplog,
+):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, text="upstream-secret-response")
+
+    provider, client = _provider(handler)
+    try:
+        with caplog.at_level(
+            logging.WARNING,
+            logger="backend.app.llm.openai_compatible",
+        ):
+            with pytest.raises(ChatProviderError):
+                await provider.generate_reply(_request())
+    finally:
+        await client.aclose()
+
+    record = caplog.records[-1]
+    assert record.provider == "deepseek"
+    assert record.category == "http_status"
+    assert record.status_code == 401
+    assert (
+        "provider=deepseek category=http_status status=401"
+        in caplog.text
+    )
+    assert "upstream-secret-response" not in caplog.text
+    assert "secret-key" not in caplog.text
+
+
+@pytest.mark.anyio
+async def test_adapter_classifies_timeout_without_logging_exception_details(caplog):
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("timeout included secret-key")
+
+    provider, client = _provider(handler)
+    try:
+        with caplog.at_level(
+            logging.WARNING,
+            logger="backend.app.llm.openai_compatible",
+        ):
+            with pytest.raises(ChatProviderError):
+                await provider.generate_reply(_request())
+    finally:
+        await client.aclose()
+
+    record = caplog.records[-1]
+    assert record.provider == "deepseek"
+    assert record.category == "timeout"
+    assert record.status_code is None
+    assert "timeout included secret-key" not in caplog.text
+    assert "secret-key" not in caplog.text
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("response", "expected_category"),
+    [
+        (httpx.Response(200, text="not-json"), "response_json"),
+        (httpx.Response(200, json={"unexpected": []}), "response_shape"),
+        (
+            httpx.Response(
+                200,
+                json={
+                    "choices": [
+                        {"message": {"content": "not-json"}},
+                    ]
+                },
+            ),
+            "response_validation",
+        ),
+    ],
+)
+async def test_adapter_classifies_unsafe_response_without_logging_its_body(
+    caplog,
+    response,
+    expected_category,
+):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return response
+
+    provider, client = _provider(handler)
+    try:
+        with caplog.at_level(
+            logging.WARNING,
+            logger="backend.app.llm.openai_compatible",
+        ):
+            with pytest.raises(ChatProviderError):
+                await provider.generate_reply(_request())
+    finally:
+        await client.aclose()
+
+    record = caplog.records[-1]
+    assert record.provider == "deepseek"
+    assert record.category == expected_category
+    assert record.status_code is None
+    assert "not-json" not in caplog.text
 
 
 @pytest.mark.anyio
