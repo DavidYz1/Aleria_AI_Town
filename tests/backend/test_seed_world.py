@@ -18,6 +18,9 @@ from backend.app.database.models import (
     Location,
     NpcProfile,
     NpcState,
+    PlayerState,
+    QuestEvent,
+    QuestProgress,
     WorldAction,
     WorldState,
 )
@@ -116,6 +119,144 @@ def test_seed_data_defines_four_story_locations_and_grey_at_the_castle(seed_dir)
     ]
     grey = next(npc for npc in seed.npcs if npc.id == "grey")
     assert grey.state.location_id == "castle"
+
+
+def test_seed_initializes_and_resets_default_player_missing_child_quest(
+    database_url,
+    seed_dir,
+):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        player = session.get(PlayerState, "default-player")
+        progress = session.get(
+            QuestProgress,
+            ("default-player", "missing-child"),
+        )
+        assert player is not None
+        assert progress is not None
+        assert (player.world_id, player.location_id) == (
+            "aleria-town",
+            "tavern",
+        )
+        assert (
+            progress.status,
+            progress.version,
+            progress.updated_tick,
+        ) == ("available", 0, 0)
+
+        player.location_id = "castle"
+        progress.status = "accepted"
+        progress.version = 1
+        progress.updated_tick = 3
+        session.add(
+            QuestEvent(
+                player_id="default-player",
+                quest_id="missing-child",
+                from_status="available",
+                to_status="accepted",
+                interaction="accept_quest",
+                location_id="tavern",
+                world_tick=3,
+            )
+        )
+        session.commit()
+
+    seed_database(database_url, seed_dir)
+
+    with session_factory() as session:
+        player = session.get(PlayerState, "default-player")
+        progress = session.get(
+            QuestProgress,
+            ("default-player", "missing-child"),
+        )
+        event_count = session.scalar(
+            select(func.count()).select_from(QuestEvent)
+        )
+
+    assert player is not None
+    assert player.location_id == "tavern"
+    assert progress is not None
+    assert (
+        progress.status,
+        progress.version,
+        progress.updated_tick,
+    ) == ("available", 0, 0)
+    assert event_count == 0
+
+
+def test_reseed_preserves_player_quest_data_for_other_worlds(
+    database_url,
+    seed_dir,
+):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        session.add(
+            WorldState(
+                id="other-world",
+                name="远方小镇",
+                day=2,
+                time="10:00",
+                tick=5,
+            )
+        )
+        session.flush()
+        session.add(
+            PlayerState(
+                id="other-player",
+                world_id="other-world",
+                location_id="park",
+            )
+        )
+        session.flush()
+        session.add(
+            QuestProgress(
+                player_id="other-player",
+                quest_id="missing-child",
+                status="accepted",
+                version=4,
+                updated_tick=5,
+            )
+        )
+        session.add(
+            QuestEvent(
+                player_id="other-player",
+                quest_id="missing-child",
+                from_status="available",
+                to_status="accepted",
+                interaction="accept_quest",
+                location_id="park",
+                world_tick=5,
+            )
+        )
+        session.commit()
+
+    seed_database(database_url, seed_dir)
+
+    with session_factory() as session:
+        player = session.get(PlayerState, "other-player")
+        progress = session.get(
+            QuestProgress,
+            ("other-player", "missing-child"),
+        )
+        events = tuple(
+            session.scalars(
+                select(QuestEvent).where(
+                    QuestEvent.player_id == "other-player"
+                )
+            )
+        )
+
+    assert player is not None
+    assert player.location_id == "park"
+    assert progress is not None
+    assert (progress.status, progress.version, progress.updated_tick) == (
+        "accepted",
+        4,
+        5,
+    )
+    assert len(events) == 1
 
 
 def test_reseed_resets_tick_history_consistently(database_url, seed_dir):

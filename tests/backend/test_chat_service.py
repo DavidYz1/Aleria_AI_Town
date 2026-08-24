@@ -1,3 +1,5 @@
+import importlib
+
 from sqlalchemy import func, select
 import pytest
 
@@ -8,6 +10,9 @@ from backend.app.database.models import (
     ConversationMessage,
     Event,
     NpcState,
+    PlayerState,
+    QuestEvent,
+    QuestProgress,
     WorldAction,
     WorldState,
 )
@@ -48,7 +53,13 @@ class _CapturingProvider:
         )
 
 
-def _service(session, provider, *, prompt_loader=None) -> ChatService:
+def _service(
+    session,
+    provider,
+    *,
+    prompt_loader=None,
+    player_quest_context_reader=None,
+) -> ChatService:
     chat_repository = ChatRepository(session)
     return ChatService(
         repository=chat_repository,
@@ -56,6 +67,7 @@ def _service(session, provider, *, prompt_loader=None) -> ChatService:
             NpcRepository(session),
             chat_repository,
             prompt_loader or PromptLoader(),
+            player_quest_context_reader=player_quest_context_reader,
         ),
         provider=provider,
         history_limit=10,
@@ -267,3 +279,68 @@ async def test_chat_does_not_modify_deterministic_world_state(
     assert npc_after == npc_before
     assert action_count_after == action_count_before
     assert event_count_after == event_count_before
+
+
+@pytest.mark.anyio
+async def test_chat_reads_player_quest_context_without_mutating_it(
+    database_url,
+    seed_dir,
+):
+    try:
+        reader_module = importlib.import_module(
+            "backend.app.services.player_quest_context"
+        )
+    except ModuleNotFoundError:
+        pytest.fail("player quest chat context reader is missing")
+
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    provider = _CapturingProvider()
+    with session_factory() as session:
+        player = session.get(PlayerState, "default-player")
+        progress = session.get(
+            QuestProgress,
+            ("default-player", "missing-child"),
+        )
+        assert player is not None
+        assert progress is not None
+        state_before = (
+            player.location_id,
+            progress.status,
+            progress.version,
+            session.scalar(select(func.count()).select_from(QuestEvent)),
+        )
+
+        await _service(
+            session,
+            provider,
+            player_quest_context_reader=(
+                reader_module.PlayerQuestChatContextReader(
+                    reader_module.PlayerQuestRepository(session),
+                    reader_module.MissingChildQuestPolicy(),
+                )
+            ),
+        ).chat(
+            npc_id="grey",
+            request=NpcChatRequest(message="现在的任务是什么？"),
+        )
+
+        session.expire_all()
+        player = session.get(PlayerState, "default-player")
+        progress = session.get(
+            QuestProgress,
+            ("default-player", "missing-child"),
+        )
+        assert player is not None
+        assert progress is not None
+        state_after = (
+            player.location_id,
+            progress.status,
+            progress.version,
+            session.scalar(select(func.count()).select_from(QuestEvent)),
+        )
+
+    context = provider.requests[0].player_quest_context
+    assert context is not None
+    assert context.quest_objective == "查看星辉酒馆的委托板。"
+    assert state_after == state_before

@@ -1,10 +1,12 @@
+import importlib
 from pathlib import Path
 
 import pytest
+from sqlalchemy import delete
 
 from backend.app.database.chat_repository import ChatRepository
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import NpcState
+from backend.app.database.models import NpcState, QuestProgress
 from backend.app.database.npc_repository import NpcNotFoundError, NpcRepository
 from backend.app.database.world_tick_repository import WorldTickRepository
 from backend.app.services.chat_context import (
@@ -286,3 +288,46 @@ def test_context_assembler_preserves_unknown_npc_not_found(
                 history_limit=10,
                 prompt_version="v1",
             )
+
+
+def test_player_quest_chat_context_reader_returns_summary_or_none(
+    database_url,
+    seed_dir,
+):
+    try:
+        reader_module = importlib.import_module(
+            "backend.app.services.player_quest_context"
+        )
+    except ModuleNotFoundError:
+        pytest.fail("player quest chat context reader is missing")
+
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        reader = reader_module.PlayerQuestChatContextReader(
+            reader_module.PlayerQuestRepository(session),
+            reader_module.MissingChildQuestPolicy(),
+        )
+        context = reader.get_chat_context()
+
+        session.execute(delete(QuestProgress))
+        session.commit()
+        unavailable = reader.get_chat_context()
+
+    assert context is not None
+    assert (
+        context.player_id,
+        context.location_id,
+        context.location_name,
+        context.quest_id,
+        context.quest_status,
+        context.quest_objective,
+    ) == (
+        "default-player",
+        "tavern",
+        "星辉酒馆",
+        "missing-child",
+        "available",
+        "查看星辉酒馆的委托板。",
+    )
+    assert unavailable is None

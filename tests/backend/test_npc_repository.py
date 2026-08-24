@@ -3,7 +3,7 @@ import sqlite3
 import pytest
 
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import NpcState, WorldAction, WorldState
+from backend.app.database.models import NpcState, WorldAction
 from backend.app.database.npc_repository import (
     NpcDetailUnavailableError,
     NpcNotFoundError,
@@ -159,14 +159,16 @@ def test_repository_reports_missing_state_as_unavailable(database_url, seed_dir)
 
 def test_repository_reports_missing_world_as_unavailable(database_url, seed_dir):
     seed_database(database_url, seed_dir)
+    database_path = database_url.removeprefix("sqlite:///")
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("PRAGMA foreign_keys=OFF")
+        connection.execute(
+            "DELETE FROM world_state WHERE id = ?",
+            ("aleria-town",),
+        )
+
     _, session_factory = create_engine_and_session(database_url)
-
     with session_factory() as session:
-        world = session.get(WorldState, "aleria-town")
-        assert world is not None
-        session.delete(world)
-        session.commit()
-
         with pytest.raises(
             NpcDetailUnavailableError,
             match="^NPC detail is unavailable$",

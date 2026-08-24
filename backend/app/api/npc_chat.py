@@ -13,7 +13,9 @@ from backend.app.database.chat_repository import (
     ConversationNotFoundError,
 )
 from backend.app.database.npc_repository import NpcNotFoundError, NpcRepository
+from backend.app.database.player_quest_repository import PlayerQuestRepository
 from backend.app.llm.provider import ChatProvider
+from backend.app.quests.missing_child import MissingChildQuestPolicy
 from backend.app.schemas.chat import NpcChatData, NpcChatRequest
 from backend.app.schemas.common import ApiResponse, ErrorResponse
 from backend.app.services.chat_context import ChatContextAssembler, PromptLoader
@@ -21,6 +23,9 @@ from backend.app.services.chat_service import (
     ChatContextUnavailableError,
     ChatService,
     ChatServiceUnavailableError,
+)
+from backend.app.services.player_quest_context import (
+    PlayerQuestChatContextReader,
 )
 
 
@@ -49,6 +54,10 @@ async def chat_with_npc(
             NpcRepository(session),
             chat_repository,
             PromptLoader(),
+            player_quest_context_reader=PlayerQuestChatContextReader(
+                PlayerQuestRepository(session),
+                MissingChildQuestPolicy(),
+            ),
         ),
         provider=provider,
         history_limit=settings.chat_history_limit,

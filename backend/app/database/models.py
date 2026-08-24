@@ -70,6 +70,75 @@ class NpcState(Base):
     social: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
+class PlayerState(Base):
+    __tablename__ = "player_states"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    world_id: Mapped[str] = mapped_column(
+        ForeignKey("world_state.id"), nullable=False
+    )
+    location_id: Mapped[str] = mapped_column(
+        ForeignKey("locations.id"), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
+
+class QuestProgress(Base):
+    __tablename__ = "quest_progress"
+    __table_args__ = (
+        CheckConstraint("version >= 0"),
+        CheckConstraint("updated_tick >= 0"),
+    )
+
+    player_id: Mapped[str] = mapped_column(
+        ForeignKey("player_states.id"), primary_key=True
+    )
+    quest_id: Mapped[str] = mapped_column(String, primary_key=True)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
+
+class QuestEvent(Base):
+    __tablename__ = "quest_events"
+    __table_args__ = (
+        CheckConstraint("world_tick >= 0"),
+        Index(
+            "ix_quest_events_player_quest_id",
+            "player_id",
+            "quest_id",
+            "id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    player_id: Mapped[str] = mapped_column(
+        ForeignKey("player_states.id"), nullable=False
+    )
+    quest_id: Mapped[str] = mapped_column(String, nullable=False)
+    from_status: Mapped[str] = mapped_column(String, nullable=False)
+    to_status: Mapped[str] = mapped_column(String, nullable=False)
+    interaction: Mapped[str] = mapped_column(String, nullable=False)
+    location_id: Mapped[str] = mapped_column(
+        ForeignKey("locations.id"), nullable=False
+    )
+    world_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
+
 class WorldAction(Base):
     __tablename__ = "actions"
     __table_args__ = (

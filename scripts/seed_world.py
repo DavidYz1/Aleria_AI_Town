@@ -20,6 +20,9 @@ from backend.app.database.models import (
     Location,
     NpcProfile,
     NpcState,
+    PlayerState,
+    QuestEvent,
+    QuestProgress,
     WorldAction,
     WorldState,
 )
@@ -45,6 +48,20 @@ def seed_database(database_url: str, seed_dir: Path) -> None:
     Base.metadata.create_all(engine)
 
     with session_factory() as session:
+        player_ids = select(PlayerState.id).where(
+            PlayerState.world_id == seed.world.id
+        )
+        session.execute(
+            delete(QuestEvent).where(QuestEvent.player_id.in_(player_ids))
+        )
+        session.execute(
+            delete(QuestProgress).where(
+                QuestProgress.player_id.in_(player_ids)
+            )
+        )
+        session.execute(
+            delete(PlayerState).where(PlayerState.world_id == seed.world.id)
+        )
         conversation_ids = select(Conversation.id).where(
             Conversation.world_id == seed.world.id
         )
@@ -78,6 +95,23 @@ def seed_database(database_url: str, seed_dir: Path) -> None:
         session.flush()
         for npc in seed.npcs:
             session.merge(NpcState(npc_id=npc.id, **npc.state.model_dump()))
+        session.merge(
+            PlayerState(
+                id="default-player",
+                world_id=seed.world.id,
+                location_id="tavern",
+            )
+        )
+        session.flush()
+        session.merge(
+            QuestProgress(
+                player_id="default-player",
+                quest_id="missing-child",
+                status="available",
+                version=0,
+                updated_tick=0,
+            )
+        )
         session.commit()
 
 
