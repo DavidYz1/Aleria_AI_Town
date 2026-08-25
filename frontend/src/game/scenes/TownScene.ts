@@ -191,6 +191,7 @@ export class TownScene extends Phaser.Scene {
     this.releaseMovementKeyGuard?.()
     this.releaseMovementKeyGuard = installMovementKeyGuard(window)
     this.canvas.setAttribute('aria-label', '曦谷 RPG 地图，点击后使用 WASD 或方向键移动')
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this)
   }
 
   private configureCamera(map: Phaser.Tilemaps.Tilemap): void {
@@ -267,7 +268,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   private readonly stopPlayer = (): void => {
-    this.player?.setVelocity(0, 0)
+    if (this.player?.body) this.player.setVelocity(0, 0)
   }
 
   private publishPlayerLocationEntry(): void {

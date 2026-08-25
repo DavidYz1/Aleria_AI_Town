@@ -1,3 +1,6 @@
+import { EventEmitter } from 'node:events'
+
+import Phaser from 'phaser'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import * as movement from '../../frontend/src/game/movement'
@@ -42,6 +45,72 @@ afterEach(() => {
 })
 
 describe('TownScene canvas input policy', () => {
+  it('releases the global movement-key guard when Phaser destroys the scene', async () => {
+    const { TownScene } = await import('../../frontend/src/game/scenes/TownScene')
+    const bridge = new TownGameBridge({
+      profile: {
+        version: 1,
+        displayName: '洛恩',
+        adventurerClass: 'ranger',
+        introCompleted: true,
+      },
+      playerLocationId: 'tavern',
+      npcs: [],
+    })
+    const scene = new TownScene(bridge)
+    const canvas = document.createElement('canvas')
+    document.body.append(canvas)
+    const sceneEvents = new EventEmitter()
+    Reflect.set(scene, 'events', sceneEvents)
+    const releasedKeys = {
+      up: { isDown: false },
+      down: { isDown: false },
+      left: { isDown: false },
+      right: { isDown: false },
+    }
+    Reflect.set(scene, 'input', {
+      keyboard: { addKeys: vi.fn(() => releasedKeys) },
+    })
+    Reflect.set(scene, 'game', {
+      canvas,
+      events: { off: vi.fn() },
+    })
+    Reflect.set(scene, 'player', {
+      body: undefined,
+      setVelocity() {
+        throw new Error('Phaser already destroyed the Arcade Physics body')
+      },
+    })
+    const configureInput = Reflect.get(scene, 'configureInput') as () => void
+    configureInput.call(scene)
+
+    const guardedKey = new KeyboardEvent('keydown', {
+      cancelable: true,
+      key: 'w',
+    })
+    window.dispatchEvent(guardedKey)
+    expect(guardedKey.defaultPrevented).toBe(true)
+
+    let destroyError: unknown
+    try {
+      sceneEvents.emit(Phaser.Scenes.Events.DESTROY)
+    } catch (error) {
+      destroyError = error
+    }
+    const releasedKey = new KeyboardEvent('keydown', {
+      cancelable: true,
+      key: 'w',
+    })
+    window.dispatchEvent(releasedKey)
+    const leakedCleanup = Reflect.get(scene, 'releaseMovementKeyGuard') as
+      | (() => void)
+      | null
+    leakedCleanup?.()
+
+    expect(destroyError).toBeUndefined()
+    expect(releasedKey.defaultPrevented).toBe(false)
+  })
+
   it('makes the canvas focusable and focuses it before existing pointer handlers run', () => {
     const textInput = document.createElement('input')
     const canvas = document.createElement('canvas')
