@@ -2,7 +2,11 @@ import Phaser from 'phaser'
 
 import type { AdventurerClass } from '../../player/playerProfile'
 import type { NpcVisualProjection } from '../contracts'
-import { resolveVelocity } from '../movement'
+import {
+  installCanvasFocus,
+  installMovementKeyGuard,
+  resolvePlayerVelocity,
+} from '../movement'
 import { TownGameBridge } from '../TownGameBridge'
 import { TOWN_SCENE_KEY } from './BootScene'
 
@@ -25,23 +29,15 @@ type Facing = 'down' | 'side' | 'up'
 
 export class TownScene extends Phaser.Scene {
   private player: Phaser.Physics.Arcade.Sprite | null = null
-  private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null
+  private cursors: DirectionKeys | null = null
   private wasd: DirectionKeys | null = null
   private facing: Facing = 'down'
   private readonly anchors = new Map<string, { x: number, y: number }>()
   private readonly npcSprites = new Map<string, Phaser.GameObjects.Sprite>()
   private unsubscribeNpcs: (() => void) | null = null
   private canvas: HTMLCanvasElement | null = null
-  private readonly focusCanvas = (): void => this.canvas?.focus()
-  private readonly preventFocusedCanvasKeys = (event: KeyboardEvent): void => {
-    if (document.activeElement !== this.canvas) return
-    if (
-      ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd']
-        .includes(event.key)
-    ) {
-      event.preventDefault()
-    }
-  }
+  private releaseCanvasFocus: (() => void) | null = null
+  private releaseMovementKeyGuard: (() => void) | null = null
 
   constructor(private readonly bridge: TownGameBridge) {
     super({ key: TOWN_SCENE_KEY })
@@ -93,18 +89,17 @@ export class TownScene extends Phaser.Scene {
       this.player === null
       || this.cursors === null
       || this.wasd === null
-      || document.activeElement !== this.canvas
     ) {
       this.stopPlayer()
       return
     }
 
-    const velocity = resolveVelocity({
+    const velocity = resolvePlayerVelocity({
       up: this.cursors.up.isDown || this.wasd.up.isDown,
       down: this.cursors.down.isDown || this.wasd.down.isDown,
       left: this.cursors.left.isDown || this.wasd.left.isDown,
       right: this.cursors.right.isDown || this.wasd.right.isDown,
-    }, PLAYER_SPEED)
+    }, PLAYER_SPEED, document.activeElement)
     this.player.setVelocity(velocity.x, velocity.y)
     this.updatePlayerAnimation(velocity.x, velocity.y)
   }
@@ -161,26 +156,26 @@ export class TownScene extends Phaser.Scene {
   private configureInput(): void {
     const keyboard = this.input.keyboard
     if (keyboard !== null) {
-      keyboard.removeCapture([
-        Phaser.Input.Keyboard.KeyCodes.UP,
-        Phaser.Input.Keyboard.KeyCodes.DOWN,
-        Phaser.Input.Keyboard.KeyCodes.LEFT,
-        Phaser.Input.Keyboard.KeyCodes.RIGHT,
-      ])
-      this.cursors = keyboard.createCursorKeys()
+      this.cursors = keyboard.addKeys({
+        up: Phaser.Input.Keyboard.KeyCodes.UP,
+        down: Phaser.Input.Keyboard.KeyCodes.DOWN,
+        left: Phaser.Input.Keyboard.KeyCodes.LEFT,
+        right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
+      }, false) as DirectionKeys
       this.wasd = keyboard.addKeys({
         up: Phaser.Input.Keyboard.KeyCodes.W,
         down: Phaser.Input.Keyboard.KeyCodes.S,
         left: Phaser.Input.Keyboard.KeyCodes.A,
         right: Phaser.Input.Keyboard.KeyCodes.D,
-      }) as DirectionKeys
+      }, false) as DirectionKeys
     }
 
     this.canvas = this.game.canvas
-    this.canvas.tabIndex = 0
+    this.releaseCanvasFocus?.()
+    this.releaseCanvasFocus = installCanvasFocus(this.canvas)
+    this.releaseMovementKeyGuard?.()
+    this.releaseMovementKeyGuard = installMovementKeyGuard(window)
     this.canvas.setAttribute('aria-label', '曦谷 RPG 地图，点击后使用 WASD 或方向键移动')
-    this.canvas.addEventListener('pointerdown', this.focusCanvas)
-    this.canvas.addEventListener('keydown', this.preventFocusedCanvasKeys)
   }
 
   private configureCamera(map: Phaser.Tilemaps.Tilemap): void {
@@ -266,8 +261,10 @@ export class TownScene extends Phaser.Scene {
     this.unsubscribeNpcs = null
     this.events.off(Phaser.Scenes.Events.PAUSE, this.stopPlayer, this)
     this.game.events.off(Phaser.Core.Events.BLUR, this.stopPlayer, this)
-    this.canvas?.removeEventListener('pointerdown', this.focusCanvas)
-    this.canvas?.removeEventListener('keydown', this.preventFocusedCanvasKeys)
+    this.releaseCanvasFocus?.()
+    this.releaseCanvasFocus = null
+    this.releaseMovementKeyGuard?.()
+    this.releaseMovementKeyGuard = null
     this.canvas = null
     this.npcSprites.clear()
     this.anchors.clear()
