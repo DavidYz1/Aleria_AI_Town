@@ -61,13 +61,14 @@ describe('player quest store', () => {
     const store = usePlayerQuestStore()
     store.data = availablePlayerQuestFixture
 
-    await store.travel('forest', async (locationId) => {
+    const travelled = await store.travel('forest', async (locationId) => {
       expect(locationId).toBe('forest')
       expect(store.data).toEqual(availablePlayerQuestFixture)
       return atForest()
     })
 
     expect(store.data).toEqual(atForest())
+    expect(travelled).toBe(true)
     expect(store.mutationError).toBeNull()
     expect(store.mutating).toBe(false)
   })
@@ -105,7 +106,7 @@ describe('player quest store', () => {
 
     const first = store.travel('castle', traveller)
     const second = store.travel('forest', traveller)
-    await second
+    expect(await second).toBe(false)
 
     expect(traveller).toHaveBeenCalledTimes(1)
     expect(store.mutating).toBe(true)
@@ -119,10 +120,11 @@ describe('player quest store', () => {
     const store = usePlayerQuestStore()
     store.data = acceptedPlayerQuestFixture
 
-    await store.travel('forest', async () => {
+    const travelled = await store.travel('forest', async () => {
       throw new Error('transport details')
     })
 
+    expect(travelled).toBe(false)
     expect(store.data).toEqual(acceptedPlayerQuestFixture)
     expect(store.mutationError).toBe('操作失败，当前玩家与任务状态未改变。')
   })

@@ -4,6 +4,42 @@ import type { PlayerQuestData } from '../../frontend/src/types/playerQuest'
 import type { WorldData } from '../../frontend/src/types/world'
 import type { WorldTickData } from '../../frontend/src/types/worldTick'
 
+
+class PhaserTestScene {
+  constructor(_config?: unknown) {}
+}
+
+class PhaserTestGame {
+  constructor(_config?: unknown) {}
+
+  destroy(_removeCanvas?: boolean): void {}
+}
+
+const phaserTestStub = {
+  AUTO: 0,
+  Game: PhaserTestGame,
+  Scene: PhaserTestScene,
+  Scale: { RESIZE: 0, CENTER_BOTH: 0 },
+  Scenes: { Events: { PAUSE: 'pause', SHUTDOWN: 'shutdown' } },
+  Core: { Events: { BLUR: 'blur' } },
+  Input: {
+    Keyboard: {
+      KeyCodes: {
+        UP: 38,
+        DOWN: 40,
+        LEFT: 37,
+        RIGHT: 39,
+        W: 87,
+        S: 83,
+        A: 65,
+        D: 68,
+      },
+    },
+  },
+}
+
+export default phaserTestStub
+
 export const worldFixture: WorldData = {
   world: { id: 'aleria-town', name: '曦谷', day: 1, time: '08:00', tick: 0 },
   locations: [

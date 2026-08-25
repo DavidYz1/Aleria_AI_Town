@@ -12,6 +12,9 @@ export default defineConfig({
         'node_modules/@vue/test-utils/dist/vue-test-utils.esm-bundler.mjs',
       ),
       pinia: resolve(__dirname, 'node_modules/pinia/dist/pinia.mjs'),
+      ...(process.env.VITEST
+        ? { phaser: resolve(__dirname, '../tests/frontend/fixtures.ts') }
+        : {}),
     },
   },
   server: {

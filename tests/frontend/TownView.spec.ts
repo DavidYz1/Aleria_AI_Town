@@ -19,13 +19,19 @@ import {
   worldFixture,
 } from './fixtures'
 
+const teleportPlayer = vi.fn()
 const TownGameHostStub = defineComponent({
   name: 'TownGameHost',
   props: {
     profile: { type: Object, required: true },
+    playerLocationId: { type: String, default: null },
     npcs: { type: Array, required: true },
   },
-  emits: ['npcSelected'],
+  emits: ['npcSelected', 'playerLocationEntered'],
+  setup(_props, { expose }) {
+    expose({ teleportPlayer })
+    return {}
+  },
   template: `
     <section class="town-game-host-stub" aria-label="测试地图">
       <button type="button" @click="$emit('npcSelected', 'ryan')">选择 Ryan</button>
@@ -73,6 +79,7 @@ function mountTownView(pinia: ReturnType<typeof createPinia>) {
 describe('TownView', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    teleportPlayer.mockReset()
   })
 
   it('loads World and PlayerQuest on mount through their real stores', async () => {
@@ -131,6 +138,7 @@ describe('TownView', () => {
     expect(post).toHaveBeenCalledWith('/api/player/travel', {
       target_location_id: 'castle',
     })
+    expect(teleportPlayer).toHaveBeenCalledWith('castle')
     expect(playerQuestStore.data?.player.location_id).toBe('castle')
     expect(castle!.classes()).toContain('is-current')
   })
@@ -505,6 +513,165 @@ describe('TownView', () => {
       expect.objectContaining({ id: 'grey', anchorName: 'location:castle' }),
     ])
     expect(post).not.toHaveBeenCalled()
+  })
+
+  it('persists a walked location entry without teleporting the player', async () => {
+    const { pinia, store, playerQuestStore } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const travelled = {
+      ...availablePlayerQuestFixture,
+      player: {
+        ...availablePlayerQuestFixture.player,
+        location_id: 'castle',
+        location_name: '晨曦城堡',
+      },
+      quest: {
+        ...availablePlayerQuestFixture.quest,
+        available_interactions: [],
+      },
+    }
+    const post = vi.spyOn(api, 'post').mockResolvedValue({
+      data: { success: true, data: travelled, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.post>>)
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    const host = wrapper.getComponent(TownGameHostStub)
+
+    host.vm.$emit('playerLocationEntered', 'castle')
+    await flushPromises()
+
+    expect(post).toHaveBeenCalledWith('/api/player/travel', {
+      target_location_id: 'castle',
+    })
+    expect(playerQuestStore.data?.player.location_id).toBe('castle')
+    expect(wrapper.get('.player-location-panel').text()).toContain('晨曦城堡')
+    expect(teleportPlayer).not.toHaveBeenCalled()
+  })
+
+  it('syncs the latest walked location after an existing mutation finishes', async () => {
+    const { pinia, store, playerQuestStore } = createStore()
+    store.data = worldFixture
+    playerQuestStore.data = acceptedPlayerQuestFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const interactionResponse = deferred<Awaited<ReturnType<typeof api.post>>>()
+    const briefed = {
+      ...acceptedPlayerQuestFixture,
+      quest: {
+        ...acceptedPlayerQuestFixture.quest,
+        status: 'briefed_by_grey' as const,
+        version: 2,
+        available_interactions: [],
+      },
+    }
+    const enteredForest = {
+      ...briefed,
+      player: {
+        ...briefed.player,
+        location_id: 'forest',
+        location_name: '低语森林',
+      },
+    }
+    const post = vi.spyOn(api, 'post')
+      .mockImplementationOnce(() => interactionResponse.promise)
+      .mockResolvedValueOnce({
+        data: { success: true, data: enteredForest, message: 'ok' },
+      } as Awaited<ReturnType<typeof api.post>>)
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+
+    await wrapper.get('.quest-actions button').trigger('click')
+    wrapper.getComponent(TownGameHostStub).vm.$emit('playerLocationEntered', 'forest')
+    await flushPromises()
+
+    expect(post).toHaveBeenCalledTimes(1)
+    interactionResponse.resolve({
+      data: { success: true, data: briefed, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.post>>)
+    await flushPromises()
+
+    expect(post).toHaveBeenNthCalledWith(2, '/api/player/travel', {
+      target_location_id: 'forest',
+    })
+    expect(playerQuestStore.data?.player.location_id).toBe('forest')
+    expect(teleportPlayer).not.toHaveBeenCalled()
+  })
+
+  it('discards a stale walked entry after quick travel succeeds', async () => {
+    const { pinia, store, playerQuestStore } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const quickTravelResponse = deferred<Awaited<ReturnType<typeof api.post>>>()
+    const travelled = {
+      ...availablePlayerQuestFixture,
+      player: {
+        ...availablePlayerQuestFixture.player,
+        location_id: 'castle',
+        location_name: '晨曦城堡',
+      },
+    }
+    const post = vi.spyOn(api, 'post').mockImplementationOnce(
+      () => quickTravelResponse.promise,
+    )
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    const castle = wrapper.findAll('.location-card').find(
+      (card) => card.get('h3').text() === '晨曦城堡',
+    )
+
+    void castle!.get('button').trigger('click')
+    await flushPromises()
+    wrapper.getComponent(TownGameHostStub).vm.$emit('playerLocationEntered', 'forest')
+    quickTravelResponse.resolve({
+      data: { success: true, data: travelled, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.post>>)
+    await flushPromises()
+
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(playerQuestStore.data?.player.location_id).toBe('castle')
+    expect(teleportPlayer).toHaveBeenCalledWith('castle')
+  })
+
+  it('does not teleport after quick travel fails', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(api, 'post').mockRejectedValue(new Error('offline'))
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    const castle = wrapper.findAll('.location-card').find(
+      (card) => card.get('h3').text() === '晨曦城堡',
+    )
+
+    await castle!.get('button').trigger('click')
+    await flushPromises()
+
+    expect(teleportPlayer).not.toHaveBeenCalled()
+    expect(wrapper.get('.player-location-panel').text()).toContain('星辉酒馆')
+  })
+
+  it('does not teleport unless Backend confirms the requested location', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(api, 'post').mockResolvedValue({
+      data: {
+        success: true,
+        data: availablePlayerQuestFixture,
+        message: 'ok',
+      },
+    } as Awaited<ReturnType<typeof api.post>>)
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    const castle = wrapper.findAll('.location-card').find(
+      (card) => card.get('h3').text() === '晨曦城堡',
+    )
+
+    await castle!.get('button').trigger('click')
+    await flushPromises()
+
+    expect(teleportPlayer).not.toHaveBeenCalled()
+    expect(wrapper.get('.player-location-panel').text()).toContain('星辉酒馆')
   })
 
   it('opens the existing detail and chat panels from a map NPC selection', async () => {

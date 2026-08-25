@@ -7,6 +7,7 @@ import {
   installMovementKeyGuard,
   resolvePlayerVelocity,
 } from '../movement'
+import { resolveEnteredPlayerLocationId } from '../playerMapPosition'
 import { TownGameBridge } from '../TownGameBridge'
 import { TOWN_SCENE_KEY } from './BootScene'
 
@@ -35,9 +36,11 @@ export class TownScene extends Phaser.Scene {
   private readonly anchors = new Map<string, { x: number, y: number }>()
   private readonly npcSprites = new Map<string, Phaser.GameObjects.Sprite>()
   private unsubscribeNpcs: (() => void) | null = null
+  private unsubscribePlayerTeleport: (() => void) | null = null
   private canvas: HTMLCanvasElement | null = null
   private releaseCanvasFocus: (() => void) | null = null
   private releaseMovementKeyGuard: (() => void) | null = null
+  private activePlayerLocationId: string | null = null
 
   constructor(private readonly bridge: TownGameBridge) {
     super({ key: TOWN_SCENE_KEY })
@@ -78,6 +81,9 @@ export class TownScene extends Phaser.Scene {
     this.unsubscribeNpcs = this.bridge.onNpcsUpdated((npcs) => {
       this.applyNpcProjections(npcs)
     })
+    this.unsubscribePlayerTeleport = this.bridge.onPlayerTeleport((locationId) => {
+      this.teleportPlayer(locationId)
+    })
 
     this.events.on(Phaser.Scenes.Events.PAUSE, this.stopPlayer, this)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this)
@@ -101,6 +107,7 @@ export class TownScene extends Phaser.Scene {
       right: this.cursors.right.isDown || this.wasd.right.isDown,
     }, PLAYER_SPEED, document.activeElement)
     this.player.setVelocity(velocity.x, velocity.y)
+    this.publishPlayerLocationEntry()
     this.updatePlayerAnimation(velocity.x, velocity.y)
   }
 
@@ -116,7 +123,12 @@ export class TownScene extends Phaser.Scene {
 
   private createPlayer(collision: Phaser.Tilemaps.TilemapLayer): void {
     const input = this.bridge.getInput()
-    const spawn = this.anchors.get('player_spawn') ?? { x: 768, y: 704 }
+    const locationAnchor = input.playerLocationId === null
+      ? undefined
+      : this.anchors.get(`location:${input.playerLocationId}`)
+    const spawn = locationAnchor
+      ?? this.anchors.get('player_spawn')
+      ?? { x: 768, y: 704 }
     const texture = `adventurer-${input.profile.adventurerClass}`
     this.player = this.physics.add.sprite(spawn.x, spawn.y, texture, 1)
       .setDepth(3)
@@ -124,6 +136,9 @@ export class TownScene extends Phaser.Scene {
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setSize(18, 20).setOffset(7, 11)
     this.physics.add.collider(this.player, collision)
+    this.activePlayerLocationId = locationAnchor === undefined
+      ? null
+      : input.playerLocationId
   }
 
   private createAnimations(): void {
@@ -255,16 +270,39 @@ export class TownScene extends Phaser.Scene {
     this.player?.setVelocity(0, 0)
   }
 
+  private publishPlayerLocationEntry(): void {
+    if (this.player === null) return
+    const locationId = resolveEnteredPlayerLocationId({
+      x: this.player.x,
+      y: this.player.y,
+    })
+    if (locationId === this.activePlayerLocationId) return
+    this.activePlayerLocationId = locationId
+    if (locationId !== null) this.bridge.emitPlayerLocationEntered(locationId)
+  }
+
+  private teleportPlayer(locationId: string): void {
+    const anchor = this.anchors.get(`location:${locationId}`)
+    if (this.player === null || anchor === undefined) return
+    this.stopPlayer()
+    this.player.setPosition(anchor.x, anchor.y)
+    this.activePlayerLocationId = locationId
+    this.updatePlayerAnimation(0, 0)
+  }
+
   private readonly shutdown = (): void => {
     this.stopPlayer()
     this.unsubscribeNpcs?.()
     this.unsubscribeNpcs = null
+    this.unsubscribePlayerTeleport?.()
+    this.unsubscribePlayerTeleport = null
     this.events.off(Phaser.Scenes.Events.PAUSE, this.stopPlayer, this)
     this.game.events.off(Phaser.Core.Events.BLUR, this.stopPlayer, this)
     this.releaseCanvasFocus?.()
     this.releaseCanvasFocus = null
     this.releaseMovementKeyGuard?.()
     this.releaseMovementKeyGuard = null
+    this.activePlayerLocationId = null
     this.canvas = null
     this.npcSprites.clear()
     this.anchors.clear()

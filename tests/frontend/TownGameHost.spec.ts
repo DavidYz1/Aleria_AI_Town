@@ -36,10 +36,12 @@ const shir: NpcVisualProjection = {
 
 function fakeController(): TownGameController & {
   updateNpcs: ReturnType<typeof vi.fn>
+  teleportPlayer: ReturnType<typeof vi.fn>
   destroy: ReturnType<typeof vi.fn>
 } {
   return {
     updateNpcs: vi.fn(),
+    teleportPlayer: vi.fn(),
     destroy: vi.fn(),
   }
 }
@@ -58,20 +60,25 @@ describe('TownGameHost', () => {
     let callbacks: TownGameCallbacks | undefined
     const factory = vi.fn<TownGameFactory>((parent, input, nextCallbacks) => {
       expect(parent).toBeInstanceOf(HTMLElement)
-      expect(input).toEqual({ profile, npcs: [ryan] })
+      expect(input).toEqual({ profile, playerLocationId: 'tavern', npcs: [ryan] })
       callbacks = nextCallbacks
       return controller
     })
     const wrapper = mount(TownGameHost, {
-      props: { profile, npcs: [ryan], factory },
+      props: { profile, playerLocationId: 'tavern', npcs: [ryan], factory },
     })
     await flushPromises()
 
     expect(factory).toHaveBeenCalledOnce()
-    expect(Object.keys(factory.mock.calls[0]![1]).sort()).toEqual(['npcs', 'profile'])
+    expect(Object.keys(factory.mock.calls[0]![1]).sort()).toEqual([
+      'npcs',
+      'playerLocationId',
+      'profile',
+    ])
     expect(Object.keys(factory.mock.calls[0]![2]).sort()).toEqual([
       'onLoadFailed',
       'onNpcSelected',
+      'onPlayerLocationEntered',
     ])
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
 
@@ -81,6 +88,15 @@ describe('TownGameHost', () => {
 
     callbacks?.onNpcSelected('shir')
     expect(wrapper.emitted('npcSelected')).toEqual([['shir']])
+
+    callbacks?.onPlayerLocationEntered('park')
+    expect(wrapper.emitted('playerLocationEntered')).toEqual([['park']])
+
+    const host = wrapper.vm as unknown as {
+      teleportPlayer(locationId: string): void
+    }
+    host.teleportPlayer('castle')
+    expect(controller.teleportPlayer).toHaveBeenCalledWith('castle')
 
     wrapper.unmount()
     expect(controller.destroy).toHaveBeenCalledOnce()
@@ -98,7 +114,7 @@ describe('TownGameHost', () => {
       return second
     })
     const wrapper = mount(TownGameHost, {
-      props: { profile, npcs: [ryan], factory },
+      props: { profile, playerLocationId: 'tavern', npcs: [ryan], factory },
     })
     await flushPromises()
 
@@ -124,7 +140,7 @@ describe('TownGameHost', () => {
     const ready = deferred<TownGameController>()
     const factory = vi.fn<TownGameFactory>(() => ready.promise)
     const wrapper = mount(TownGameHost, {
-      props: { profile, npcs: [ryan], factory },
+      props: { profile, playerLocationId: 'tavern', npcs: [ryan], factory },
     })
 
     expect(factory).toHaveBeenCalledOnce()
@@ -136,6 +152,23 @@ describe('TownGameHost', () => {
     expect(controller.updateNpcs).toHaveBeenCalledWith([shir])
     expect(factory).toHaveBeenCalledOnce()
 
+    wrapper.unmount()
+  })
+
+  it('aligns the player once when Backend location arrives after map startup', async () => {
+    const controller = fakeController()
+    const factory = vi.fn<TownGameFactory>(() => controller)
+    const wrapper = mount(TownGameHost, {
+      props: { profile, playerLocationId: null, npcs: [ryan], factory },
+    })
+    await flushPromises()
+
+    await wrapper.setProps({ playerLocationId: 'tavern' })
+    expect(controller.teleportPlayer).toHaveBeenCalledOnce()
+    expect(controller.teleportPlayer).toHaveBeenCalledWith('tavern')
+
+    await wrapper.setProps({ playerLocationId: 'castle' })
+    expect(controller.teleportPlayer).toHaveBeenCalledOnce()
     wrapper.unmount()
   })
 })

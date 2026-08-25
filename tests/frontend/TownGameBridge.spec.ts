@@ -24,6 +24,7 @@ function input(): TownGameInput {
       adventurerClass: 'ranger',
       introCompleted: true,
     },
+    playerLocationId: 'tavern',
     npcs: [{ ...initialNpc }],
   }
 }
@@ -81,5 +82,28 @@ describe('TownGameBridge', () => {
     expect(selected).toHaveBeenCalledWith('ryan')
     expect(loadFailed).toHaveBeenCalledOnce()
     expect(loadFailed).toHaveBeenCalledWith('first failure')
+  })
+
+  it('bridges semantic location entry and player teleport commands', () => {
+    const bridge = new TownGameBridge(input())
+    const entered = vi.fn()
+    const teleported = vi.fn()
+    bridge.onPlayerLocationEntered(entered)
+    bridge.onPlayerTeleport(teleported)
+
+    bridge.emitPlayerLocationEntered('park')
+    bridge.teleportPlayer('castle')
+
+    expect(entered).toHaveBeenCalledOnce()
+    expect(entered).toHaveBeenCalledWith('park')
+    expect(teleported).toHaveBeenCalledOnce()
+    expect(teleported).toHaveBeenCalledWith('castle')
+    expect(bridge.getInput().playerLocationId).toBe('castle')
+
+    bridge.clear()
+    bridge.emitPlayerLocationEntered('forest')
+    bridge.teleportPlayer('forest')
+    expect(entered).toHaveBeenCalledOnce()
+    expect(teleported).toHaveBeenCalledOnce()
   })
 })

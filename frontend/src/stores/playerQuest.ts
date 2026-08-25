@@ -53,8 +53,8 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
   async function travel(
     locationId: string,
     traveller: PlayerTraveller = travelPlayer,
-  ): Promise<void> {
-    await mutate(() => traveller(locationId))
+  ): Promise<boolean> {
+    return mutate(() => traveller(locationId))
   }
 
   async function interact(
@@ -71,8 +71,8 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
 
   async function mutate(
     operation: () => Promise<PlayerQuestData>,
-  ): Promise<void> {
-    if (mutating.value || data.value === null) return
+  ): Promise<boolean> {
+    if (mutating.value || data.value === null) return false
 
     const stateVersion = ++stateRequestVersion
     const mutationVersion = ++mutationRequestVersion
@@ -81,10 +81,11 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
 
     try {
       const result = await operation()
-      if (stateVersion !== stateRequestVersion) return
+      if (stateVersion !== stateRequestVersion) return false
       data.value = result
+      return true
     } catch (caught) {
-      if (stateVersion !== stateRequestVersion) return
+      if (stateVersion !== stateRequestVersion) return false
       if (caught instanceof PlayerQuestConflictError) {
         await load()
         mutationError.value = error.value === null
@@ -93,6 +94,7 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
       } else {
         mutationError.value = '操作失败，当前玩家与任务状态未改变。'
       }
+      return false
     } finally {
       if (mutationVersion === mutationRequestVersion) {
         mutating.value = false

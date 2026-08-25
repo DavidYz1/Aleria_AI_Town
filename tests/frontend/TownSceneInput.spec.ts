@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import * as movement from '../../frontend/src/game/movement'
+import { TownGameBridge } from '../../frontend/src/game/TownGameBridge'
 
 
 type InstallCanvasFocus = (canvas: HTMLCanvasElement) => () => void
@@ -204,5 +205,108 @@ describe('TownScene canvas input policy', () => {
 
     expect(movementKey.defaultPrevented).toBe(true)
     cleanup()
+  })
+})
+
+describe('TownScene semantic player locations', () => {
+  it('spawns at Backend location and emits only distinct location entries', async () => {
+    const { TownScene } = await import('../../frontend/src/game/scenes/TownScene')
+    const bridge = new TownGameBridge({
+      profile: {
+        version: 1,
+        displayName: '洛恩',
+        adventurerClass: 'ranger',
+        introCompleted: true,
+      },
+      playerLocationId: 'tavern',
+      npcs: [],
+    })
+    const received: string[] = []
+    bridge.onPlayerLocationEntered((locationId) => received.push(locationId))
+    const scene = new TownScene(bridge)
+
+    const body = {
+      setSize: vi.fn(),
+      setOffset: vi.fn(),
+    }
+    body.setSize.mockReturnValue(body)
+    body.setOffset.mockReturnValue(body)
+    const player = {
+      x: 0,
+      y: 0,
+      body,
+      anims: { stop: vi.fn(), play: vi.fn() },
+      setDepth: vi.fn(),
+      setCollideWorldBounds: vi.fn(),
+      setVelocity: vi.fn(),
+      setPosition: vi.fn(),
+      setFrame: vi.fn(),
+      setFlipX: vi.fn(),
+    }
+    player.setDepth.mockReturnValue(player)
+    player.setCollideWorldBounds.mockReturnValue(player)
+    player.setVelocity.mockReturnValue(player)
+    player.setPosition.mockImplementation((x: number, y: number) => {
+      player.x = x
+      player.y = y
+      return player
+    })
+    player.setFrame.mockReturnValue(player)
+    player.setFlipX.mockReturnValue(player)
+    const sprite = vi.fn((x: number, y: number) => {
+      player.x = x
+      player.y = y
+      return player
+    })
+    Reflect.set(scene, 'physics', {
+      add: { sprite, collider: vi.fn() },
+    })
+    const anchors = Reflect.get(scene, 'anchors') as Map<
+      string,
+      { x: number, y: number }
+    >
+    anchors.set('player_spawn', { x: 768, y: 704 })
+    anchors.set('location:tavern', { x: 416, y: 704 })
+    anchors.set('location:park', { x: 768, y: 544 })
+    anchors.set('location:castle', { x: 1152, y: 288 })
+
+    const createPlayer = Reflect.get(scene, 'createPlayer') as (
+      collision: unknown,
+    ) => void
+    createPlayer.call(scene, {})
+    expect(sprite).toHaveBeenCalledWith(416, 704, 'adventurer-ranger', 1)
+    expect(received).toEqual([])
+
+    const releasedKeys = {
+      up: { isDown: false },
+      down: { isDown: false },
+      left: { isDown: false },
+      right: { isDown: false },
+    }
+    Reflect.set(scene, 'cursors', releasedKeys)
+    Reflect.set(scene, 'wasd', releasedKeys)
+    player.x = 768
+    player.y = 544
+    scene.update()
+    expect(received).toEqual(['park'])
+
+    scene.update()
+    expect(received).toEqual(['park'])
+
+    player.x = 900
+    player.y = 700
+    scene.update()
+    player.x = 768
+    player.y = 544
+    scene.update()
+    expect(received).toEqual(['park', 'park'])
+
+    const teleportPlayer = Reflect.get(scene, 'teleportPlayer') as (
+      locationId: string,
+    ) => void
+    teleportPlayer.call(scene, 'castle')
+    expect(player.setPosition).toHaveBeenCalledWith(1152, 288)
+    scene.update()
+    expect(received).toEqual(['park', 'park'])
   })
 })

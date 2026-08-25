@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import LocationCard from '../components/LocationCard.vue'
 import NpcCard from '../components/NpcCard.vue'
@@ -22,6 +22,10 @@ const npcDetailStore = useNpcDetailStore()
 const npcChatStore = useNpcChatStore()
 const playerProfileStore = usePlayerProfileStore()
 const playerQuestStore = usePlayerQuestStore()
+const townGameHost = ref<InstanceType<typeof TownGameHost> | null>(null)
+const pendingEnteredLocationId = ref<string | null>(null)
+let syncingEnteredLocation = false
+let quickTravelRequests = 0
 
 const locationNames = computed(
   () => new Map(store.data?.locations.map((location) => [location.id, location.name]) ?? []),
@@ -41,6 +45,7 @@ const adventurerClassTitle = computed(() => ({
   ranger: '游侠',
   cleric: '牧师',
 })[playerProfileStore.profile?.adventurerClass ?? 'ranger'])
+const displayedPlayer = computed(() => playerQuestStore.data?.player ?? null)
 
 function reloadWorld(): void {
   void store.loadWorld()
@@ -57,8 +62,55 @@ function retryPlayerQuest(): void {
   void playerQuestStore.retry()
 }
 
-function travelPlayer(locationId: string): void {
-  void playerQuestStore.travel(locationId)
+async function travelPlayer(locationId: string): Promise<void> {
+  quickTravelRequests += 1
+  try {
+    const travelled = await playerQuestStore.travel(locationId)
+    if (
+      travelled
+      && playerQuestStore.data?.player.location_id === locationId
+    ) {
+      pendingEnteredLocationId.value = null
+      townGameHost.value?.teleportPlayer(locationId)
+    }
+  } finally {
+    quickTravelRequests -= 1
+  }
+  if (pendingEnteredLocationId.value !== null) {
+    void syncEnteredPlayerLocation()
+  }
+}
+
+async function syncEnteredPlayerLocation(): Promise<void> {
+  if (
+    syncingEnteredLocation
+    || quickTravelRequests > 0
+    || playerQuestStore.mutating
+  ) return
+  const locationId = pendingEnteredLocationId.value
+  if (locationId === null) return
+  if (playerQuestStore.data?.player.location_id === locationId) {
+    pendingEnteredLocationId.value = null
+    return
+  }
+
+  syncingEnteredLocation = true
+  try {
+    await playerQuestStore.travel(locationId)
+  } finally {
+    syncingEnteredLocation = false
+    if (pendingEnteredLocationId.value === locationId) {
+      pendingEnteredLocationId.value = null
+    }
+  }
+  if (pendingEnteredLocationId.value !== null) {
+    void syncEnteredPlayerLocation()
+  }
+}
+
+function enterPlayerLocation(locationId: string): void {
+  pendingEnteredLocationId.value = locationId
+  void syncEnteredPlayerLocation()
 }
 
 function interactWithQuest(interaction: QuestInteraction): void {
@@ -91,6 +143,13 @@ function retryChatMessage(): void {
   const npcId = npcDetailStore.selectedNpcId
   if (npcId !== null) void npcChatStore.retry(npcId, playerProfileStore.profile)
 }
+
+watch(
+  () => playerQuestStore.mutating,
+  (mutating) => {
+    if (!mutating) void syncEnteredPlayerLocation()
+  },
+)
 
 watch(
   () => store.data?.world.tick,
@@ -145,9 +204,12 @@ onMounted(loadTown)
         <div class="town-play-layout">
           <div class="town-game-host-column">
             <TownGameHost
+              ref="townGameHost"
               :profile="playerProfileStore.profile"
+              :player-location-id="playerQuestStore.data?.player.location_id ?? null"
               :npcs="projectedNpcs"
               @npc-selected="selectNpc"
+              @player-location-entered="enterPlayerLocation"
             />
           </div>
 
@@ -204,7 +266,7 @@ onMounted(loadTown)
         </div>
         <div class="player-quest-layout">
           <PlayerLocationPanel
-            :player="playerQuestStore.data?.player ?? null"
+            :player="displayedPlayer"
             :loading="playerQuestStore.loading"
             :error="playerQuestStore.error"
             @retry="retryPlayerQuest"

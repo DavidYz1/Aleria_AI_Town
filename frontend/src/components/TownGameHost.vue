@@ -10,12 +10,14 @@ import type { LocalPlayerProfileV1 } from '../player/playerProfile'
 
 const props = defineProps<{
   profile: LocalPlayerProfileV1
+  playerLocationId: string | null
   npcs: NpcVisualProjection[]
   factory?: TownGameFactory
 }>()
 
 const emit = defineEmits<{
   npcSelected: [npcId: string]
+  playerLocationEntered: [locationId: string]
 }>()
 
 const mountElement = ref<HTMLElement | null>(null)
@@ -24,6 +26,7 @@ const loadError = ref<string | null>(null)
 let controller: TownGameController | null = null
 let generation = 0
 let npcRevision = 0
+let pendingTeleportLocationId: string | null = null
 
 async function startGame(): Promise<void> {
   const parent = mountElement.value
@@ -39,11 +42,17 @@ async function startGame(): Promise<void> {
       parent,
       {
         profile: { ...props.profile },
+        playerLocationId: props.playerLocationId,
         npcs: props.npcs.map((npc) => ({ ...npc })),
       },
       {
         onNpcSelected(npcId) {
           if (currentGeneration === generation) emit('npcSelected', npcId)
+        },
+        onPlayerLocationEntered(locationId) {
+          if (currentGeneration === generation) {
+            emit('playerLocationEntered', locationId)
+          }
         },
         onLoadFailed(message) {
           if (currentGeneration !== generation) return
@@ -57,6 +66,10 @@ async function startGame(): Promise<void> {
       return
     }
     controller = nextController
+    if (pendingTeleportLocationId !== null) {
+      controller.teleportPlayer(pendingTeleportLocationId)
+      pendingTeleportLocationId = null
+    }
     if (npcRevision !== startingNpcRevision) {
       controller.updateNpcs(props.npcs.map((npc) => ({ ...npc })))
     }
@@ -67,6 +80,16 @@ async function startGame(): Promise<void> {
     loading.value = false
   }
 }
+
+function teleportPlayer(locationId: string): void {
+  if (controller === null) {
+    pendingTeleportLocationId = locationId
+    return
+  }
+  controller.teleportPlayer(locationId)
+}
+
+defineExpose({ teleportPlayer })
 
 async function retry(): Promise<void> {
   generation += 1
@@ -89,6 +112,15 @@ watch(
   { deep: true },
 )
 
+watch(
+  () => props.playerLocationId,
+  (locationId, previousLocationId) => {
+    if (previousLocationId === null && locationId !== null) {
+      teleportPlayer(locationId)
+    }
+  },
+)
+
 onMounted(() => {
   void startGame()
 })
@@ -97,6 +129,7 @@ onBeforeUnmount(() => {
   generation += 1
   controller?.destroy()
   controller = null
+  pendingTeleportLocationId = null
 })
 </script>
 

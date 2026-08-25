@@ -18,6 +18,9 @@ export function createTownGame(
 ): TownGameController {
   const bridge = new TownGameBridge(input)
   const unsubscribeSelected = bridge.onNpcSelected(callbacks.onNpcSelected)
+  const unsubscribePlayerLocation = bridge.onPlayerLocationEntered(
+    callbacks.onPlayerLocationEntered,
+  )
   const unsubscribeLoadFailed = bridge.onLoadFailed(callbacks.onLoadFailed)
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -43,10 +46,14 @@ export function createTownGame(
     updateNpcs(npcs: NpcVisualProjection[]): void {
       if (!destroyed) bridge.updateNpcs(npcs)
     },
+    teleportPlayer(locationId: string): void {
+      if (!destroyed) bridge.teleportPlayer(locationId)
+    },
     destroy(): void {
       if (destroyed) return
       destroyed = true
       unsubscribeSelected()
+      unsubscribePlayerLocation()
       unsubscribeLoadFailed()
       bridge.clear()
       game.destroy(true)

@@ -32,7 +32,7 @@ function travel(): void {
       :disabled="isCurrent || travelling"
       @click="travel"
     >
-      {{ isCurrent ? '当前位置' : travelling ? '旅行中…' : '前往此处' }}
+      {{ isCurrent ? '当前位置' : travelling ? '旅行中…' : '快速前往' }}
     </button>
   </article>
 </template>

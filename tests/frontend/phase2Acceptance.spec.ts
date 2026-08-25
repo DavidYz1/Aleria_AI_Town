@@ -21,9 +21,14 @@ const TownGameHostStub = defineComponent({
   name: 'TownGameHost',
   props: {
     profile: { type: Object, required: true },
+    playerLocationId: { type: String, default: null },
     npcs: { type: Array, required: true },
   },
-  emits: ['npcSelected'],
+  emits: ['npcSelected', 'playerLocationEntered'],
+  setup(_props, { expose }) {
+    expose({ teleportPlayer: (_locationId: string) => undefined })
+    return {}
+  },
   template: `
     <section class="phase2-map-host" aria-label="曦谷测试地图">
       <button type="button" @click="$emit('npcSelected', 'grey')">选择 Grey</button>

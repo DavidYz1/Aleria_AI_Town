@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { TOWN_LOCATION_ANCHORS } from '../../frontend/src/game/playerMapPosition'
+
 
 interface MapObject {
   name: string
@@ -83,6 +85,17 @@ describe('phase 2 town map contract', () => {
     }
     expect(new Set(objects.map(({ x, y }) => `${x},${y}`)).size)
       .toBe(objects.length)
+  })
+
+  it('keeps Vue nearest-location anchors aligned with the map objects', () => {
+    const map = readMap()
+    const objects = map.layers.find(({ name }) => name === 'objects')?.objects
+      ?? []
+    const actualAnchors = objects
+      .filter(({ name }) => name.startsWith('location:') && name !== 'location:fallback')
+      .map(({ name, x, y }) => ({ id: name.replace('location:', ''), x, y }))
+
+    expect(actualAnchors).toEqual(TOWN_LOCATION_ANCHORS)
   })
 })
 
