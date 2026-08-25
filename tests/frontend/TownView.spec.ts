@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { defineComponent } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from '../../frontend/src/api/client'
@@ -18,6 +19,20 @@ import {
   worldFixture,
 } from './fixtures'
 
+const TownGameHostStub = defineComponent({
+  name: 'TownGameHost',
+  props: {
+    profile: { type: Object, required: true },
+    npcs: { type: Array, required: true },
+  },
+  emits: ['npcSelected'],
+  template: `
+    <section class="town-game-host-stub" aria-label="测试地图">
+      <button type="button" @click="$emit('npcSelected', 'ryan')">选择 Ryan</button>
+    </section>
+  `,
+})
+
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void
   const promise = new Promise<T>((resolvePromise) => {
@@ -30,6 +45,12 @@ function createStore() {
   const pinia = createPinia()
   setActivePinia(pinia)
   const playerQuestStore = usePlayerQuestStore()
+  usePlayerProfileStore().profile = {
+    version: 1,
+    displayName: '洛恩',
+    adventurerClass: 'ranger',
+    introCompleted: true,
+  }
   playerQuestStore.data = availablePlayerQuestFixture
   const loadPlayerQuest = vi.spyOn(playerQuestStore, 'load').mockResolvedValue()
   return {
@@ -38,6 +59,15 @@ function createStore() {
     playerQuestStore,
     loadPlayerQuest,
   }
+}
+
+function mountTownView(pinia: ReturnType<typeof createPinia>) {
+  return mount(TownView, {
+    global: {
+      plugins: [pinia],
+      stubs: { TownGameHost: TownGameHostStub },
+    },
+  })
 }
 
 describe('TownView', () => {
@@ -57,7 +87,7 @@ describe('TownView', () => {
       }) as ReturnType<typeof api.get>
     })
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
 
     expect(get).toHaveBeenCalledWith('/api/world')
@@ -89,7 +119,7 @@ describe('TownView', () => {
       data: { success: true, data: travelled, message: 'ok' },
     } as Awaited<ReturnType<typeof api.post>>)
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
     const castle = wrapper.findAll('.location-card').find(
       (card) => card.get('h3').text() === '晨曦城堡',
@@ -124,7 +154,7 @@ describe('TownView', () => {
       data: { success: true, data: briefed, message: 'ok' },
     } as Awaited<ReturnType<typeof api.post>>)
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
     await wrapper.get('.quest-actions button').trigger('click')
     await flushPromises()
@@ -143,7 +173,7 @@ describe('TownView', () => {
     playerQuestStore.error = '玩家任务加载失败，请稍后重试。'
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
 
     expect(wrapper.get('.player-location-panel [role="alert"]').text()).toContain(
@@ -158,7 +188,7 @@ describe('TownView', () => {
     store.data = worldFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
 
     expect(wrapper.get('h1').text()).toContain('曦谷')
@@ -181,7 +211,7 @@ describe('TownView', () => {
     store.loading = true
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
 
     expect(wrapper.get('h1').text()).toContain('曦谷')
@@ -193,7 +223,7 @@ describe('TownView', () => {
     store.error = '世界加载失败，请稍后重试。'
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
 
     expect(wrapper.get('[role="alert"]').text()).toContain(store.error)
@@ -205,7 +235,7 @@ describe('TownView', () => {
     store.data = { ...worldFixture, locations: [] }
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
 
     expect(wrapper.get('[role="status"]').text()).toContain('世界数据尚未准备完成。')
@@ -219,7 +249,7 @@ describe('TownView', () => {
       data: { success: true, data: npcDetailFixture, message: 'ok' },
     } as Awaited<ReturnType<typeof api.get>>)
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
 
     const detailButtons = wrapper.findAll('button').filter(
@@ -249,7 +279,7 @@ describe('TownView', () => {
       data: { success: true, data: npcDetailFixture, message: 'ok' },
     } as Awaited<ReturnType<typeof api.get>>)
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
     const detailButtons = wrapper.findAll('button').filter(
       (button) => button.text() === '查看详情',
@@ -279,7 +309,7 @@ describe('TownView', () => {
       data: { success: true, data: chatResponseFixture, message: 'ok' },
     } as Awaited<ReturnType<typeof api.post>>)
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
     const detailButtons = wrapper.findAll('button').filter(
       (button) => button.text() === '查看详情',
@@ -317,7 +347,7 @@ describe('TownView', () => {
       data: { success: true, data: npcDetailFixture, message: 'ok' },
     } as Awaited<ReturnType<typeof api.get>>)
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
     const detailButtons = wrapper.findAll('button').filter(
       (button) => button.text() === '查看详情',
@@ -356,7 +386,7 @@ describe('TownView', () => {
     vi.spyOn(detailStore, 'refresh').mockResolvedValue()
     const post = vi.spyOn(api, 'post')
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
     store.data = {
       ...worldFixture,
@@ -384,7 +414,7 @@ describe('TownView', () => {
       data: { success: true, data, message: 'ok' },
     })) as ReturnType<typeof api.post>)
 
-    const wrapper = mount(TownView, { global: { plugins: [pinia] } })
+    const wrapper = mountTownView(pinia)
     await flushPromises()
     const detailButtons = wrapper.findAll('button').filter(
       (button) => button.text() === '查看详情',
@@ -414,7 +444,7 @@ describe('TownView', () => {
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
     const refresh = vi.spyOn(detailStore, 'refresh').mockResolvedValue()
 
-    mount(TownView, { global: { plugins: [pinia] } })
+    mountTownView(pinia)
     await flushPromises()
 
     store.data = {
@@ -438,5 +468,75 @@ describe('TownView', () => {
     }
     await flushPromises()
     expect(refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('projects Backend NPC locations into the map without semantic travel', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const post = vi.spyOn(api, 'post')
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+
+    const host = wrapper.getComponent(TownGameHostStub)
+    expect(host.props('profile')).toMatchObject({
+      displayName: '洛恩',
+      adventurerClass: 'ranger',
+    })
+    expect(host.props('npcs')).toEqual([
+      expect.objectContaining({ id: 'ryan', anchorName: 'location:park' }),
+      expect.objectContaining({ id: 'shir', anchorName: 'location:tavern' }),
+      expect.objectContaining({ id: 'grey', anchorName: 'location:castle' }),
+    ])
+    expect(post).not.toHaveBeenCalled()
+
+    store.data = {
+      ...worldFixture,
+      npcs: worldFixture.npcs.map((npc) => npc.id === 'ryan'
+        ? { ...npc, location_id: 'forest' }
+        : npc),
+    }
+    await flushPromises()
+
+    expect(host.props('npcs')).toEqual([
+      expect.objectContaining({ id: 'ryan', anchorName: 'location:forest' }),
+      expect.objectContaining({ id: 'shir', anchorName: 'location:tavern' }),
+      expect.objectContaining({ id: 'grey', anchorName: 'location:castle' }),
+    ])
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('opens the existing detail and chat panels from a map NPC selection', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: { success: true, data: npcDetailFixture, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.get>>)
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    wrapper.getComponent(TownGameHostStub).vm.$emit('npcSelected', 'ryan')
+    await flushPromises()
+
+    expect(useNpcDetailStore().selectedNpcId).toBe('ryan')
+    expect(wrapper.get('.npc-detail-panel').text()).toContain('Ryan')
+    expect(wrapper.get('.npc-chat-panel').text()).toContain('与 Ryan 对话')
+  })
+
+  it('places the map before World Tick while keeping DOM NPC fallbacks', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+
+    const map = wrapper.get('.town-play-layout').element
+    const tick = wrapper.get('.tick-panel').element
+    expect(map.compareDocumentPosition(tick) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(wrapper.findAll('.npc-card')).toHaveLength(3)
+    expect(wrapper.findAll('.location-card')).toHaveLength(4)
   })
 })

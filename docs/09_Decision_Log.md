@@ -1,8 +1,8 @@
 # Aleria AI Town 架构决策记录（Architecture Decision Record）
 
-版本：v1.5
+版本：v1.6
 
-更新时间：2026-08-24
+更新时间：2026-08-25
 
 # 1. 文档目的
 
@@ -998,6 +998,54 @@ Prompt v3 为 Ryan、Shir、Grey 分别记录确认知道、怀疑、错误相�
 ## 原因
 
 hy-role 的自然角色表达较好，但不稳定遵守 JSON 输出契约。让统一 OpenAI-compatible Adapter 处理 text mode，既保留体验优势，也保持 ChatService、Fallback 和公共 API 的供应商无关性。
+
+------------------------------------------------------------------------
+
+# 35. ADR-032：Phase 2 选择 Phaser 3.90.0 而不是 PixiJS
+
+## 决策
+
+RPG 展示层使用固定版本 Phaser 3.90.0。PixiJS 仍是优秀的轻量渲染器，但本阶段需要 Tilemap、Arcade Physics、碰撞、相机、键盘输入、Sprite 动画和 Scene 生命周期；Phaser 已提供这些游戏语义。
+
+## 原因
+
+选择 Phaser 可以把有限时间用于业务边界和可玩闭环，而不是在 PixiJS 上自行组装地图解析、碰撞和生命周期。代价是 bundle 更大，因此通过 `TownGameHost` 动态加载，并保持纯逻辑投影函数不依赖 Phaser。
+
+------------------------------------------------------------------------
+
+# 36. ADR-033：Vue DOM 与 Phaser Canvas 分工
+
+## 决策
+
+Vue/Pinia 继续负责启动、角色创建、剧情、World Tick、Quest、语义 travel、NPC Detail/Chat、错误和可访问替代入口；Phaser 只负责单地图、角色移动、碰撞、相机、动画和 NPC 点击命中。Canvas 事件通过 `TownGameBridge` 转成稳定 ID，再由 TownView 调用现有 Store。
+
+## 原因
+
+这样地图加载失败不会隐藏任务和居民卡片，也避免 Phaser 直接调用 API 或复制 Vue 业务状态。渲染层可以替换，Backend 权威和现有测试闭环不受影响。
+
+------------------------------------------------------------------------
+
+# 37. ADR-034：玩家采用双层位置模型
+
+## 决策
+
+Backend `location_id` 是 Player、NPC 和 Quest 的权威语义位置；Phaser `(x, y)` 只是当前 Canvas 会话的表现状态，不持久化、不进入 API payload，也不会由 WASD 触发 `/api/player/travel`。语义 travel 仍只由 DOM LocationCard 发起。
+
+## 原因
+
+像素移动和任务地点具有不同精度与生命周期。分层可防止刷新、碰撞或客户端篡改破坏任务状态，也避免为演示层扩充 Player Schema 和 migration。
+
+------------------------------------------------------------------------
+
+# 38. ADR-035：Phase 2 只接收可追溯 CC0 素材
+
+## 决策
+
+地图、角色和提示音只使用 `THIRD_PARTY_ASSETS.md` 登记的 CC0 来源；参考仓库只用于架构和交互研究，不复制其二进制素材。源图允许裁切、最近邻缩放和透明色键转换，但必须记录转换。
+
+## 原因
+
+许可清晰、来源可复核，比临时混用来源不明的美术更适合面试交付，也让后续替换视觉资产不会触碰业务代码。
 
 ------------------------------------------------------------------------
 # End of Document

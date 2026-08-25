@@ -1,8 +1,8 @@
 # Aleria AI Town 项目结构设计（Project Structure）
 
-版本：v1.5
+版本：v1.6
 
-更新时间：2026-08-24
+更新时间：2026-08-25
 
 # 1. 文档目的
 
@@ -79,7 +79,7 @@ Vue3 + TypeScript + Vite
 -   世界规则
 -   数据持久化
 
-Phase 1D当前目录：
+Phase 2 当前目录：
 
     frontend/
     └── src/
@@ -90,6 +90,7 @@ Phase 1D当前目录：
         │   ├── playerQuest.ts
         │   └── world.ts
         ├── components/
+        │   ├── TownGameHost.vue
         │   ├── LocationCard.vue
         │   ├── NpcCard.vue
         │   ├── NpcDetailPanel.vue
@@ -102,6 +103,17 @@ Phase 1D当前目录：
         │   ├── npcDetail.ts
         │   ├── playerQuest.ts
         │   └── world.ts
+        ├── player/
+        │   └── playerProfile.ts
+        ├── game/
+        │   ├── contracts.ts
+        │   ├── movement.ts
+        │   ├── npcProjection.ts
+        │   ├── TownGameBridge.ts
+        │   ├── createTownGame.ts
+        │   └── scenes/
+        │       ├── BootScene.ts
+        │       └── TownScene.ts
         ├── types/
         │   ├── chat.ts
         │   ├── npc.ts
@@ -113,7 +125,17 @@ Phase 1D当前目录：
         ├── App.vue
         └── main.ts
 
-Frontend保持 `Typed API Adapter -> Feature Store -> UI / Renderer` 边界。`world`、`npcDetail` 和 `npcChat` Store 互不依赖，由 `TownView` 协调选择、发送和 Tick 后详情刷新。未来迁移开源Vue界面或PixiJS时，只替换展示组件、样式、素材和Renderer，不反向修改Backend领域模型。
+Frontend保持 `Typed API Adapter -> Feature Store -> UI / Renderer` 边界。`world`、`npcDetail`、`npcChat`、`playerProfile` 和 `playerQuest` Store 互不复制规则，由 `TownView` 协调投影、选择、发送和 Tick 后详情刷新。`TownGameHost` 管理 Phaser 生命周期；`game/` 中的纯投影与移动逻辑可独立测试，Scene 不直接调用 API。
+
+Phase 2 静态资源位于：
+
+    frontend/public/assets/phase2/
+    ├── maps/town.json
+    ├── tiles/tiny-town-32.png
+    ├── sprites/
+    └── audio/page-turn.ogg
+
+来源和转换记录统一保存在仓库根目录 `THIRD_PARTY_ASSETS.md`。
 
 ------------------------------------------------------------------------
 
@@ -426,6 +448,8 @@ Phase 0中JSON只作为SQLite种子输入，不作为运行时状态源。
 
 Phase 1E 增加 Story Bible、Prompt v3、剧情化 Player/Quest 和提交级验收；`test_story_content.py` 固定内容连续性，`test_phase1e_acceptance.py` 验证三角色 Mock、状态隔离与五步任务。验收测试使用临时 SQLite 和 Mock/假 Provider，不访问真实网络。
 
+Phase 2 增加玩家本地档案、流程状态机、Phaser Host/Bridge、移动归一化、NPC 地点投影、地图/透明素材契约和 `phase2Acceptance.spec.ts`。Frontend 验收使用 Phaser Host stub 保留真实 App、TownView、Pinia 与 API Adapter，不创建测试 WebGL 或真实网络。
+
 测试范围：
 
     tests/
@@ -458,6 +482,16 @@ Phase 1E 增加 Story Bible、Prompt v3、剧情化 Player/Quest 和提交级验
         ├── NpcDetailPanel.spec.ts
         ├── NpcChatPanel.spec.ts
         ├── TownView.spec.ts
+        ├── TownGameHost.spec.ts
+        ├── TownGameBridge.spec.ts
+        ├── movement.spec.ts
+        ├── npcProjection.spec.ts
+        ├── townMap.spec.ts
+        ├── spriteAssets.spec.ts
+        ├── playerProfile.spec.ts
+        ├── gameFlow.spec.ts
+        ├── AppFlow.spec.ts
+        ├── phase2Acceptance.spec.ts
         ├── TickPanel.spec.ts
         ├── npcDetail.spec.ts
         ├── npcChat.spec.ts
@@ -539,6 +573,10 @@ World Tick 测试随 Phase 1A 创建，NPC Detail 随 Phase 1B 创建，Chat/Pro
 
     NPC Chat / Mock / Compatible Provider
 
+    +
+
+    Phaser 3.90.0 单地图展示层
+
 Memory、Relationship、LLM Tick Decision、通用 Quest 引擎与多人系统仍为后续范围；固定 Player 与一个专用任务已经实现。
 
 ------------------------------------------------------------------------
@@ -547,17 +585,7 @@ Memory、Relationship、LLM Tick Decision、通用 Quest 引擎与多人系统�
 
 ## 游戏化地图
 
-增加：
-
-    PixiJS
-
-    Canvas
-
-    Cocos
-
-替换：
-
-当前CSS地图。
+当前已实现 Phaser 3.90.0 单张室外地图、WASD/方向键、碰撞、相机、三职业外观和 Backend NPC 投影。后续只在明确需要时扩展室内或多地图，不把它们写成当前能力。
 
 ------------------------------------------------------------------------
 

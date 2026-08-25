@@ -23,12 +23,14 @@ const loading = ref(true)
 const loadError = ref<string | null>(null)
 let controller: TownGameController | null = null
 let generation = 0
+let npcRevision = 0
 
 async function startGame(): Promise<void> {
   const parent = mountElement.value
   if (parent === null) return
 
   const currentGeneration = ++generation
+  const startingNpcRevision = npcRevision
   loading.value = true
   loadError.value = null
   try {
@@ -55,6 +57,9 @@ async function startGame(): Promise<void> {
       return
     }
     controller = nextController
+    if (npcRevision !== startingNpcRevision) {
+      controller.updateNpcs(props.npcs.map((npc) => ({ ...npc })))
+    }
     loading.value = false
   } catch {
     if (currentGeneration !== generation) return
@@ -77,7 +82,10 @@ async function defaultFactory(): Promise<TownGameFactory> {
 
 watch(
   () => props.npcs,
-  (npcs) => controller?.updateNpcs(npcs.map((npc) => ({ ...npc }))),
+  (npcs) => {
+    npcRevision += 1
+    controller?.updateNpcs(npcs.map((npc) => ({ ...npc })))
+  },
   { deep: true },
 )
 

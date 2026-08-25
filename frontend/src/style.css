@@ -197,6 +197,7 @@ button:focus-visible {
 }
 
 .app-town-stage .town-shell {
+  width: min(1360px, calc(100% - 2rem));
   padding-top: 2rem;
 }
 

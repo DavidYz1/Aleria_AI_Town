@@ -1,8 +1,16 @@
 # Aleria AI Town 游戏体验设计文档（Game Experience Design）
 
-版本：v1.2
+版本：v1.3
 
-更新时间：2026-08-24
+更新时间：2026-08-25
+
+## Phase 2 当前可玩体验
+
+完整演示由四个 Scene 组成：启动页 → 失忆冒险者创建（名字 + 法师/游侠/牧师）→ 四段剧情过场 → Town。已有完成档案仍先看到启动页，继续后直接进入 Town。
+
+Town 以一张 48×36 的室外 Phaser 地图为第一视觉层，酒馆、公园、城堡和森林入口由道路连接。玩家用 WASD/方向键移动，三职业拥有不同外观；地图中的 Ryan、Shir、Grey 来自 Backend `location_id` 投影，点击后复用 Vue 的 Detail/Chat。World Tick 改变语义地点后只更新投影；Phaser 坐标不持久化，也不替代语义 travel 和任务共址规则。
+
+地图右侧 HUD 在窄于 900px 时移动到下方。资源失败时 DOM 任务、地点卡片和居民卡片仍保留为可读、可操作的替代入口。
 
 ## Phase 1D 当前可玩体验
 
@@ -10,7 +18,7 @@
 
 旅行不隐式推进时间，任务不接管 NPC 行为；如果 Grey 随 Tick 移动，目标和交互条件会使用他的实时位置。这样在较小实现成本下保持世界一致性。
 
-当前页面同时覆盖 loading、error/retry、fallback、409 刷新、并发防重和 900px 以下单列布局。下文 PixiJS/Cocos、精灵动画和地图交互仍是 Phase 2 展示层规划。
+当前页面同时覆盖 loading、error/retry、fallback、409 刷新、并发防重和 900px 以下单列布局。这些 DOM 能力在 Phase 2 中继续保留，并与 Phaser Canvas 分工。
 
 ## Phase 1E 当前章节体验
 
@@ -70,7 +78,7 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 
 ------------------------------------------------------------------------
 
-# 3. 当前MVP体验（第一阶段）
+# 3. DOM 业务基线（第一阶段）
 
 ## 3.1 技术方案
 
@@ -157,11 +165,11 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 -   任务完成带来真实的安全感，同时留下一个没有解释的私人疑问；
 -   所有伏笔都通过现有 objective、interaction response 和 recent event 表达，不增加隐藏状态。
 
-# 4. 未来增强：2D RPG地图
+# 4. 当前增强：2D RPG地图
 
 ## 4.1 设计目标
 
-将当前：
+Phase 2 已将：
 
     NPC列表
 
@@ -169,7 +177,7 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 
     文字地图
 
-升级为：
+升级为一张可移动、可碰撞、可点击 NPC 的 2D 小镇地图，同时保留 DOM 业务入口。
 
     真实2D小镇
 
@@ -184,7 +192,7 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 
 # 5. 前端游戏渲染架构
 
-未来采用：
+当前采用：
 
     Vue3
 
@@ -199,7 +207,7 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 
             +
 
-    PixiJS / Canvas
+    Phaser 3.90.0 Canvas
 
     负责：
 
@@ -218,7 +226,7 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 
 ------------------------------------------------------------------------
 
-# 6. 为什么选择PixiJS方向
+# 6. 为什么选择 Phaser 而不是 PixiJS
 
 候选方案：
 
@@ -253,7 +261,7 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 
 ## PixiJS
 
-选择方向。
+可行但本阶段未选择。
 
 原因：
 
@@ -261,6 +269,21 @@ Aleria AI Town 不追求传统大型 RPG 的战斗系统。
 -   适合Web
 -   与Vue结合自然
 -   专注2D渲染
+
+不足：Tilemap、键盘输入、相机、碰撞和 Scene 生命周期需要额外组装。
+
+------------------------------------------------------------------------
+
+## Phaser 3.90.0
+
+当前选择。
+
+原因：
+
+-   原生提供 Tilemap、Arcade Physics、Camera、Input、Sprite Animation 和 Scene；
+-   更适合在面试周期内形成可玩的 RPG 展示闭环；
+-   通过 Vue `TownGameHost` 与 `TownGameBridge` 隔离，避免引擎侵入 Store/API；
+-   bundle 较大是明确代价，因此 Host 只在进入 Town 后动态加载游戏工厂。
 
 ------------------------------------------------------------------------
 
@@ -514,11 +537,12 @@ Aleria：
 
 ## Phase 2
 
-加入2D体验：
+当前已完成：
 
--   PixiJS
--   Sprite
--   NPC移动
+-   Phaser 3.90.0 单地图与四地点；
+-   三职业 Sprite、WASD/方向键、归一化斜向速度、碰撞与镜头；
+-   三 Backend NPC 投影、点击 Detail/Chat 与 Tick 后更新；
+-   Vue DOM 任务/语义 travel 与 Canvas 表现层隔离。
 
 ------------------------------------------------------------------------
 

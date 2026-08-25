@@ -8,6 +8,8 @@ import NpcDetailPanel from '../components/NpcDetailPanel.vue'
 import PlayerLocationPanel from '../components/PlayerLocationPanel.vue'
 import QuestPanel from '../components/QuestPanel.vue'
 import TickPanel from '../components/TickPanel.vue'
+import TownGameHost from '../components/TownGameHost.vue'
+import { projectNpcs } from '../game/npcProjection'
 import { useNpcChatStore } from '../stores/npcChat'
 import { useNpcDetailStore } from '../stores/npcDetail'
 import { usePlayerProfileStore } from '../stores/playerProfile'
@@ -33,6 +35,12 @@ const selectedChatSession = computed(() => {
   const npcId = npcDetailStore.selectedNpcId
   return npcId === null ? null : npcChatStore.sessionFor(npcId)
 })
+const projectedNpcs = computed(() => projectNpcs(store.data?.npcs ?? []))
+const adventurerClassTitle = computed(() => ({
+  mage: '法师',
+  ranger: '游侠',
+  cleric: '牧师',
+})[playerProfileStore.profile?.adventurerClass ?? 'ranger'])
 
 function reloadWorld(): void {
   void store.loadWorld()
@@ -125,6 +133,63 @@ onMounted(loadTown)
     </section>
 
     <template v-else-if="store.data">
+      <section
+        v-if="playerProfileStore.profile"
+        class="town-section town-map-section"
+        aria-labelledby="town-map-heading"
+      >
+        <div class="section-heading">
+          <p class="section-number">地图探索</p>
+          <h2 id="town-map-heading">曦谷全景</h2>
+        </div>
+        <div class="town-play-layout">
+          <div class="town-game-host-column">
+            <TownGameHost
+              :profile="playerProfileStore.profile"
+              :npcs="projectedNpcs"
+              @npc-selected="selectNpc"
+            />
+          </div>
+
+          <aside class="town-map-hud" aria-label="冒险者与居民信息">
+            <div
+              v-if="npcDetailStore.selectedNpcId !== null && selectedChatSession"
+              class="detail-chat-stack"
+            >
+              <NpcDetailPanel
+                :selected-npc-id="npcDetailStore.selectedNpcId"
+                :detail="npcDetailStore.data"
+                :loading="npcDetailStore.loading"
+                :error="npcDetailStore.error"
+                @close="npcDetailStore.close"
+                @retry="retryNpcDetail"
+              />
+              <NpcChatPanel
+                :selected-npc-id="npcDetailStore.selectedNpcId"
+                :npc-name="selectedNpcName"
+                :messages="selectedChatSession.messages"
+                :sending="selectedChatSession.sending"
+                :error="selectedChatSession.error"
+                :pending-message="selectedChatSession.pendingMessage"
+                :provider="selectedChatSession.provider"
+                :fallback-used="selectedChatSession.fallbackUsed"
+                @update:pending-message="updatePendingMessage"
+                @send="sendChatMessage"
+                @retry="retryChatMessage"
+              />
+            </div>
+            <div v-else class="card map-help-card">
+              <p class="card-label">当前冒险者</p>
+              <h3>{{ playerProfileStore.profile.displayName }} · {{ adventurerClassTitle }}</h3>
+              <p>点击地图后使用 WASD 或方向键移动，点击居民可查看状态并开始交流。</p>
+              <p class="map-boundary-note">
+                地图坐标只用于画面表现；城镇地点、居民状态与任务仍由 Backend 决定。
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
       <TickPanel
         :advancing="store.advancing"
         :error="store.tickError"
@@ -176,10 +241,7 @@ onMounted(loadTown)
           <p class="section-number">04</p>
           <h2 id="npcs-heading">居民状态</h2>
         </div>
-        <div
-          class="resident-layout"
-          :class="{ 'has-detail': npcDetailStore.selectedNpcId !== null }"
-        >
+        <div class="resident-layout">
           <div class="npc-grid">
             <NpcCard
               v-for="npc in store.data.npcs"
@@ -189,33 +251,6 @@ onMounted(loadTown)
               @select="selectNpc"
             />
           </div>
-
-          <div
-            v-if="npcDetailStore.selectedNpcId !== null && selectedChatSession"
-            class="detail-chat-stack"
-          >
-            <NpcDetailPanel
-              :selected-npc-id="npcDetailStore.selectedNpcId"
-              :detail="npcDetailStore.data"
-              :loading="npcDetailStore.loading"
-              :error="npcDetailStore.error"
-              @close="npcDetailStore.close"
-              @retry="retryNpcDetail"
-            />
-            <NpcChatPanel
-              :selected-npc-id="npcDetailStore.selectedNpcId"
-              :npc-name="selectedNpcName"
-              :messages="selectedChatSession.messages"
-              :sending="selectedChatSession.sending"
-              :error="selectedChatSession.error"
-              :pending-message="selectedChatSession.pendingMessage"
-              :provider="selectedChatSession.provider"
-              :fallback-used="selectedChatSession.fallbackUsed"
-              @update:pending-message="updatePendingMessage"
-              @send="sendChatMessage"
-              @retry="retryChatMessage"
-            />
-          </div>
         </div>
       </section>
     </template>
@@ -223,19 +258,23 @@ onMounted(loadTown)
 </template>
 
 <style scoped>
-.resident-layout.has-detail {
+.town-map-section {
+  margin-top: 2rem;
+}
+
+.town-play-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 0.9fr);
+  grid-template-columns: minmax(0, 1.75fr) minmax(17rem, 0.75fr);
   align-items: start;
   gap: 1rem;
 }
 
-.resident-layout.has-detail .npc-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.town-game-host-column {
+  min-width: 0;
 }
 
-.resident-layout :deep(.npc-detail-panel) {
-  margin-top: 0;
+.town-map-hud {
+  min-width: 0;
 }
 
 .detail-chat-stack {
@@ -243,14 +282,22 @@ onMounted(loadTown)
   gap: 1rem;
 }
 
-@media (max-width: 900px) {
-  .resident-layout.has-detail {
-    grid-template-columns: 1fr;
-  }
+.detail-chat-stack :deep(.npc-detail-panel) {
+  margin-top: 0;
 }
 
-@media (max-width: 760px) {
-  .resident-layout.has-detail .npc-grid {
+.map-help-card h3 {
+  margin-bottom: 0.75rem;
+}
+
+.map-boundary-note {
+  padding-top: 0.75rem;
+  border-top: 1px solid #d7ddd3;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .town-play-layout {
     grid-template-columns: 1fr;
   }
 }

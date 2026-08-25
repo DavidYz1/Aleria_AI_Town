@@ -9,6 +9,7 @@
     "paths": {
       "@vue/test-utils": ["node_modules/@vue/test-utils"],
       "pinia": ["node_modules/pinia"],
+      "vue": ["node_modules/vue"],
       "vitest": ["node_modules/vitest"]
     },
     "strict": true,

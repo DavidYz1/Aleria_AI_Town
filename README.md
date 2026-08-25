@@ -1,6 +1,6 @@
 # Aleria AI Town · 曦谷
 
-> 腾讯游戏 AI 小镇工程作业 · Phase 1E 可运行版本
+> 腾讯游戏 AI 小镇工程作业 · Phase 2 可运行版本
 
 曦谷是一座从战争中恢复的温暖小镇。你是一名失去记忆、身带陌生印记的旅人；一次寻找失踪孩子的委托，将你带向城堡残缺的档案和森林深处的旧封锁线。
 
@@ -20,20 +20,20 @@ Aleria AI Town 是一个“确定性世界 + 生成式角色对话”的小型�
 | 仓库地址 | `[提交前由候选人填写]` |
 | 在线体验地址 | `N/A（Phase 3 计划）` |
 | 实际开发用时 | `[提交前由候选人填写]` |
-| 技术栈 | Vue 3 + TypeScript + Pinia / FastAPI + SQLAlchemy / SQLite |
-| 当前阶段 | Phase 1E：内容圣经、Prompt v3 与提交叙事 |
+| 技术栈 | Vue 3 + TypeScript + Pinia + Phaser 3.90.0 / FastAPI + SQLAlchemy / SQLite |
+| 当前阶段 | Phase 2：四场景 RPG 展示层、单地图移动与 NPC 交互 |
 
 ## 当前可以体验什么
 
 无需 API Key，默认 Mock 模式即可体验完整闭环：
 
-1. 查看曦谷当前时间、四个地点和三名 NPC 的基础状态。
-2. 推进一次 World Tick，观察 NPC 根据状态、人物特点和时间阶段行动。
-3. 查看 NPC Detail，理解本次行动的确定性原因。
-4. 在星辉酒馆接受“失踪的孩子”委托。
-5. 前往 Grey 的实时地点询问；若他随 Tick 移动，任务目标会同步更新。
-6. 在低语森林调查遗落的鞋、烧灼符号和林中低语，再把孩子带回酒馆。
-7. 分别与 Ryan、Shir、Grey 对话，比较三人的立场和知识边界。
+1. 从启动页创建失忆冒险者，输入名字并选择法师、游侠或牧师；首次进入可观看或跳过剧情过场。
+2. 进入一张包含星辉酒馆、中央公园、晨曦城堡和低语森林入口的室外像素地图。
+3. 点击 Canvas 后使用 WASD 或方向键移动；斜向速度归一化，建筑、树木和世界边界具有碰撞。
+4. 点击地图上的 Ryan、Shir、Grey，复用同一套 NPC Detail 与 Chat；地图不可用时仍可通过 DOM 居民卡片进入。
+5. 推进一次 World Tick，观察 Backend NPC 的语义地点变化投影到地图，而不是由 Phaser 改写世界状态。
+6. 在星辉酒馆接受“失踪的孩子”委托，按 Backend objective 使用语义地点控件完成五步迁移。
+7. 分别与 Ryan、Shir、Grey 对话，比较三人的立场和知识边界；当前名字和职业称谓会作为非权威上下文发送。
 8. 切换真实 OpenAI-compatible 模型；上游失败时自动回退到 Mock。
 
 任务采用六状态、五迁移的确定性状态机：
@@ -66,7 +66,7 @@ available → accepted → briefed_by_grey
 - **Shir / Assassin**：冷静、敏锐，习惯把事实与传闻分开；她追索被删除的档案，却不确定所有真相都应该立刻公开。
 - **Grey / Guardian**：克制、可靠，经历过灰烬战争的遗迹行动；他想保护来之不易的和平，也逐渐意识到沉默可能延续错误。
 
-玩家只有两个确定起点：失去记忆，以及身上存在无法解释的印记。NPC 可以观察、怀疑和提供线索，但不得替玩家补全姓名、职业、过去或命运。
+玩家失忆和未知印记是固定叙事起点；玩家创建时选择的名字、职业外观和称谓只描述“现在如何行动”。NPC 可以使用当前称呼、观察和提供线索，但不得把职业选择当作失忆前身份、能力或命运的证据。
 
 ## 快速启动：Mock 模式
 
@@ -281,19 +281,20 @@ npm run build
 - Phase 1C：Chat Provider 抽象、Mock、Compatible Adapter、Fallback 与聊天持久化。
 - Phase 1D：四地点、Player、六状态 Quest、共址检查和任务 UI。
 - Phase 1E：Story Bible、Prompt v3、角色知识边界、剧情化任务文案和提交叙事。
+- Phase 2：启动、创建、剧情、Town 四场景；Phaser 3.90.0 单地图、三职业外观、键盘移动、碰撞、镜头与 Backend NPC 投影。
 
 ### 已知限制
 
-- 当前 Frontend 是响应式 DOM 界面，还没有像素 RPG 地图、角色精灵或动画。
 - 当前没有线上体验地址、Docker 或演示视频。
-- 任务只有一条确定性主线，没有奖励、背包、账号和分支结局。
+- Phaser 像素坐标只存在于当前浏览器表现层，不持久化，也不调用 travel/position API。
+- 职业只影响外观、称谓和 NPC 对话上下文，没有职业数值、技能或战斗差异。
+- 当前只有一张室外地图和一条确定性主线，没有室内/多地图、战斗、奖励、背包、装备、账号或分支结局。
 - 尚未实现长期 Memory、Relationship、Reflection、RAG、多人系统或 LLM 驱动 World Tick。
 
 ### 后续路线
 
-1. **Phase 2**：像素 RPG 地图与角色交互，复用现有 API 和 Store。
-2. **Phase 2B**：界面动画、响应式布局与体验打磨。
-3. **Phase 3**：Docker、线上部署、截图、演示视频与最终交付。
-4. **Phase 3+**：更多任务、Relationship、有限 Memory 或高级 Agent。
+1. **Phase 2B**：界面动画、反馈、素材与多尺寸体验打磨。
+2. **Phase 3**：Docker、线上部署、截图、演示视频与最终交付。
+3. **Phase 3+**：更多任务、Relationship、有限 Memory 或高级 Agent。
 
 完整内容事实源见 [`docs/15_Story_Bible_CN.md`](docs/15_Story_Bible_CN.md)，Prompt 工程见 [`docs/08_Prompt_Engineering_CN.md`](docs/08_Prompt_Engineering_CN.md)，开发路线见 [`docs/13_Development_Roadmap.md`](docs/13_Development_Roadmap.md)。

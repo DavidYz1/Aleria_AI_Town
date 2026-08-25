@@ -44,6 +44,14 @@ function fakeController(): TownGameController & {
   }
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve
+  })
+  return { promise, resolve }
+}
+
 describe('TownGameHost', () => {
   it('updates NPCs without rebuilding and forwards selection before cleanup', async () => {
     const controller = fakeController()
@@ -60,6 +68,11 @@ describe('TownGameHost', () => {
     await flushPromises()
 
     expect(factory).toHaveBeenCalledOnce()
+    expect(Object.keys(factory.mock.calls[0]![1]).sort()).toEqual(['npcs', 'profile'])
+    expect(Object.keys(factory.mock.calls[0]![2]).sort()).toEqual([
+      'onLoadFailed',
+      'onNpcSelected',
+    ])
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
 
     await wrapper.setProps({ npcs: [shir] })
@@ -104,5 +117,25 @@ describe('TownGameHost', () => {
 
     wrapper.unmount()
     expect(second.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('replays the latest NPC projection when props change during async startup', async () => {
+    const controller = fakeController()
+    const ready = deferred<TownGameController>()
+    const factory = vi.fn<TownGameFactory>(() => ready.promise)
+    const wrapper = mount(TownGameHost, {
+      props: { profile, npcs: [ryan], factory },
+    })
+
+    expect(factory).toHaveBeenCalledOnce()
+    await wrapper.setProps({ npcs: [shir] })
+    ready.resolve(controller)
+    await flushPromises()
+
+    expect(controller.updateNpcs).toHaveBeenCalledOnce()
+    expect(controller.updateNpcs).toHaveBeenCalledWith([shir])
+    expect(factory).toHaveBeenCalledOnce()
+
+    wrapper.unmount()
   })
 })

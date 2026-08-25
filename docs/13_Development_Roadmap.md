@@ -1,8 +1,8 @@
 # Aleria AI Town 开发路线规划（Development Roadmap）
 
-版本：v1.5
+版本：v1.6
 
-更新时间：2026-08-24
+更新时间：2026-08-25
 
 # 1. 文档目的
 
@@ -18,13 +18,11 @@
 
 > 先完成可运行MVP，再增加体验和技术亮点。
 
-## Phase 1D 后的权威推进顺序
+## Phase 2 完成后的权威推进顺序
 
-1. **Phase 1E：内容圣经与提交叙事**——统一世界事实、Prompt v3、剧情文案和 README。
-2. **Phase 2：像素 RPG 地图与角色交互**——优先 PixiJS，复用现有 API/Store。
-3. **Phase 2B：动画、响应式与体验打磨**——补充反馈、动效和多尺寸体验。
-4. **Phase 3：交付工程化**——Docker、线上部署、截图、演示视频和最终提交。
-5. **Phase 3+：内容与 Agent 增强**——更多任务、Relationship、有限 Memory 或高级 Agent。
+1. **Phase 2B：动画、反馈与体验打磨**——在现有 Phaser/Vue 边界上优化素材和多尺寸体验。
+2. **Phase 3：交付工程化**——Docker、线上部署、截图、演示视频和最终提交。
+3. **Phase 3+：内容与 Agent 增强**——更多任务、Relationship、有限 Memory 或高级 Agent。
 
 本文后半部分的 Agent/Memory/高级持久化章节保留为能力 backlog，不再代表紧接 Phase 1D 的执行顺序。
 
@@ -70,7 +68,7 @@
 
 包含：
 
--   PixiJS 2D地图
+-   Phaser 3.90.0 2D 地图
 -   NPC移动动画
 -   世界事件展示
 -   Quest系统
@@ -408,6 +406,8 @@ Ryan：
 
 # 8. Phase 2：游戏体验与地图展示层
 
+状态：已完成（2026-08-25）。
+
 ## 目标
 
 从：
@@ -422,13 +422,13 @@ Web管理页面
 
 ## 技术路线
 
-推荐：
+已采用：
 
     Vue3
 
     +
 
-    PixiJS
+    Phaser 3.90.0
 
     +
 
@@ -443,13 +443,15 @@ Web管理页面
 -   Camera
 -   NPC移动动画
 
+已实现范围：四场景流程、版本化 localStorage 玩家档案、单张 48×36 室外地图、三职业外观、WASD/方向键、碰撞、镜头、三 Backend NPC 投影/点击、Tick 更新和 DOM fallback。Phaser 坐标只在表现层存在，不新增 Backend Player Schema 或 travel API。
+
 ------------------------------------------------------------------------
 
 # 9. Phase 2B、Phase 3 与 Phase 3+
 
 ## Phase 2B：体验打磨
 
--   界面动画、交互反馈与响应式布局
+-   更丰富的界面动画、交互反馈、素材质量和多尺寸体验；尚未完成。
 
 ## Phase 3：最终交付
 

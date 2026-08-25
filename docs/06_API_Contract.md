@@ -394,12 +394,30 @@ Method:
 }
 ```
 
+带当前玩家自述的 Request（首轮、续聊均可选）：
+
+``` json
+{
+  "conversation_id": null,
+  "message": "你认识我吗？",
+  "player_profile": {
+    "display_name": "洛恩",
+    "adventurer_class": "ranger"
+  }
+}
+```
+
 约束：
 
 -   `conversation_id` 为 UUID 或 `null`；首轮由 Backend 分配 UUID。
 -   `message` 去除首尾空白后长度为 1–500。
 -   续聊 UUID 必须属于相同 `world_id + npc_id`，不能跨 NPC 复用。
--   当前没有 `player_id`、登录或 Player 表。
+-   `player_profile` 整体可省略；省略时保持 Phase 1C 请求兼容。
+-   `display_name` 去除首尾空白后长度为 1–16，只允许汉字、英文字母、数字、空格、`·` 和 `-`。
+-   `adventurer_class` 只能是 `mage`、`ranger`、`cleric`。
+-   `player_profile` 内出现额外字段、非法名称或未知职业时返回 HTTP 422，不进入 ChatService。
+-   该对象只用于当次称呼和对话风格，不是玩家过去、身份、任务或世界事实的证据。
+-   当前没有账号、登录或 Backend Player Profile Schema；固定 `default-player` 仍只保存语义地点和 Quest 状态。
 
 成功响应：
 
@@ -453,7 +471,7 @@ NPC 不存在或 conversation 不属于当前 NPC 时返回 HTTP 404：
 }
 ```
 
-请求 UUID/长度/空白校验失败使用 FastAPI 标准 HTTP 422 `detail` 响应，不进入 ChatService。
+请求 UUID、消息长度/空白、玩家名称/职业或嵌套额外字段校验失败时，使用 FastAPI 标准 HTTP 422 `detail` 响应，不进入 ChatService。
 
 上下文不可用时返回 HTTP 503：
 
