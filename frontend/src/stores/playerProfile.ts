@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import {
   ADVENTURER_CLASSES,
+  clearPlayerProfile,
   getBrowserProfileStorage,
   isValidDisplayName,
   loadPlayerProfile,
@@ -63,6 +64,14 @@ export const usePlayerProfileStore = defineStore('playerProfile', () => {
     storageWarning.value = saved ? null : STORAGE_WARNING
   }
 
+  function resetProfile(
+    storage: ProfileStorage | null = getBrowserProfileStorage(),
+  ): void {
+    const cleared = clearPlayerProfile(storage)
+    profile.value = null
+    storageWarning.value = cleared ? null : STORAGE_WARNING
+  }
+
   return {
     profile,
     hydrated,
@@ -70,5 +79,6 @@ export const usePlayerProfileStore = defineStore('playerProfile', () => {
     hydrate,
     createProfile,
     completeIntro,
+    resetProfile,
   }
 })

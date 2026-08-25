@@ -38,6 +38,11 @@ function completeStory(): void {
   profileStore.completeIntro()
   stage.value = destinationAfterStory()
 }
+
+function restartAdventure(): void {
+  profileStore.resetProfile()
+  stage.value = 'boot'
+}
 </script>
 
 <template>
@@ -66,6 +71,6 @@ function completeStory(): void {
     <p v-if="profileStore.storageWarning" class="storage-warning" role="status">
       {{ profileStore.storageWarning }}
     </p>
-    <TownView />
+    <TownView @restart="restartAdventure" />
   </div>
 </template>

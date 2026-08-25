@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.demo import router as demo_router
 from backend.app.api.npc_chat import router as npc_chat_router
 from backend.app.api.npcs import router as npcs_router
 from backend.app.api.player import router as player_router
@@ -42,6 +43,7 @@ def create_app(
     application.include_router(npc_chat_router)
     application.include_router(player_router)
     application.include_router(quests_router)
+    application.include_router(demo_router)
     return application
 
 

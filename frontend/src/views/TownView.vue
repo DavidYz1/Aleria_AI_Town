@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 
+import { resetDemo } from '../api/demo'
 import LocationCard from '../components/LocationCard.vue'
 import NpcCard from '../components/NpcCard.vue'
 import NpcChatPanel from '../components/NpcChatPanel.vue'
@@ -17,6 +18,10 @@ import { usePlayerQuestStore } from '../stores/playerQuest'
 import { useWorldStore } from '../stores/world'
 import type { QuestInteraction } from '../types/playerQuest'
 
+const emit = defineEmits<{
+  restart: []
+}>()
+
 const store = useWorldStore()
 const npcDetailStore = useNpcDetailStore()
 const npcChatStore = useNpcChatStore()
@@ -26,6 +31,8 @@ const townGameHost = ref<InstanceType<typeof TownGameHost> | null>(null)
 const pendingEnteredLocationId = ref<string | null>(null)
 let syncingEnteredLocation = false
 let quickTravelRequests = 0
+const resettingDemo = ref(false)
+const demoResetError = ref<string | null>(null)
 
 const locationNames = computed(
   () => new Map(store.data?.locations.map((location) => [location.id, location.name]) ?? []),
@@ -46,6 +53,11 @@ const adventurerClassTitle = computed(() => ({
   cleric: '牧师',
 })[playerProfileStore.profile?.adventurerClass ?? 'ranger'])
 const displayedPlayer = computed(() => playerQuestStore.data?.player ?? null)
+const demoResetBlocked = computed(() => (
+  store.advancing
+  || playerQuestStore.mutating
+  || Object.values(npcChatStore.sessionsByNpc).some((session) => session.sending)
+))
 
 function reloadWorld(): void {
   void store.loadWorld()
@@ -63,6 +75,7 @@ function retryPlayerQuest(): void {
 }
 
 async function travelPlayer(locationId: string): Promise<void> {
+  if (resettingDemo.value) return
   quickTravelRequests += 1
   try {
     const travelled = await playerQuestStore.travel(locationId)
@@ -84,6 +97,7 @@ async function travelPlayer(locationId: string): Promise<void> {
 async function syncEnteredPlayerLocation(): Promise<void> {
   if (
     syncingEnteredLocation
+    || resettingDemo.value
     || quickTravelRequests > 0
     || playerQuestStore.mutating
   ) return
@@ -109,16 +123,43 @@ async function syncEnteredPlayerLocation(): Promise<void> {
 }
 
 function enterPlayerLocation(locationId: string): void {
+  if (resettingDemo.value) return
   pendingEnteredLocationId.value = locationId
   void syncEnteredPlayerLocation()
 }
 
 function interactWithQuest(interaction: QuestInteraction): void {
+  if (resettingDemo.value) return
   void playerQuestStore.interact(interaction)
 }
 
 function advanceWorld(): void {
+  if (resettingDemo.value) return
   void store.advanceTick()
+}
+
+async function restartAdventure(): Promise<void> {
+  if (resettingDemo.value || demoResetBlocked.value) return
+  const confirmed = window.confirm(
+    '重新开始将清除当前世界进度、任务、事件、聊天记录和本地角色。是否继续？',
+  )
+  if (!confirmed) return
+
+  resettingDemo.value = true
+  demoResetError.value = null
+  try {
+    await resetDemo()
+    pendingEnteredLocationId.value = null
+    npcDetailStore.close()
+    npcChatStore.clearAll()
+    store.reset()
+    playerQuestStore.reset()
+    emit('restart')
+  } catch {
+    demoResetError.value = '重新开始失败，当前世界没有改变，请稍后重试。'
+  } finally {
+    resettingDemo.value = false
+  }
 }
 
 function selectNpc(npcId: string): void {
@@ -135,11 +176,13 @@ function updatePendingMessage(value: string): void {
 }
 
 function sendChatMessage(): void {
+  if (resettingDemo.value) return
   const npcId = npcDetailStore.selectedNpcId
   if (npcId !== null) void npcChatStore.send(npcId, playerProfileStore.profile)
 }
 
 function retryChatMessage(): void {
+  if (resettingDemo.value) return
   const npcId = npcDetailStore.selectedNpcId
   if (npcId !== null) void npcChatStore.retry(npcId, playerProfileStore.profile)
 }
@@ -171,10 +214,30 @@ onMounted(loadTown)
 <template>
   <main class="town-shell">
     <header class="town-header">
-      <p class="eyebrow">Aleria AI Town</p>
-      <h1>{{ store.data?.world.name ?? '曦谷' }}</h1>
-      <p v-if="store.data" class="world-time">
-        Day {{ store.data.world.day }} · {{ store.data.world.time }}
+      <div class="town-header-content">
+        <div>
+          <p class="eyebrow">Aleria AI Town</p>
+          <h1>{{ store.data?.world.name ?? '曦谷' }}</h1>
+          <p v-if="store.data" class="world-time">
+            Day {{ store.data.world.day }} · {{ store.data.world.time }}
+          </p>
+        </div>
+        <button
+          class="demo-reset-button"
+          data-action="restart-adventure"
+          type="button"
+          :disabled="resettingDemo || demoResetBlocked"
+          @click="restartAdventure"
+        >
+          {{ resettingDemo ? '正在重置…' : '重新开始冒险' }}
+        </button>
+      </div>
+      <p
+        v-if="demoResetError"
+        class="demo-reset-error"
+        role="alert"
+      >
+        {{ demoResetError }}
       </p>
     </header>
 
@@ -230,7 +293,7 @@ onMounted(loadTown)
                 :selected-npc-id="npcDetailStore.selectedNpcId"
                 :npc-name="selectedNpcName"
                 :messages="selectedChatSession.messages"
-                :sending="selectedChatSession.sending"
+                :sending="selectedChatSession.sending || resettingDemo"
                 :error="selectedChatSession.error"
                 :pending-message="selectedChatSession.pendingMessage"
                 :provider="selectedChatSession.provider"
@@ -253,7 +316,7 @@ onMounted(loadTown)
       </section>
 
       <TickPanel
-        :advancing="store.advancing"
+        :advancing="store.advancing || resettingDemo"
         :error="store.tickError"
         :tick="store.lastTick"
         @advance="advanceWorld"
@@ -274,7 +337,7 @@ onMounted(loadTown)
           <QuestPanel
             v-if="playerQuestStore.data"
             :quest="playerQuestStore.data.quest"
-            :mutating="playerQuestStore.mutating"
+            :mutating="playerQuestStore.mutating || resettingDemo"
             :mutation-error="playerQuestStore.mutationError"
             @interact="interactWithQuest"
           />
@@ -292,7 +355,7 @@ onMounted(loadTown)
             :key="location.id"
             :location="location"
             :is-current="playerQuestStore.data?.player.location_id === location.id"
-            :travelling="playerQuestStore.mutating"
+            :travelling="playerQuestStore.mutating || resettingDemo"
             @travel="travelPlayer"
           />
         </div>
@@ -322,6 +385,30 @@ onMounted(loadTown)
 <style scoped>
 .town-map-section {
   margin-top: 2rem;
+}
+
+.town-header-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.demo-reset-button {
+  flex: 0 0 auto;
+  border: 1px solid #9b5d51;
+  color: #7a3f35;
+  background: rgb(255 250 245 / 82%);
+}
+
+.demo-reset-button:hover {
+  color: #fff;
+  background: #9b5d51;
+}
+
+.demo-reset-error {
+  margin: 1rem 0 0;
+  color: #8a453a;
 }
 
 .town-play-layout {
@@ -359,6 +446,15 @@ onMounted(loadTown)
 }
 
 @media (max-width: 900px) {
+  .town-header-content {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .demo-reset-button {
+    align-self: flex-start;
+  }
+
   .town-play-layout {
     grid-template-columns: 1fr;
   }

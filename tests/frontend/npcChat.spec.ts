@@ -221,6 +221,24 @@ describe('NPC Chat store', () => {
     expect(store.sessionFor('ryan').error).toBe('消息发送失败，请稍后重试。')
   })
 
+  it('clears every session and ignores responses from before a restart', async () => {
+    const store = useNpcChatStore()
+    const request = deferred<NpcChatData>()
+    store.setPendingMessage('ryan', '重置前的消息')
+    const pending = store.send('ryan', profile, () => request.promise)
+
+    store.clearAll()
+    request.resolve(chatResult(
+      'ryan',
+      '00000000-0000-0000-0000-000000000010',
+      1,
+      '重置前的消息',
+    ))
+    await pending
+
+    expect(Object.keys(store.sessionsByNpc)).toEqual([])
+  })
+
   it('stores a late Ryan response only in Ryan while Shir is active', async () => {
     const store = useNpcChatStore()
     const detailStore = useNpcDetailStore()

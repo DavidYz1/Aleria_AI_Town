@@ -48,4 +48,22 @@ describe('world store', () => {
 
     expect(store.isEmpty).toBe(true)
   })
+
+  it('clears state and ignores a world response from before restart', async () => {
+    const store = useWorldStore()
+    let resolve!: (value: WorldData) => void
+    const request = new Promise<WorldData>((done) => {
+      resolve = done
+    })
+    const pending = store.loadWorld(() => request)
+
+    store.reset()
+    resolve(worldFixture)
+    await pending
+
+    expect(store.data).toBeNull()
+    expect(store.loading).toBe(false)
+    expect(store.error).toBeNull()
+    expect(store.lastTick).toBeNull()
+  })
 })

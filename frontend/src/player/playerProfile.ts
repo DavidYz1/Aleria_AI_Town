@@ -14,6 +14,7 @@ export interface AdventurerClassMeta {
 }
 
 export type ProfileStorage = Pick<Storage, 'getItem' | 'setItem'>
+  & Partial<Pick<Storage, 'removeItem'>>
 
 export const PLAYER_PROFILE_STORAGE_KEY = 'aleria.player-profile.v1'
 
@@ -100,6 +101,17 @@ export function savePlayerProfile(
 
   try {
     storage.setItem(PLAYER_PROFILE_STORAGE_KEY, JSON.stringify(normalizedProfile))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function clearPlayerProfile(storage: ProfileStorage | null): boolean {
+  if (storage?.removeItem === undefined) return false
+
+  try {
+    storage.removeItem(PLAYER_PROFILE_STORAGE_KEY)
     return true
   } catch {
     return false

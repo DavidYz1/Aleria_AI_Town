@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import {
+  clearPlayerProfile,
   isValidDisplayName,
   loadPlayerProfile,
   normalizeDisplayName,
@@ -15,6 +16,7 @@ function memoryStorage() {
   return {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => { values.set(key, value) },
+    removeItem: (key: string) => { values.delete(key) },
   }
 }
 
@@ -92,6 +94,20 @@ describe('player profile persistence', () => {
 
     expect(store.profile).toEqual(saved)
     expect(store.hydrated).toBe(true)
+    expect(store.storageWarning).toBeNull()
+  })
+
+  it('clears the persisted and in-session profile for a full restart', () => {
+    const storage = memoryStorage()
+    const store = usePlayerProfileStore()
+    store.createProfile('洛恩', 'mage', storage)
+    store.completeIntro(storage)
+
+    expect(clearPlayerProfile(storage)).toBe(true)
+    store.resetProfile(storage)
+
+    expect(store.profile).toBeNull()
+    expect(loadPlayerProfile(storage).profile).toBeNull()
     expect(store.storageWarning).toBeNull()
   })
 })

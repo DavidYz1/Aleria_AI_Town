@@ -157,4 +157,20 @@ describe('player quest store', () => {
     expect(store.data).toEqual(acceptedPlayerQuestFixture)
     expect(store.loading).toBe(false)
   })
+
+  it('clears state and ignores a player response from before restart', async () => {
+    const store = usePlayerQuestStore()
+    const request = deferred<PlayerQuestData>()
+    const pending = store.load(() => request.promise)
+
+    store.reset()
+    request.resolve(acceptedPlayerQuestFixture)
+    await pending
+
+    expect(store.data).toBeNull()
+    expect(store.loading).toBe(false)
+    expect(store.error).toBeNull()
+    expect(store.mutating).toBe(false)
+    expect(store.mutationError).toBeNull()
+  })
 })

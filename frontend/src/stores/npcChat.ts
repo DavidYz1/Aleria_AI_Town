@@ -90,7 +90,14 @@ export const useNpcChatStore = defineStore('npcChat', () => {
     await send(npcId, profile, fetcher)
   }
 
-  return { sessionsByNpc, sessionFor, setPendingMessage, send, retry }
+  function clearAll(): void {
+    requestVersions.clear()
+    for (const npcId of Object.keys(sessionsByNpc)) {
+      delete sessionsByNpc[npcId]
+    }
+  }
+
+  return { sessionsByNpc, sessionFor, setPendingMessage, send, retry, clearAll }
 })
 
 function applyResult(

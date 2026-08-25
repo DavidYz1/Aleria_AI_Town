@@ -235,7 +235,7 @@ describe('TownView', () => {
     await flushPromises()
 
     expect(wrapper.get('[role="alert"]').text()).toContain(store.error)
-    expect(wrapper.get('button').text()).toBe('重新加载')
+    expect(wrapper.get('.error-panel button').text()).toBe('重新加载')
   })
 
   it('announces incomplete world data', async () => {
@@ -705,5 +705,127 @@ describe('TownView', () => {
     expect(map.compareDocumentPosition(tick) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(wrapper.findAll('.npc-card')).toHaveLength(3)
     expect(wrapper.findAll('.location-card')).toHaveLength(4)
+  })
+
+  it('cancels a full adventure restart before calling Backend', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const post = vi.spyOn(api, 'post')
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+
+    await wrapper.get('[data-action="restart-adventure"]').trigger('click')
+
+    expect(post).not.toHaveBeenCalledWith('/api/demo/reset')
+    expect(wrapper.emitted('restart')).toBeUndefined()
+  })
+
+  it('clears frontend world caches and requests Scene 0 after reset succeeds', async () => {
+    const { pinia, store, playerQuestStore } = createStore()
+    const detailStore = useNpcDetailStore()
+    const chatStore = useNpcChatStore()
+    store.data = worldFixture
+    detailStore.selectedNpcId = 'ryan'
+    detailStore.data = npcDetailFixture
+    chatStore.sessionFor('ryan').messages.push(chatResponseFixture.turn.user)
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const post = vi.spyOn(api, 'post').mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          world_id: 'aleria-town',
+          world_tick: 0,
+          player_location_id: 'tavern',
+          quest_status: 'available',
+        },
+        message: 'Demo world reset',
+      },
+    } as Awaited<ReturnType<typeof api.post>>)
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+
+    await wrapper.get('[data-action="restart-adventure"]').trigger('click')
+    await flushPromises()
+
+    expect(post).toHaveBeenCalledWith('/api/demo/reset')
+    expect(wrapper.emitted('restart')).toEqual([[]])
+    expect(store.data).toBeNull()
+    expect(playerQuestStore.data).toBeNull()
+    expect(detailStore.selectedNpcId).toBeNull()
+    expect(Object.keys(chatStore.sessionsByNpc)).toEqual([])
+  })
+
+  it('blocks every game mutation while the reset request is pending', async () => {
+    const { pinia, store } = createStore()
+    const detailStore = useNpcDetailStore()
+    const chatStore = useNpcChatStore()
+    store.data = worldFixture
+    detailStore.selectedNpcId = 'ryan'
+    detailStore.data = npcDetailFixture
+    chatStore.setPendingMessage('ryan', '重置期间不应发送')
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const resetResponse = deferred<Awaited<ReturnType<typeof api.post>>>()
+    const post = vi.spyOn(api, 'post').mockImplementation(
+      (url) => url === '/api/demo/reset'
+        ? resetResponse.promise
+        : Promise.reject(new Error(`unexpected mutation: ${url}`)),
+    )
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+
+    void wrapper.get('[data-action="restart-adventure"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    wrapper.getComponent(TownGameHostStub).vm.$emit('playerLocationEntered', 'forest')
+    await wrapper.get('.tick-panel button').trigger('click')
+    await wrapper.get('.quest-actions button').trigger('click')
+    const castle = wrapper.findAll('.location-card').find(
+      (card) => card.get('h3').text() === '晨曦城堡',
+    )
+    await castle!.get('button').trigger('click')
+    await wrapper.get('.chat-composer button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.tick-panel button').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.quest-actions button').attributes('disabled')).toBeDefined()
+    expect(castle!.get('button').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.chat-composer button').attributes('disabled')).toBeDefined()
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(post).toHaveBeenCalledWith('/api/demo/reset')
+
+    resetResponse.resolve({
+      data: {
+        success: true,
+        data: {
+          world_id: 'aleria-town',
+          world_tick: 0,
+          player_location_id: 'tavern',
+          quest_status: 'available',
+        },
+        message: 'Demo world reset',
+      },
+    } as Awaited<ReturnType<typeof api.post>>)
+    await flushPromises()
+  })
+
+  it('stays in town and explains when Backend reset fails', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.spyOn(api, 'post').mockRejectedValue(new Error('offline'))
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+
+    await wrapper.get('[data-action="restart-adventure"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('restart')).toBeUndefined()
+    expect(wrapper.get('.demo-reset-error').text()).toContain(
+      '重新开始失败，当前世界没有改变',
+    )
   })
 })

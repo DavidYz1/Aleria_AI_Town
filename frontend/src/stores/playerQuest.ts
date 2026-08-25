@@ -102,6 +102,16 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
     }
   }
 
+  function reset(): void {
+    stateRequestVersion += 1
+    mutationRequestVersion += 1
+    data.value = null
+    loading.value = false
+    error.value = null
+    mutating.value = false
+    mutationError.value = null
+  }
+
   return {
     data,
     loading,
@@ -112,5 +122,6 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
     retry,
     travel,
     interact,
+    reset,
   }
 })

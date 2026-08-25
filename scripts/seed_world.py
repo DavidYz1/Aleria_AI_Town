@@ -7,39 +7,16 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from pydantic import ValidationError
-from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.core.config import get_settings
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import (
-    Base,
-    Conversation,
-    ConversationMessage,
-    Event,
-    Location,
-    NpcProfile,
-    NpcState,
-    PlayerState,
-    QuestEvent,
-    QuestProgress,
-    WorldAction,
-    WorldState,
+from backend.app.database.models import Base
+from backend.app.services.demo_reset_service import (
+    DemoResetPersistenceError,
+    DemoResetService,
+    load_seed_data,
 )
-from backend.app.schemas.seed import SeedData
-
-def _read_json(path: Path):
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def load_seed_data(seed_dir: Path) -> SeedData:
-    return SeedData.model_validate(
-        {
-            "world": _read_json(seed_dir / "world.json"),
-            "locations": _read_json(seed_dir / "locations.json"),
-            "npcs": _read_json(seed_dir / "npcs.json"),
-        }
-    )
 
 
 def seed_database(database_url: str, seed_dir: Path) -> None:
@@ -48,77 +25,19 @@ def seed_database(database_url: str, seed_dir: Path) -> None:
     Base.metadata.create_all(engine)
 
     with session_factory() as session:
-        player_ids = select(PlayerState.id).where(
-            PlayerState.world_id == seed.world.id
-        )
-        session.execute(
-            delete(QuestEvent).where(QuestEvent.player_id.in_(player_ids))
-        )
-        session.execute(
-            delete(QuestProgress).where(
-                QuestProgress.player_id.in_(player_ids)
-            )
-        )
-        session.execute(
-            delete(PlayerState).where(PlayerState.world_id == seed.world.id)
-        )
-        conversation_ids = select(Conversation.id).where(
-            Conversation.world_id == seed.world.id
-        )
-        session.execute(
-            delete(ConversationMessage).where(
-                ConversationMessage.conversation_id.in_(conversation_ids)
-            )
-        )
-        session.execute(
-            delete(Conversation).where(
-                Conversation.world_id == seed.world.id
-            )
-        )
-        session.execute(delete(Event).where(Event.world_id == seed.world.id))
-        session.execute(
-            delete(WorldAction).where(WorldAction.world_id == seed.world.id)
-        )
-        session.merge(WorldState(**seed.world.model_dump()))
-        for location in seed.locations:
-            session.merge(Location(**location.model_dump()))
-        for npc in seed.npcs:
-            session.merge(
-                NpcProfile(
-                    id=npc.id,
-                    name=npc.name,
-                    role=npc.role,
-                    personality_json=npc.personality,
-                    sort_order=npc.sort_order,
-                )
-            )
-        session.flush()
-        for npc in seed.npcs:
-            session.merge(NpcState(npc_id=npc.id, **npc.state.model_dump()))
-        session.merge(
-            PlayerState(
-                id="default-player",
-                world_id=seed.world.id,
-                location_id="tavern",
-            )
-        )
-        session.flush()
-        session.merge(
-            QuestProgress(
-                player_id="default-player",
-                quest_id="missing-child",
-                status="available",
-                version=0,
-                updated_tick=0,
-            )
-        )
-        session.commit()
+        DemoResetService(session).reset(seed)
 
 
 def main() -> int:
     try:
         seed_database(get_settings().database_url, REPO_ROOT / "data")
-    except (OSError, json.JSONDecodeError, ValidationError, SQLAlchemyError) as exc:
+    except (
+        OSError,
+        json.JSONDecodeError,
+        ValidationError,
+        SQLAlchemyError,
+        DemoResetPersistenceError,
+    ) as exc:
         print(f"Failed to seed Aleria world: {exc}", file=sys.stderr)
         return 1
 

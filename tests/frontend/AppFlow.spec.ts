@@ -147,4 +147,22 @@ describe('adventurer onboarding flow', () => {
     await wrapper.get('[data-action="skip-story"]').trigger('click')
     expect(play).toHaveBeenCalledTimes(1)
   })
+
+  it('clears the local adventurer and returns a completed demo to Scene 0', async () => {
+    localStorage.setItem(PLAYER_PROFILE_STORAGE_KEY, JSON.stringify({
+      version: 1,
+      displayName: '洛恩',
+      adventurerClass: 'ranger',
+      introCompleted: true,
+    }))
+    const wrapper = mountApp()
+    await wrapper.get('[data-action="continue"]').trigger('click')
+
+    wrapper.findComponent(TownView).vm.$emit('restart')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-scene="boot"]').exists()).toBe(true)
+    expect(usePlayerProfileStore().profile).toBeNull()
+    expect(localStorage.getItem(PLAYER_PROFILE_STORAGE_KEY)).toBeNull()
+  })
 })

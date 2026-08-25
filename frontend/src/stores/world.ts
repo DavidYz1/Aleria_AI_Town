@@ -19,21 +19,27 @@ export const useWorldStore = defineStore('world', () => {
   const advancing = ref(false)
   const tickError = ref<string | null>(null)
   const lastTick = ref<WorldTickData | null>(null)
+  let loadRequestVersion = 0
+  let tickRequestVersion = 0
   const isEmpty = computed(
     () => data.value !== null && (data.value.locations.length === 0 || data.value.npcs.length === 0),
   )
 
   async function loadWorld(fetcher: WorldFetcher = fetchWorld): Promise<void> {
+    const version = ++loadRequestVersion
     loading.value = true
     error.value = null
 
     try {
-      data.value = await fetcher()
+      const result = await fetcher()
+      if (version !== loadRequestVersion) return
+      data.value = result
     } catch {
+      if (version !== loadRequestVersion) return
       data.value = null
       error.value = '世界加载失败，请稍后重试。'
     } finally {
-      loading.value = false
+      if (version === loadRequestVersion) loading.value = false
     }
   }
 
@@ -43,13 +49,16 @@ export const useWorldStore = defineStore('world', () => {
   ): Promise<void> {
     if (advancing.value || data.value === null) return
 
+    const version = ++tickRequestVersion
     advancing.value = true
     tickError.value = null
     try {
       const result = await advancer(data.value.world.tick)
+      if (version !== tickRequestVersion) return
       data.value = result.world
       lastTick.value = result
     } catch (caught) {
+      if (version !== tickRequestVersion) return
       if (caught instanceof WorldTickConflictError) {
         lastTick.value = null
         await loadWorld(reloader)
@@ -58,8 +67,19 @@ export const useWorldStore = defineStore('world', () => {
         tickError.value = '时间推进失败，当前世界状态未改变。'
       }
     } finally {
-      advancing.value = false
+      if (version === tickRequestVersion) advancing.value = false
     }
+  }
+
+  function reset(): void {
+    loadRequestVersion += 1
+    tickRequestVersion += 1
+    data.value = null
+    loading.value = false
+    error.value = null
+    advancing.value = false
+    tickError.value = null
+    lastTick.value = null
   }
 
   return {
@@ -72,5 +92,6 @@ export const useWorldStore = defineStore('world', () => {
     isEmpty,
     loadWorld,
     advanceTick,
+    reset,
   }
 })
