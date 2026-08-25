@@ -1,0 +1,62 @@
+name: aleria-ai-town
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/backend/data/aleria.db}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost}
+      CHAT_PROVIDER: ${CHAT_PROVIDER:-mock}
+      CHAT_LLM_BASE_URL: ${CHAT_LLM_BASE_URL:-}
+      CHAT_LLM_API_KEY: ${CHAT_LLM_API_KEY:-}
+      CHAT_LLM_MODEL: ${CHAT_LLM_MODEL:-}
+      CHAT_LLM_AUTH_MODE: ${CHAT_LLM_AUTH_MODE:-bearer}
+      CHAT_LLM_OUTPUT_MODE: ${CHAT_LLM_OUTPUT_MODE:-structured_json}
+      CHAT_LLM_TIMEOUT_SECONDS: ${CHAT_LLM_TIMEOUT_SECONDS:-30}
+      CHAT_HISTORY_LIMIT: ${CHAT_HISTORY_LIMIT:-10}
+      CHAT_PROMPT_VERSION: ${CHAT_PROMPT_VERSION:-v3}
+    volumes:
+      - aleria_data:/app/backend/data
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3).read()"
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 4
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --quiet
+        - --spider
+        - http://127.0.0.1/healthz
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 4
+    restart: unless-stopped
+
+volumes:
+  aleria_data:

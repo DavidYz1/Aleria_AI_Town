@@ -68,6 +68,41 @@ def test_factory_builds_mock_without_llm_connection_details():
     assert provider.name == "mock"
 
 
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {
+            "chat_llm_base_url": "",
+            "chat_llm_model": "chat-model",
+            "chat_llm_api_key": "secret",
+        },
+        {
+            "chat_llm_base_url": "https://example.test/v1",
+            "chat_llm_model": "",
+            "chat_llm_api_key": "secret",
+        },
+        {
+            "chat_llm_base_url": "https://example.test/v1",
+            "chat_llm_model": "chat-model",
+            "chat_llm_api_key": "",
+        },
+    ],
+)
+def test_factory_uses_mock_when_real_provider_configuration_is_incomplete(
+    overrides,
+):
+    settings = Settings(
+        _env_file=None,
+        chat_provider="deepseek",
+        **overrides,
+    )
+
+    provider = build_chat_provider(settings)
+
+    assert isinstance(provider, MockChatProvider)
+    assert provider.name == "mock"
+
+
 @pytest.mark.anyio
 @pytest.mark.parametrize("provider_name", ["hunyuan", "deepseek", "local"])
 async def test_factory_routes_all_non_mock_labels_through_one_compatible_adapter(

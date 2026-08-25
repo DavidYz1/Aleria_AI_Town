@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,24 +33,19 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    @field_validator("chat_llm_auth_mode", mode="before")
+    @classmethod
+    def default_empty_chat_auth_mode(cls, value: object) -> object:
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return "bearer"
+        return value
+
     @model_validator(mode="after")
-    def validate_chat_provider(self) -> "Settings":
-        self.chat_provider = self.chat_provider.strip().casefold()
+    def normalize_chat_provider(self) -> "Settings":
+        self.chat_provider = self.chat_provider.strip().casefold() or "mock"
         self.chat_llm_base_url = self.chat_llm_base_url.strip()
         self.chat_llm_api_key = self.chat_llm_api_key.strip()
         self.chat_llm_model = self.chat_llm_model.strip()
-
-        if self.chat_provider == "mock":
-            return self
-
-        if not self.chat_llm_base_url:
-            raise ValueError("CHAT_LLM_BASE_URL is required for a non-mock provider")
-        if not self.chat_llm_model:
-            raise ValueError("CHAT_LLM_MODEL is required for a non-mock provider")
-        if self.chat_llm_auth_mode == "bearer" and not self.chat_llm_api_key:
-            raise ValueError(
-                "CHAT_LLM_API_KEY is required when CHAT_LLM_AUTH_MODE is bearer"
-            )
         return self
 
 

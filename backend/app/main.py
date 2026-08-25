@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api.demo import router as demo_router
+from backend.app.api.health import router as health_router
 from backend.app.api.npc_chat import router as npc_chat_router
 from backend.app.api.npcs import router as npcs_router
 from backend.app.api.player import router as player_router
@@ -37,6 +38,7 @@ def create_app(
         allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
+    application.include_router(health_router)
     application.include_router(world_router)
     application.include_router(world_tick_router)
     application.include_router(npcs_router)

@@ -1,3 +1,5 @@
+import logging
+
 import httpx
 
 from backend.app.core.config import Settings
@@ -7,6 +9,17 @@ from backend.app.llm.openai_compatible import OpenAICompatibleChatProvider
 from backend.app.llm.provider import ChatProvider
 
 
+logger = logging.getLogger(__name__)
+
+
+def _has_complete_primary_configuration(settings: Settings) -> bool:
+    if not settings.chat_llm_base_url or not settings.chat_llm_model:
+        return False
+    return settings.chat_llm_auth_mode == "none" or bool(
+        settings.chat_llm_api_key
+    )
+
+
 def build_chat_provider(
     settings: Settings,
     *,
@@ -14,6 +27,13 @@ def build_chat_provider(
 ) -> ChatProvider:
     mock_provider = MockChatProvider()
     if settings.chat_provider == "mock":
+        return mock_provider
+    if not _has_complete_primary_configuration(settings):
+        logger.warning(
+            "Chat provider configuration is incomplete; using mock provider "
+            "provider=%s",
+            settings.chat_provider,
+        )
         return mock_provider
 
     primary = OpenAICompatibleChatProvider(

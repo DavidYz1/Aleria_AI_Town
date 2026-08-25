@@ -56,9 +56,22 @@ def test_non_mock_settings_are_stripped_and_provider_is_normalized():
         },
     ],
 )
-def test_non_mock_settings_reject_incomplete_connection_details(overrides):
-    with pytest.raises(ValidationError):
-        Settings(_env_file=None, **overrides)
+def test_non_mock_settings_allow_incomplete_connection_details_for_mock_fallback(
+    overrides,
+):
+    settings = Settings(_env_file=None, **overrides)
+
+    assert settings.chat_provider == "deepseek"
+
+
+def test_empty_auth_mode_uses_the_safe_bearer_default():
+    settings = Settings(
+        _env_file=None,
+        chat_provider="mock",
+        chat_llm_auth_mode="",
+    )
+
+    assert settings.chat_llm_auth_mode == "bearer"
 
 
 def test_local_no_auth_settings_allow_an_empty_api_key():
