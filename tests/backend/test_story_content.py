@@ -40,34 +40,24 @@ def test_synced_content_docs_use_canonical_place_names():
         assert "曦谷城堡" not in content, path
 
 
-def test_readme_is_game_first_deployable_and_documents_ai_workflow():
+def test_readme_is_game_first_and_recommends_hy_role_with_scope():
     readme = README.read_text(encoding="utf-8")
     ordered_headings = (
-        "## 90 秒体验路线",
-        "## 项目定位与核心设计",
-        "## 世界观与当前章节",
-        "## NPC 设定",
-        "## 玩法与范围",
-        "## 技术选型",
-        "## 系统架构",
-        "## 接口与决策流程",
-        "## 运行方式与端口",
-        "## 方法一：Docker Compose，推荐",
-        "## 环境变量与 AI/Mock 模式",
-        "## 云服务器部署与维护",
-        "## Demo 重置",
-        "## AI 开发工具与人工修正案例",
-        "## 测试、限制与文档",
+        "## 这是什么游戏",
+        "## 当前可以体验什么",
+        "## 世界与角色",
+        "## 快速启动：Mock 模式",
+        "## 真实 AI 与 hy-role 推荐",
+        "## 架构、接口与决策流程",
+        "## AI 工具使用与人工修正案例",
+        "## 测试、限制与路线图",
     )
     positions = [readme.index(heading) for heading in ordered_headings]
 
     assert positions == sorted(positions)
-    assert "http://124.221.185.124/" in readme
-    assert "CHAT_PROVIDER=mock" in readme
+    assert "本项目 NPC 角色对话实测" in readme
     assert "CHAT_LLM_MODEL=hy-role" in readme
     assert "CHAT_LLM_OUTPUT_MODE=text" in readme
     assert "CHAT_PROMPT_VERSION=v3" in readme
-    assert "POST /api/demo/reset" in readme
-    assert "Codex + Superpowers 工作流" in readme
     assert "行业最聪明" not in readme
     assert "计划在 Phase 1E 完成部署" not in readme
