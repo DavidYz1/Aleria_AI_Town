@@ -23,7 +23,7 @@ def _conversation(conversation_id: str = CONVERSATION_ID) -> Conversation:
         id=conversation_id,
         world_id="aleria-town",
         npc_id="ryan",
-        created_tick=0,
+        created_clock_tick=0,
         created_at=now,
         updated_at=now,
     )
@@ -63,7 +63,7 @@ def test_chat_models_store_one_complete_turn(database_url, seed_dir):
                     provider=None,
                     fallback_used=0,
                     prompt_version=None,
-                    world_tick=0,
+                    clock_tick=0,
                     created_at=now,
                 ),
                 ConversationMessage(
@@ -74,7 +74,7 @@ def test_chat_models_store_one_complete_turn(database_url, seed_dir):
                     provider="mock",
                     fallback_used=0,
                     prompt_version="v1",
-                    world_tick=0,
+                    clock_tick=0,
                     created_at=now,
                 ),
             ]
@@ -99,13 +99,13 @@ def test_chat_models_store_one_complete_turn(database_url, seed_dir):
     assert messages[1].prompt_version == "v1"
 
 
-def test_conversation_rejects_negative_created_tick(database_url, seed_dir):
+def test_conversation_rejects_negative_created_clock_tick(database_url, seed_dir):
     seed_database(database_url, seed_dir)
     _, session_factory = create_engine_and_session(database_url)
 
     with session_factory() as session:
         conversation = _conversation()
-        conversation.created_tick = -1
+        conversation.created_clock_tick = -1
         session.add(conversation)
         with pytest.raises(IntegrityError):
             session.commit()
@@ -125,7 +125,7 @@ def test_conversation_rejects_unknown_world_or_npc(database_url, seed_dir):
 
 
 @pytest.mark.parametrize(
-    ("role", "fallback_used", "world_tick"),
+    ("role", "fallback_used", "clock_tick"),
     [
         ("system", 0, 0),
         ("assistant", 2, 0),
@@ -137,7 +137,7 @@ def test_conversation_message_enforces_role_fallback_and_tick_constraints(
     seed_dir,
     role,
     fallback_used,
-    world_tick,
+    clock_tick,
 ):
     seed_database(database_url, seed_dir)
     _, session_factory = create_engine_and_session(database_url)
@@ -155,7 +155,7 @@ def test_conversation_message_enforces_role_fallback_and_tick_constraints(
                 provider="mock" if role == "assistant" else None,
                 fallback_used=fallback_used,
                 prompt_version="v1" if role == "assistant" else None,
-                world_tick=world_tick,
+                clock_tick=clock_tick,
                 created_at=now,
             )
         )
@@ -180,7 +180,7 @@ def test_conversation_message_requires_existing_conversation(
                 provider=None,
                 fallback_used=0,
                 prompt_version=None,
-                world_tick=0,
+                clock_tick=0,
                 created_at=datetime.now(UTC),
             )
         )

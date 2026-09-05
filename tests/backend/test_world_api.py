@@ -23,7 +23,9 @@ async def test_get_world_returns_canonical_seeded_world(database_url, seed_dir):
         "name": "曦谷",
         "day": 1,
         "time": "08:00",
-        "tick": 0,
+        "world_version": 0,
+        "clock_tick": 0,
+        "event_sequence": 0,
     }
     assert [
         (item["id"], item["name"])
@@ -79,8 +81,8 @@ async def test_get_world_selects_canonical_world_when_an_extra_row_exists(
     database_url,
     seed_dir,
 ):
-    engine, session_factory = create_engine_and_session(database_url)
-    Base.metadata.create_all(engine)
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
     with session_factory() as session:
         session.add(
             WorldState(
@@ -88,12 +90,12 @@ async def test_get_world_selects_canonical_world_when_an_extra_row_exists(
                 name="错误世界",
                 day=9,
                 time="23:59",
-                tick=99,
+                clock_tick=99,
+                world_version=99,
+                event_sequence=0,
             )
         )
         session.commit()
-    seed_database(database_url, seed_dir)
-
     transport = ASGITransport(app=create_app(database_url))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/api/world")

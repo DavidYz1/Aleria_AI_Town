@@ -113,11 +113,13 @@ def test_service_travel_and_interact_return_fresh_authoritative_state(
             quest_schema.QuestInteractRequest(
                 interaction="accept_quest",
                 expected_version=0,
+                expected_world_version=0,
             )
         )
         at_castle = service.travel(
             player_schema.PlayerTravelRequest(
-                target_location_id="castle"
+                target_location_id="castle",
+                expected_world_version=1,
             )
         )
 
@@ -155,13 +157,25 @@ def test_service_returns_story_event_descriptions_for_the_full_quest(
                 quest_schema.QuestInteractRequest(
                     interaction=interaction,
                     expected_version=version,
+                    expected_world_version={
+                        "accept_quest": 0,
+                        "ask_grey": 2,
+                        "inspect_shoe": 4,
+                        "search_child": 5,
+                        "return_child": 7,
+                    }[interaction],
                 )
             )
 
         def travel(location_id):
             return service.travel(
                 player_schema.PlayerTravelRequest(
-                    target_location_id=location_id
+                    target_location_id=location_id,
+                    expected_world_version={
+                        "castle": 1,
+                        "forest": 3,
+                        "tavern": 6,
+                    }[location_id],
                 )
             )
 

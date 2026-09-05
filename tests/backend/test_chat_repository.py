@@ -27,7 +27,7 @@ def _persist_turn(
         create_conversation=create_conversation,
         npc_id="ryan",
         world_id="aleria-town",
-        world_tick=turn_number - 1,
+        clock_tick=turn_number - 1,
         user_content=f"user-{turn_number}",
         assistant_content=f"assistant-{turn_number}",
         emotion="guarded",
@@ -58,7 +58,7 @@ def test_repository_persists_a_new_complete_turn(database_url, seed_dir):
     assert conversation is not None
     assert conversation.world_id == "aleria-town"
     assert conversation.npc_id == "ryan"
-    assert conversation.created_tick == 0
+    assert conversation.created_clock_tick == 0
     assert conversation.created_at == conversation.updated_at
     assert turn.user.id == 1
     assert turn.user.role == "user"

@@ -17,7 +17,7 @@ async def test_get_npc_detail_returns_complete_public_contract_after_tick(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         tick_response = await client.post(
             "/api/world/tick",
-            json={"expected_tick": 0},
+            json={"expected_world_version": 0},
         )
         response = await client.get("/api/npcs/ryan")
 
@@ -45,13 +45,13 @@ async def test_get_npc_detail_returns_complete_public_contract_after_tick(
             "world_context": {
                 "day": 1,
                 "time": "09:00",
-                "tick": 1,
+                "clock_tick": 1,
                 "time_phase": "morning",
             },
             "recent_actions": [
                 {
                     "id": 1,
-                    "tick": 1,
+                    "clock_tick": 1,
                     "world_time": "09:00",
                     "action_type": "work",
                     "target_kind": None,
@@ -89,10 +89,10 @@ async def test_get_npc_detail_limits_history_to_three_newest_actions(
     seed_database(database_url, seed_dir)
     transport = ASGITransport(app=create_app(database_url))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        for expected_tick in range(4):
+        for expected_world_version in range(4):
             tick_response = await client.post(
                 "/api/world/tick",
-                json={"expected_tick": expected_tick},
+                json={"expected_world_version": expected_world_version},
             )
             assert tick_response.status_code == 200
 
@@ -100,7 +100,7 @@ async def test_get_npc_detail_limits_history_to_three_newest_actions(
 
     assert response.status_code == 200
     recent_actions = response.json()["data"]["recent_actions"]
-    assert [action["tick"] for action in recent_actions] == [4, 3, 2]
+    assert [action["clock_tick"] for action in recent_actions] == [4, 3, 2]
     assert len(recent_actions) == 3
 
 

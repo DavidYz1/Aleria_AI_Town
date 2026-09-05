@@ -27,7 +27,7 @@ def _available_transition():
             status="available",
             version=0,
             player_location_id="tavern",
-            world_tick=0,
+            clock_tick=0,
         ),
         QuestCommand(interaction="accept_quest", expected_version=0),
     )
@@ -50,7 +50,7 @@ def test_repository_reads_authoritative_state_and_latest_five_events(
                     to_status="accepted",
                     interaction="accept_quest",
                     location_id="tavern",
-                    world_tick=index,
+                    clock_tick=index,
                 )
                 for index in range(6)
             ]
@@ -72,8 +72,8 @@ def test_repository_reads_authoritative_state_and_latest_five_events(
         records.quest_id,
         records.status,
         records.version,
-        records.updated_tick,
-        records.world_tick,
+        records.updated_clock_tick,
+        records.clock_tick,
     ) == ("missing-child", "available", 0, 0, 0)
     assert (
         records.target_npc_location_id,
@@ -95,11 +95,13 @@ def test_repository_travel_persists_and_same_location_is_idempotent(
             "default-player",
             "missing-child",
             "castle",
+            0,
         )
         repeated = repository.travel(
             "default-player",
             "missing-child",
             "castle",
+            1,
         )
 
     with session_factory() as session:
@@ -131,6 +133,7 @@ def test_repository_travel_rejects_unknown_location(database_url, seed_dir):
                 "default-player",
                 "missing-child",
                 "missing-location",
+                0,
             )
 
 
@@ -148,6 +151,7 @@ def test_repository_applies_versioned_transition_and_inserts_event_atomically(
             player_id="default-player",
             quest_id="missing-child",
             expected_version=0,
+            expected_world_version=0,
             transition=_available_transition(),
         )
 
@@ -161,7 +165,11 @@ def test_repository_applies_versioned_transition_and_inserts_event_atomically(
     assert records.status == "accepted"
     assert records.version == 1
     assert progress is not None
-    assert (progress.status, progress.version, progress.updated_tick) == (
+    assert (
+        progress.status,
+        progress.version,
+        progress.updated_clock_tick,
+    ) == (
         "accepted",
         1,
         0,
@@ -172,7 +180,7 @@ def test_repository_applies_versioned_transition_and_inserts_event_atomically(
         events[0].to_status,
         events[0].interaction,
         events[0].location_id,
-        events[0].world_tick,
+        events[0].clock_tick,
     ) == (
         "available",
         "accepted",
@@ -195,6 +203,7 @@ def test_repository_rejects_stale_version_without_extra_event(
             player_id="default-player",
             quest_id="missing-child",
             expected_version=0,
+            expected_world_version=0,
             transition=_available_transition(),
         )
         with pytest.raises(
@@ -205,6 +214,7 @@ def test_repository_rejects_stale_version_without_extra_event(
                 player_id="default-player",
                 quest_id="missing-child",
                 expected_version=0,
+                expected_world_version=1,
                 transition=_available_transition(),
             )
 
@@ -228,6 +238,7 @@ def test_repository_rechecks_player_location_before_transition(
             "default-player",
             "missing-child",
             "castle",
+            0,
         )
         with pytest.raises(
             repository_module.QuestInteractionUnavailableError,
@@ -237,6 +248,7 @@ def test_repository_rechecks_player_location_before_transition(
                 player_id="default-player",
                 quest_id="missing-child",
                 expected_version=0,
+                expected_world_version=1,
                 transition=_available_transition(),
             )
 
@@ -254,12 +266,14 @@ def test_repository_rechecks_required_npc_location_before_transition(
             player_id="default-player",
             quest_id="missing-child",
             expected_version=0,
+            expected_world_version=0,
             transition=_available_transition(),
         )
         repository.travel(
             "default-player",
             "missing-child",
             "castle",
+            1,
         )
         records = repository.get_state("default-player", "missing-child")
         transition = MissingChildQuestPolicy().transition(
@@ -268,7 +282,7 @@ def test_repository_rechecks_required_npc_location_before_transition(
                 status="accepted",
                 version=records.version,
                 player_location_id=records.location_id,
-                world_tick=records.world_tick,
+                clock_tick=records.clock_tick,
                 target_npc_location_id=records.target_npc_location_id,
             ),
             QuestCommand(interaction="ask_grey", expected_version=1),
@@ -289,6 +303,7 @@ def test_repository_rechecks_required_npc_location_before_transition(
                 player_id="default-player",
                 quest_id="missing-child",
                 expected_version=1,
+                expected_world_version=2,
                 transition=transition,
             )
 
@@ -328,6 +343,7 @@ def test_repository_rolls_back_progress_and_event_when_commit_fails(
                 player_id="default-player",
                 quest_id="missing-child",
                 expected_version=0,
+                expected_world_version=0,
                 transition=_available_transition(),
             )
 

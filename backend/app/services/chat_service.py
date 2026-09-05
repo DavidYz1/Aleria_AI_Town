@@ -98,7 +98,7 @@ class ChatService:
                 create_conversation=create_conversation,
                 npc_id=context.npc_id,
                 world_id=context.world_id,
-                world_tick=context.world_tick,
+                clock_tick=context.clock_tick,
                 user_content=request.message,
                 assistant_content=provider_result.reply,
                 emotion=provider_result.emotion,

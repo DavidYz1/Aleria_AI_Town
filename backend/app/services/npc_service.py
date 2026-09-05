@@ -28,7 +28,7 @@ class NpcService:
             recent_actions.append(
                 NpcRecentAction(
                     id=action.id,
-                    tick=action.tick,
+                    clock_tick=action.clock_tick,
                     world_time=action.world_time,
                     action_type=action.action_type,
                     target_kind=action.target_kind,
@@ -59,7 +59,7 @@ class NpcService:
             world_context=NpcWorldContext(
                 day=records.world.day,
                 time=records.world.time,
-                tick=records.world.tick,
+                clock_tick=records.world.clock_tick,
                 time_phase=get_time_phase(records.world.time),
             ),
             recent_actions=recent_actions,

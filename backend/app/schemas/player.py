@@ -7,6 +7,7 @@ class PlayerTravelRequest(BaseModel):
     target_location_id: str = Field(
         pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
     )
+    expected_world_version: int = Field(ge=0)
 
 
 class PlayerData(BaseModel):

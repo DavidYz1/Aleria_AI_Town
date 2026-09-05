@@ -8,7 +8,7 @@ from backend.app.api.npcs import router as npcs_router
 from backend.app.api.player import router as player_router
 from backend.app.api.quests import router as quests_router
 from backend.app.api.world import router as world_router
-from backend.app.api.world_tick import router as world_tick_router
+from backend.app.api.world_clock import router as world_clock_router
 from backend.app.core.config import Settings, get_settings
 from backend.app.database.connection import create_engine_and_session
 from backend.app.llm.factory import build_chat_provider
@@ -40,7 +40,7 @@ def create_app(
     )
     application.include_router(health_router)
     application.include_router(world_router)
-    application.include_router(world_tick_router)
+    application.include_router(world_clock_router)
     application.include_router(npcs_router)
     application.include_router(npc_chat_router)
     application.include_router(player_router)

@@ -3,5 +3,7 @@
   "name": "曦谷",
   "day": 1,
   "time": "08:00",
-  "tick": 0
+  "world_version": 0,
+  "clock_tick": 0,
+  "event_sequence": 0
 }

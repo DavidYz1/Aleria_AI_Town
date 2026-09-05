@@ -12,7 +12,9 @@ class SeedWorld(BaseModel):
     name: str = Field(min_length=1)
     day: int = Field(ge=1)
     time: str = Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-    tick: int = Field(ge=0)
+    world_version: int = Field(ge=0)
+    clock_tick: int = Field(ge=0)
+    event_sequence: int = Field(ge=0)
 
 
 class SeedLocation(BaseModel):

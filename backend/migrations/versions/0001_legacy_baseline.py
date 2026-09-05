@@ -1,0 +1,48 @@
+"""legacy baseline schema"""
+
+from alembic import op
+import sqlalchemy as sa
+
+
+revision = "0001"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.create_table("world_state", sa.Column("id", sa.String(), nullable=False), sa.Column("name", sa.String(), nullable=False), sa.Column("day", sa.Integer(), nullable=False), sa.Column("time", sa.String(5), nullable=False), sa.Column("tick", sa.Integer(), nullable=False), sa.CheckConstraint("day >= 1", name="ck_world_state_day"), sa.CheckConstraint("tick >= 0", name="ck_world_state_tick"), sa.PrimaryKeyConstraint("id", name="pk_world_state"))
+    op.create_table("locations", sa.Column("id", sa.String(), nullable=False), sa.Column("name", sa.String(), nullable=False), sa.Column("description", sa.String(), nullable=False), sa.Column("sort_order", sa.Integer(), nullable=False), sa.PrimaryKeyConstraint("id", name="pk_locations"), sa.UniqueConstraint("sort_order", name="uq_locations_sort_order"))
+    op.create_table("npc_profiles", sa.Column("id", sa.String(), nullable=False), sa.Column("name", sa.String(), nullable=False), sa.Column("role", sa.String(), nullable=False), sa.Column("personality_json", sa.JSON(), nullable=False), sa.Column("sort_order", sa.Integer(), nullable=False), sa.PrimaryKeyConstraint("id", name="pk_npc_profiles"), sa.UniqueConstraint("sort_order", name="uq_npc_profiles_sort_order"))
+    op.create_table("npc_states", sa.Column("npc_id", sa.String(), nullable=False), sa.Column("location_id", sa.String(), nullable=False), sa.Column("current_action", sa.String(), nullable=False), sa.Column("energy", sa.Integer(), nullable=False), sa.Column("mood", sa.Integer(), nullable=False), sa.Column("social", sa.Integer(), nullable=False), sa.CheckConstraint("energy BETWEEN 0 AND 100", name="ck_npc_states_energy"), sa.CheckConstraint("mood BETWEEN 0 AND 100", name="ck_npc_states_mood"), sa.CheckConstraint("social BETWEEN 0 AND 100", name="ck_npc_states_social"), sa.ForeignKeyConstraint(["npc_id"], ["npc_profiles.id"], name="fk_npc_states_npc_id_npc_profiles"), sa.ForeignKeyConstraint(["location_id"], ["locations.id"], name="fk_npc_states_location_id_locations"), sa.PrimaryKeyConstraint("npc_id", name="pk_npc_states"))
+    op.create_table("player_states", sa.Column("id", sa.String(), nullable=False), sa.Column("world_id", sa.String(), nullable=False), sa.Column("location_id", sa.String(), nullable=False), sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False), sa.ForeignKeyConstraint(["world_id"], ["world_state.id"], name="fk_player_states_world_id_world_state"), sa.ForeignKeyConstraint(["location_id"], ["locations.id"], name="fk_player_states_location_id_locations"), sa.PrimaryKeyConstraint("id", name="pk_player_states"))
+    op.create_table("quest_progress", sa.Column("player_id", sa.String(), nullable=False), sa.Column("quest_id", sa.String(), nullable=False), sa.Column("status", sa.String(), nullable=False), sa.Column("version", sa.Integer(), nullable=False), sa.Column("updated_tick", sa.Integer(), nullable=False), sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False), sa.CheckConstraint("version >= 0", name="ck_quest_progress_version"), sa.CheckConstraint("updated_tick >= 0", name="ck_quest_progress_updated_tick"), sa.ForeignKeyConstraint(["player_id"], ["player_states.id"], name="fk_quest_progress_player_id_player_states"), sa.PrimaryKeyConstraint("player_id", "quest_id", name="pk_quest_progress"))
+    op.create_table("quest_events", sa.Column("id", sa.Integer(), autoincrement=True, nullable=False), sa.Column("player_id", sa.String(), nullable=False), sa.Column("quest_id", sa.String(), nullable=False), sa.Column("from_status", sa.String(), nullable=False), sa.Column("to_status", sa.String(), nullable=False), sa.Column("interaction", sa.String(), nullable=False), sa.Column("location_id", sa.String(), nullable=False), sa.Column("world_tick", sa.Integer(), nullable=False), sa.Column("created_at", sa.DateTime(timezone=True), nullable=False), sa.CheckConstraint("world_tick >= 0", name="ck_quest_events_world_tick"), sa.ForeignKeyConstraint(["player_id"], ["player_states.id"], name="fk_quest_events_player_id_player_states"), sa.ForeignKeyConstraint(["location_id"], ["locations.id"], name="fk_quest_events_location_id_locations"), sa.PrimaryKeyConstraint("id", name="pk_quest_events"))
+    op.create_index("ix_quest_events_player_quest_id", "quest_events", ["player_id", "quest_id", "id"])
+    op.create_table("actions", sa.Column("id", sa.Integer(), autoincrement=True, nullable=False), sa.Column("world_id", sa.String(), nullable=False), sa.Column("tick", sa.Integer(), nullable=False), sa.Column("actor_id", sa.String(), nullable=False), sa.Column("action_type", sa.String(), nullable=False), sa.Column("target_kind", sa.String(), nullable=True), sa.Column("target_id", sa.String(), nullable=True), sa.Column("reason", sa.String(), nullable=False), sa.Column("status", sa.String(), nullable=False), sa.Column("world_time", sa.String(5), nullable=False), sa.CheckConstraint("tick >= 1", name="ck_actions_tick"), sa.CheckConstraint("action_type IN ('move', 'rest', 'work', 'eat', 'social')", name="ck_actions_action_type"), sa.CheckConstraint("target_kind IS NULL OR target_kind IN ('location', 'npc')", name="ck_actions_target_kind"), sa.CheckConstraint("status = 'recorded'", name="ck_actions_status"), sa.ForeignKeyConstraint(["world_id"], ["world_state.id"], name="fk_actions_world_id_world_state"), sa.ForeignKeyConstraint(["actor_id"], ["npc_profiles.id"], name="fk_actions_actor_id_npc_profiles"), sa.PrimaryKeyConstraint("id", name="pk_actions"), sa.UniqueConstraint("world_id", "tick", "actor_id", name="uq_actions_world_tick_actor"))
+    op.create_index("ix_actions_actor_tick", "actions", ["actor_id", "tick"])
+    op.create_table("events", sa.Column("id", sa.Integer(), autoincrement=True, nullable=False), sa.Column("world_id", sa.String(), nullable=False), sa.Column("tick", sa.Integer(), nullable=False), sa.Column("event_type", sa.String(), nullable=False), sa.Column("actor_id", sa.String(), nullable=False), sa.Column("action_id", sa.Integer(), nullable=False), sa.Column("description", sa.String(), nullable=False), sa.Column("world_time", sa.String(5), nullable=False), sa.CheckConstraint("tick >= 1", name="ck_events_tick"), sa.CheckConstraint("event_type = 'npc_action'", name="ck_events_event_type"), sa.ForeignKeyConstraint(["world_id"], ["world_state.id"], name="fk_events_world_id_world_state"), sa.ForeignKeyConstraint(["actor_id"], ["npc_profiles.id"], name="fk_events_actor_id_npc_profiles"), sa.ForeignKeyConstraint(["action_id"], ["actions.id"], name="fk_events_action_id_actions"), sa.PrimaryKeyConstraint("id", name="pk_events"), sa.UniqueConstraint("action_id", name="uq_events_action_id"))
+    op.create_index("ix_events_actor_tick", "events", ["actor_id", "tick"])
+    op.create_table("conversations", sa.Column("id", sa.String(), nullable=False), sa.Column("world_id", sa.String(), nullable=False), sa.Column("npc_id", sa.String(), nullable=False), sa.Column("created_tick", sa.Integer(), nullable=False), sa.Column("created_at", sa.DateTime(timezone=True), nullable=False), sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False), sa.CheckConstraint("created_tick >= 0", name="ck_conversations_created_tick"), sa.ForeignKeyConstraint(["world_id"], ["world_state.id"], name="fk_conversations_world_id_world_state"), sa.ForeignKeyConstraint(["npc_id"], ["npc_profiles.id"], name="fk_conversations_npc_id_npc_profiles"), sa.PrimaryKeyConstraint("id", name="pk_conversations"))
+    op.create_index("ix_conversations_npc_updated", "conversations", ["npc_id", "updated_at"])
+    op.create_table("conversation_messages", sa.Column("id", sa.Integer(), autoincrement=True, nullable=False), sa.Column("conversation_id", sa.String(), nullable=False), sa.Column("role", sa.String(), nullable=False), sa.Column("content", sa.String(), nullable=False), sa.Column("emotion", sa.String(), nullable=True), sa.Column("provider", sa.String(), nullable=True), sa.Column("fallback_used", sa.Integer(), nullable=False), sa.Column("prompt_version", sa.String(), nullable=True), sa.Column("world_tick", sa.Integer(), nullable=False), sa.Column("created_at", sa.DateTime(timezone=True), nullable=False), sa.CheckConstraint("role IN ('user', 'assistant')", name="ck_conversation_messages_role"), sa.CheckConstraint("fallback_used IN (0, 1)", name="ck_conversation_messages_fallback_used"), sa.CheckConstraint("world_tick >= 0", name="ck_conversation_messages_world_tick"), sa.ForeignKeyConstraint(["conversation_id"], ["conversations.id"], name="fk_conversation_messages_conversation_id_conversations"), sa.PrimaryKeyConstraint("id", name="pk_conversation_messages"))
+    op.create_index("ix_conversation_messages_conversation_id_id", "conversation_messages", ["conversation_id", "id"])
+
+
+def downgrade() -> None:
+    op.drop_index("ix_conversation_messages_conversation_id_id", table_name="conversation_messages")
+    op.drop_table("conversation_messages")
+    op.drop_index("ix_conversations_npc_updated", table_name="conversations")
+    op.drop_table("conversations")
+    op.drop_index("ix_events_actor_tick", table_name="events")
+    op.drop_table("events")
+    op.drop_index("ix_actions_actor_tick", table_name="actions")
+    op.drop_table("actions")
+    op.drop_index("ix_quest_events_player_quest_id", table_name="quest_events")
+    op.drop_table("quest_events")
+    op.drop_table("quest_progress")
+    op.drop_table("player_states")
+    op.drop_table("npc_states")
+    op.drop_table("npc_profiles")
+    op.drop_table("locations")
+    op.drop_table("world_state")

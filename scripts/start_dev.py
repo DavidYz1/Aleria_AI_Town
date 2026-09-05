@@ -16,7 +16,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MINIMUM_PYTHON = (3, 11)
 MINIMUM_NODE = (20, 0)
-REQUIRED_PYTHON_MODULES = ("fastapi", "sqlalchemy", "uvicorn")
+REQUIRED_PYTHON_MODULES = ("alembic", "fastapi", "sqlalchemy", "uvicorn")
 
 
 @dataclass(frozen=True)

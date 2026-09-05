@@ -11,6 +11,7 @@ class QuestInteractRequest(BaseModel):
 
     interaction: QuestInteraction
     expected_version: int = Field(ge=0)
+    expected_world_version: int = Field(ge=0)
 
 
 class QuestInteractionData(BaseModel):

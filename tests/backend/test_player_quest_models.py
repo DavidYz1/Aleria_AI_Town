@@ -46,8 +46,8 @@ def test_upgrade_schema_creates_player_quest_tables_and_event_index(database_url
     ("model_name", "invalid_field"),
     [
         ("QuestProgress", "version"),
-        ("QuestProgress", "updated_tick"),
-        ("QuestEvent", "world_tick"),
+        ("QuestProgress", "updated_clock_tick"),
+        ("QuestEvent", "clock_tick"),
     ],
 )
 def test_player_quest_models_reject_negative_counters(
@@ -75,7 +75,7 @@ def test_player_quest_models_reject_negative_counters(
                     to_status="accepted",
                     interaction="accept_quest",
                     location_id="tavern",
-                    world_tick=-1,
+                    clock_tick=-1,
                 )
             )
 
@@ -109,7 +109,7 @@ def test_player_quest_models_reject_negative_counters(
                 "quest_id": "missing-child",
                 "status": "available",
                 "version": 0,
-                "updated_tick": 0,
+                "updated_clock_tick": 0,
             },
         },
         {
@@ -121,7 +121,7 @@ def test_player_quest_models_reject_negative_counters(
                 "to_status": "accepted",
                 "interaction": "accept_quest",
                 "location_id": "missing-location",
-                "world_tick": 0,
+                "clock_tick": 0,
                 "created_at": datetime.now(UTC),
             },
         },
@@ -156,7 +156,7 @@ def test_quest_progress_rejects_duplicate_player_quest_key(
                 quest_id="missing-child",
                 status="accepted",
                 version=1,
-                updated_tick=0,
+                updated_clock_tick=0,
             )
         )
 

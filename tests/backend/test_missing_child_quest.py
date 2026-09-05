@@ -76,7 +76,7 @@ def test_missing_child_policy_applies_each_valid_transition(
         status=status,
         version=3,
         player_location_id=location_id,
-        world_tick=7,
+        clock_tick=7,
         target_npc_location_id=(
             location_id if interaction == "ask_grey" else None
         ),
@@ -118,7 +118,7 @@ def test_missing_child_policy_rejects_stale_version_before_transition(
         status=status,
         version=4,
         player_location_id=location_id,
-        world_tick=7,
+        clock_tick=7,
         target_npc_location_id=(
             location_id if interaction == "ask_grey" else None
         ),
@@ -155,7 +155,7 @@ def test_missing_child_policy_rejects_valid_interaction_at_wrong_location(
         status=status,
         version=2,
         player_location_id=wrong_location,
-        world_tick=7,
+        clock_tick=7,
         target_npc_location_id=(
             required_location if interaction == "ask_grey" else None
         ),
@@ -191,7 +191,7 @@ def test_missing_child_policy_rejects_interaction_for_wrong_status(
         status="completed",
         version=5,
         player_location_id=location_id,
-        world_tick=7,
+        clock_tick=7,
     )
 
     with pytest.raises(

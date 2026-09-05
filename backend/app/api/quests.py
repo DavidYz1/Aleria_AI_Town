@@ -9,6 +9,7 @@ from backend.app.database.player_quest_repository import (
     PlayerQuestRepository,
     QuestNotFoundError,
 )
+from backend.app.database.world_version import WorldVersionConflictError
 from backend.app.quests.missing_child import MissingChildQuestPolicy
 from backend.app.quests.types import (
     QuestInteractionUnavailableError,
@@ -55,6 +56,7 @@ def interact_with_missing_child_quest(
     except (
         QuestStateConflictError,
         QuestInteractionUnavailableError,
+        WorldVersionConflictError,
     ) as exc:
         return JSONResponse(
             status_code=409,

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import logging
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,10 @@ from backend.app.database.models import (
 from backend.app.database.world_repository import (
     CANONICAL_WORLD_ID,
     WorldUnavailableError,
+)
+from backend.app.database.world_version import (
+    WorldVersionConflictError,
+    bump_world_version,
 )
 from backend.app.world.types import (
     LocationSnapshot,
@@ -108,7 +112,9 @@ class WorldTickRepository:
                 name=world.name,
                 day=world.day,
                 time=world.time,
-                tick=world.tick,
+                clock_tick=world.clock_tick,
+                world_version=world.world_version,
+                event_sequence=world.event_sequence,
                 locations=locations,
                 npcs=npcs,
             )
@@ -118,32 +124,25 @@ class WorldTickRepository:
             logger.exception("Failed to load world tick snapshot", exc_info=exc)
             raise WorldUnavailableError("world state is unavailable") from None
 
-    def persist_tick(self, expected_tick: int, result: TickResult) -> PersistedTick:
+    def persist_tick(self, expected_world_version: int, result: TickResult) -> PersistedTick:
         try:
             if (
                 result.world.id != CANONICAL_WORLD_ID
-                or result.world.tick != expected_tick + 1
+                or result.world.clock_tick < 1
+                or result.world.world_version != expected_world_version + 1
                 or len(result.actions) != len(result.world.npcs)
                 or len(result.events) != len(result.actions)
             ):
                 raise WorldTickPersistenceError("invalid tick result")
 
-            updated = self._session.execute(
-                update(WorldState)
-                .where(
-                    WorldState.id == CANONICAL_WORLD_ID,
-                    WorldState.tick == expected_tick,
-                )
-                .values(
-                    day=result.world.day,
-                    time=result.world.time,
-                    tick=result.world.tick,
-                )
-            )
-            if updated.rowcount != 1:
-                raise WorldTickConflictError(
-                    "world tick conflict; refresh and retry"
-                )
+            bump_world_version(self._session, CANONICAL_WORLD_ID, expected_world_version)
+            world = self._session.get(WorldState, CANONICAL_WORLD_ID)
+            if world is None:
+                raise WorldTickPersistenceError("world state is unavailable")
+            world.day = result.world.day
+            world.time = result.world.time
+            world.clock_tick = result.world.clock_tick
+            world.event_sequence = result.world.event_sequence
 
             for npc in result.world.npcs:
                 state = self._session.get(NpcState, npc.id)
@@ -160,7 +159,7 @@ class WorldTickRepository:
             actions = tuple(
                 WorldAction(
                     world_id=result.world.id,
-                    tick=result.world.tick,
+                    clock_tick=result.world.clock_tick,
                     actor_id=action.actor_id,
                     action_type=action.action_type,
                     target_kind=action.target_kind,
@@ -177,7 +176,7 @@ class WorldTickRepository:
             events = tuple(
                 Event(
                     world_id=result.world.id,
-                    tick=result.world.tick,
+                    clock_tick=result.world.clock_tick,
                     event_type=event.event_type,
                     actor_id=event.actor_id,
                     action_id=action.id,
@@ -189,8 +188,10 @@ class WorldTickRepository:
             self._session.add_all(events)
             self._session.commit()
             return PersistedTick(result=result, actions=actions, events=events)
-        except WorldTickConflictError:
+        except (WorldTickConflictError, WorldVersionConflictError) as exc:
             self._session.rollback()
+            if isinstance(exc, WorldVersionConflictError):
+                raise WorldTickConflictError(str(exc)) from None
             raise
         except WorldTickPersistenceError:
             self._session.rollback()

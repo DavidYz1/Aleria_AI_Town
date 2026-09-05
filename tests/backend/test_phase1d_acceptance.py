@@ -59,7 +59,7 @@ def _world_snapshot(session_factory):
         world = session.get(WorldState, "aleria-town")
         assert world is not None
         return {
-            "world": (world.day, world.time, world.tick),
+            "world": (world.day, world.time, world.clock_tick),
             "npcs": tuple(
                 (
                     state.npc_id,
@@ -105,18 +105,33 @@ def _message_count(session_factory) -> int:
 
 
 async def _interact(client: AsyncClient, interaction: str, version: int):
+    world = await client.get("/api/world")
+    assert world.status_code == 200
     response = await client.post(
         "/api/quests/missing-child/interact",
-        json={"interaction": interaction, "expected_version": version},
+        json={
+            "interaction": interaction,
+            "expected_version": version,
+            "expected_world_version": world.json()["data"]["world"][
+                "world_version"
+            ],
+        },
     )
     assert response.status_code == 200
     return response.json()["data"]
 
 
 async def _travel(client: AsyncClient, location_id: str):
+    world = await client.get("/api/world")
+    assert world.status_code == 200
     response = await client.post(
         "/api/player/travel",
-        json={"target_location_id": location_id},
+        json={
+            "target_location_id": location_id,
+            "expected_world_version": world.json()["data"]["world"][
+                "world_version"
+            ],
+        },
     )
     assert response.status_code == 200
     return response.json()["data"]

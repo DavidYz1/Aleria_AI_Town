@@ -33,11 +33,15 @@ async def test_reset_demo_restores_canonical_state_and_removes_demo_history(
     ) as client:
         accepted = await client.post(
             "/api/quests/missing-child/interact",
-            json={"interaction": "accept_quest", "expected_version": 0},
+            json={
+                "interaction": "accept_quest",
+                "expected_version": 0,
+                "expected_world_version": 0,
+            },
         )
         ticked = await client.post(
             "/api/world/tick",
-            json={"expected_tick": 0},
+            json={"expected_world_version": 1},
         )
         chatted = await client.post(
             "/api/npcs/ryan/chat",
@@ -45,7 +49,7 @@ async def test_reset_demo_restores_canonical_state_and_removes_demo_history(
         )
         travelled = await client.post(
             "/api/player/travel",
-            json={"target_location_id": "castle"},
+            json={"target_location_id": "castle", "expected_world_version": 2},
         )
         response = await client.post("/api/demo/reset")
 
@@ -58,7 +62,7 @@ async def test_reset_demo_restores_canonical_state_and_removes_demo_history(
         "success": True,
         "data": {
             "world_id": "aleria-town",
-            "world_tick": 0,
+            "clock_tick": 0,
             "player_location_id": "tavern",
             "quest_status": "available",
         },
@@ -91,7 +95,7 @@ async def test_reset_demo_restores_canonical_state_and_removes_demo_history(
         }
 
     assert world is not None
-    assert (world.day, world.time, world.tick) == (1, "08:00", 0)
+    assert (world.day, world.time, world.clock_tick) == (1, "08:00", 0)
     assert ryan is not None
     assert (
         ryan.location_id,
@@ -106,7 +110,7 @@ async def test_reset_demo_restores_canonical_state_and_removes_demo_history(
     assert (
         quest.status,
         quest.version,
-        quest.updated_tick,
+        quest.updated_clock_tick,
     ) == ("available", 0, 0)
     assert history_counts == {
         "actions": 0,

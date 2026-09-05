@@ -33,7 +33,7 @@ class QuestSnapshot:
     status: QuestStatus
     version: int
     player_location_id: str
-    world_tick: int
+    clock_tick: int
     target_npc_location_id: str | None = None
 
 

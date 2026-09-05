@@ -20,7 +20,9 @@ class WorldService:
                 name=records.world.name,
                 day=records.world.day,
                 time=records.world.time,
-                tick=records.world.tick,
+                world_version=records.world.world_version,
+                clock_tick=records.world.clock_tick,
+                event_sequence=records.world.event_sequence,
             ),
             locations=[
                 LocationInfo(

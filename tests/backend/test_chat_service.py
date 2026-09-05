@@ -85,7 +85,7 @@ def _game_snapshot(session):
                     WorldState.name,
                     WorldState.day,
                     WorldState.time,
-                    WorldState.tick,
+                    WorldState.clock_tick,
                 ).order_by(WorldState.id)
             ).all()
         ),
@@ -116,7 +116,7 @@ def _game_snapshot(session):
                     QuestProgress.quest_id,
                     QuestProgress.status,
                     QuestProgress.version,
-                    QuestProgress.updated_tick,
+                    QuestProgress.updated_clock_tick,
                 ).order_by(
                     QuestProgress.player_id,
                     QuestProgress.quest_id,
@@ -328,7 +328,13 @@ async def test_chat_does_not_modify_deterministic_world_state(
     with session_factory() as session:
         world = session.get(WorldState, "aleria-town")
         assert world is not None
-        world_before = (world.id, world.name, world.day, world.time, world.tick)
+        world_before = (
+            world.id,
+            world.name,
+            world.day,
+            world.time,
+            world.clock_tick,
+        )
         npc_before = tuple(
             (
                 state.npc_id,
@@ -355,7 +361,13 @@ async def test_chat_does_not_modify_deterministic_world_state(
         session.expire_all()
         world = session.get(WorldState, "aleria-town")
         assert world is not None
-        world_after = (world.id, world.name, world.day, world.time, world.tick)
+        world_after = (
+            world.id,
+            world.name,
+            world.day,
+            world.time,
+            world.clock_tick,
+        )
         npc_after = tuple(
             (
                 state.npc_id,

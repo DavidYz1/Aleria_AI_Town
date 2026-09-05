@@ -56,7 +56,7 @@ class DemoResetService:
 
         return DemoResetData(
             world_id=seed.world.id,
-            world_tick=seed.world.tick,
+            clock_tick=seed.world.clock_tick,
             player_location_id="tavern",
             quest_status="available",
         )
@@ -128,6 +128,6 @@ class DemoResetService:
                 quest_id="missing-child",
                 status="available",
                 version=0,
-                updated_tick=seed.world.tick,
+                updated_clock_tick=seed.world.clock_tick,
             )
         )

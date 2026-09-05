@@ -4,14 +4,14 @@ from sqlalchemy.orm import Session
 
 from backend.app.api.dependencies import get_session
 from backend.app.database.world_repository import WorldUnavailableError
-from backend.app.database.world_tick_repository import (
+from backend.app.database.world_clock_repository import (
     WorldTickConflictError,
     WorldTickPersistenceError,
     WorldTickRepository,
 )
 from backend.app.schemas.common import ApiResponse, ErrorResponse
-from backend.app.schemas.world_tick import WorldTickData, WorldTickRequest
-from backend.app.services.world_tick_service import WorldTickService
+from backend.app.schemas.world_clock import WorldTickData, WorldTickRequest
+from backend.app.services.world_clock_service import WorldTickService
 
 
 router = APIRouter()
@@ -25,13 +25,13 @@ router = APIRouter()
         503: {"model": ErrorResponse},
     },
 )
-def advance_world_tick(
+def advance_world_clock(
     request: WorldTickRequest,
     session: Session = Depends(get_session),
 ):
     service = WorldTickService(WorldTickRepository(session))
     try:
-        data = service.advance(request.expected_tick)
+        data = service.advance(request.expected_world_version)
     except WorldTickConflictError as exc:
         return JSONResponse(
             status_code=409,

@@ -88,14 +88,14 @@ def test_empty_database_is_initialized_once_without_resetting_existing_world(
     with session_factory() as session:
         world = session.get(WorldState, CANONICAL_WORLD_ID)
         assert world is not None
-        world.tick = 17
+        world.clock_tick = 17
         session.commit()
 
     assert bootstrap.ensure_demo_world(database_url, REPO_ROOT / "data") is False
     with session_factory() as session:
         world = session.get(WorldState, CANONICAL_WORLD_ID)
         assert world is not None
-        assert world.tick == 17
+        assert world.clock_tick == 17
 
 
 def test_prerequisite_check_reports_actionable_missing_dependencies(
@@ -117,7 +117,7 @@ def test_prerequisite_check_reports_actionable_missing_dependencies(
 
     assert errors == [
         "Python 3.11+ is required; current version is 3.10.",
-        "Missing Python packages: fastapi, sqlalchemy, uvicorn. "
+        "Missing Python packages: alembic, fastapi, sqlalchemy, uvicorn. "
         "Run: python -m pip install -r backend/requirements.txt",
         "Node.js 20+ is required. Install Node.js and ensure 'node' is on PATH.",
         "npm is required. Install npm and ensure it is on PATH.",

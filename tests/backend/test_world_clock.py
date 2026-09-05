@@ -1,8 +1,11 @@
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import func, inspect, select
+from sqlalchemy import func, inspect, select, text
 
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import (
@@ -14,7 +17,7 @@ from backend.app.database.models import (
     WorldAction,
     WorldState,
 )
-from backend.app.database.world_tick_repository import (
+from backend.app.database.world_clock_repository import (
     WorldTickPersistenceError,
     WorldTickRepository,
 )
@@ -31,7 +34,9 @@ async def test_tick_advances_world_and_records_three_actions_and_events(
     seed_database(database_url, seed_dir)
     transport = ASGITransport(app=create_app(database_url))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/api/world/tick", json={"expected_tick": 0})
+        response = await client.post(
+            "/api/world/tick", json={"expected_world_version": 0}
+        )
 
     assert response.status_code == 200
     body = response.json()
@@ -41,7 +46,9 @@ async def test_tick_advances_world_and_records_three_actions_and_events(
         "name": "曦谷",
         "day": 1,
         "time": "09:00",
-        "tick": 1,
+        "world_version": 1,
+        "clock_tick": 1,
+        "event_sequence": 3,
     }
     assert [
         (action["actor_id"], action["action_type"], action["target_id"])
@@ -68,27 +75,31 @@ async def test_tick_advances_world_and_records_three_actions_and_events(
 
 
 @pytest.mark.anyio
-async def test_stale_expected_tick_returns_409_without_duplicate_history(
+async def test_stale_expected_world_version_returns_409_without_duplicate_history(
     database_url, seed_dir
 ):
     seed_database(database_url, seed_dir)
     transport = ASGITransport(app=create_app(database_url))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        first = await client.post("/api/world/tick", json={"expected_tick": 0})
-        stale = await client.post("/api/world/tick", json={"expected_tick": 0})
+        first = await client.post(
+            "/api/world/tick", json={"expected_world_version": 0}
+        )
+        stale = await client.post(
+            "/api/world/tick", json={"expected_world_version": 0}
+        )
 
     assert first.status_code == 200
     assert stale.status_code == 409
     assert stale.json() == {
         "success": False,
         "data": None,
-        "message": "world tick conflict; refresh and retry",
+        "message": "world version conflict; refresh and retry",
     }
 
     _, session_factory = create_engine_and_session(database_url)
     with session_factory() as session:
         world = session.get(WorldState, "aleria-town")
-        assert world is not None and world.tick == 1
+        assert world is not None and world.clock_tick == 1
         assert session.scalar(select(func.count()).select_from(WorldAction)) == 3
         assert session.scalar(select(func.count()).select_from(Event)) == 3
 
@@ -116,7 +127,7 @@ def test_repository_rolls_back_clock_state_and_history_on_invalid_result(
     with session_factory() as session:
         world = session.get(WorldState, "aleria-town")
         ryan = session.get(NpcState, "ryan")
-        assert world is not None and (world.time, world.tick) == ("08:00", 0)
+        assert world is not None and (world.time, world.clock_tick) == ("08:00", 0)
         assert ryan is not None and ryan.location_id == "park"
         assert session.scalar(select(func.count()).select_from(WorldAction)) == 0
         assert session.scalar(select(func.count()).select_from(Event)) == 0
@@ -126,7 +137,9 @@ def test_repository_rolls_back_clock_state_and_history_on_invalid_result(
 async def test_tick_returns_503_when_database_is_uninitialized(database_url):
     transport = ASGITransport(app=create_app(database_url), raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/api/world/tick", json={"expected_tick": 0})
+        response = await client.post(
+            "/api/world/tick", json={"expected_world_version": 0}
+        )
 
     assert response.status_code == 503
     assert response.json()["message"] == "world state is unavailable"
@@ -143,43 +156,40 @@ async def test_tick_rejects_partially_initialized_canonical_world(database_url):
                 name="晨曦镇",
                 day=1,
                 time="08:00",
-                tick=0,
+                clock_tick=0,
+                world_version=0,
+                event_sequence=0,
             )
         )
         session.commit()
 
     transport = ASGITransport(app=create_app(database_url))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/api/world/tick", json={"expected_tick": 0})
+        response = await client.post(
+            "/api/world/tick", json={"expected_world_version": 0}
+        )
 
     assert response.status_code == 503
     with session_factory() as session:
         world = session.get(WorldState, "aleria-town")
-        assert world is not None and world.tick == 0
+        assert world is not None and world.clock_tick == 0
 
 
-def test_schema_upgrade_adds_phase_1a_tables_without_resetting_phase_0_state(
+def test_schema_upgrade_adopts_legacy_schema_without_resetting_world_state(
     database_url,
 ):
     engine, session_factory = create_engine_and_session(database_url)
-    for table in (
-        WorldState.__table__,
-        Location.__table__,
-        NpcProfile.__table__,
-        NpcState.__table__,
-    ):
-        table.create(engine)
-    with session_factory() as session:
-        session.add(
-            WorldState(
-                id="aleria-town",
-                name="晨曦镇",
-                day=7,
-                time="16:00",
-                tick=44,
+    config = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", database_url)
+    command.upgrade(config, "0001")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+            "INSERT INTO world_state (id, name, day, time, tick) "
+            "VALUES ('aleria-town', '晨曦镇', 7, '16:00', 44)"
             )
         )
-        session.commit()
+        connection.execute(text("DROP TABLE alembic_version"))
 
     upgrade_schema(database_url)
 
@@ -187,15 +197,23 @@ def test_schema_upgrade_adds_phase_1a_tables_without_resetting_phase_0_state(
     with session_factory() as session:
         world = session.get(WorldState, "aleria-town")
         assert world is not None
-        assert (world.day, world.time, world.tick) == (7, "16:00", 44)
+        assert (
+            world.day,
+            world.time,
+            world.clock_tick,
+            world.world_version,
+            world.event_sequence,
+        ) == (7, "16:00", 44, 44, 0)
 
 
 @pytest.mark.anyio
-async def test_tick_rejects_negative_expected_tick(database_url, seed_dir):
+async def test_tick_rejects_negative_expected_world_version(database_url, seed_dir):
     seed_database(database_url, seed_dir)
     transport = ASGITransport(app=create_app(database_url))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/api/world/tick", json={"expected_tick": -1})
+        response = await client.post(
+            "/api/world/tick", json={"expected_world_version": -1}
+        )
 
     assert response.status_code == 422
 
@@ -222,7 +240,9 @@ async def test_get_world_matches_world_returned_by_latest_tick(database_url, see
     seed_database(database_url, seed_dir)
     transport = ASGITransport(app=create_app(database_url))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        tick = await client.post("/api/world/tick", json={"expected_tick": 0})
+        tick = await client.post(
+            "/api/world/tick", json={"expected_world_version": 0}
+        )
         current = await client.get("/api/world")
 
     assert tick.status_code == current.status_code == 200

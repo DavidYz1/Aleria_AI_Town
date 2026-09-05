@@ -34,7 +34,9 @@ def run_tick(world: WorldSnapshot) -> TickResult:
         world,
         day=day,
         time=time,
-        tick=world.tick + 1,
+        clock_tick=world.clock_tick + 1,
+        world_version=world.world_version + 1,
+        event_sequence=world.event_sequence,
         npcs=drifted,
     )
     actions = tuple(decide_action(npc, decision_world) for npc in drifted)
@@ -51,7 +53,11 @@ def run_tick(world: WorldSnapshot) -> TickResult:
         for actor, action in zip(drifted, actions, strict=True)
     )
     return TickResult(
-        world=replace(decision_world, npcs=updated_npcs),
+        world=replace(
+            decision_world,
+            npcs=updated_npcs,
+            event_sequence=world.event_sequence + len(events),
+        ),
         actions=actions,
         events=events,
     )

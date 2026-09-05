@@ -14,6 +14,10 @@ from backend.app.database.models import (
     QuestProgress,
     WorldState,
 )
+from backend.app.database.world_version import (
+    WorldVersionConflictError,
+    bump_world_version,
+)
 from backend.app.quests.types import (
     QuestInteractionUnavailableError,
     QuestStateConflictError,
@@ -47,7 +51,7 @@ class QuestEventRecord:
     to_status: str
     interaction: str
     location_id: str
-    world_tick: int
+    clock_tick: int
 
 
 @dataclass(frozen=True)
@@ -59,8 +63,9 @@ class PlayerQuestRecords:
     quest_id: str
     status: str
     version: int
-    updated_tick: int
-    world_tick: int
+    updated_clock_tick: int
+    clock_tick: int
+    world_version: int
     target_npc_location_id: str
     target_npc_location_name: str
     recent_events: tuple[QuestEventRecord, ...]
@@ -123,7 +128,7 @@ class PlayerQuestRepository:
                     to_status=event.to_status,
                     interaction=event.interaction,
                     location_id=event.location_id,
-                    world_tick=event.world_tick,
+                    clock_tick=event.clock_tick,
                 )
                 for event in reversed(stored_events)
             )
@@ -135,8 +140,9 @@ class PlayerQuestRepository:
                 quest_id=progress.quest_id,
                 status=progress.status,
                 version=progress.version,
-                updated_tick=progress.updated_tick,
-                world_tick=world.tick,
+                updated_clock_tick=progress.updated_clock_tick,
+                clock_tick=world.clock_tick,
+                world_version=world.world_version,
                 target_npc_location_id=target_npc.location_id,
                 target_npc_location_name=target_npc_location.name,
                 recent_events=recent_events,
@@ -158,6 +164,7 @@ class PlayerQuestRepository:
         player_id: str,
         quest_id: str,
         target_location_id: str,
+        expected_world_version: int,
     ) -> PlayerQuestRecords:
         try:
             records = self.get_state(player_id, quest_id)
@@ -170,6 +177,9 @@ class PlayerQuestRepository:
             player = self._session.get(PlayerState, player_id)
             if player is None:
                 raise PlayerNotFoundError("Player not found")
+            bump_world_version(
+                self._session, records.world_id, expected_world_version
+            )
             player.location_id = target_location_id
             player.updated_at = datetime.now(UTC)
             self._session.commit()
@@ -195,6 +205,7 @@ class PlayerQuestRepository:
         player_id: str,
         quest_id: str,
         expected_version: int,
+        expected_world_version: int,
         transition: QuestTransition,
     ) -> PlayerQuestRecords:
         try:
@@ -237,6 +248,9 @@ class PlayerQuestRepository:
                     )
 
             now = datetime.now(UTC)
+            bump_world_version(
+                self._session, player.world_id, expected_world_version
+            )
             updated = self._session.execute(
                 update(QuestProgress)
                 .where(
@@ -248,7 +262,7 @@ class PlayerQuestRepository:
                 .values(
                     status=transition.to_status,
                     version=expected_version + 1,
-                    updated_tick=world.tick,
+                    updated_clock_tick=world.clock_tick,
                     updated_at=now,
                 )
             )
@@ -263,7 +277,7 @@ class PlayerQuestRepository:
                     to_status=transition.to_status,
                     interaction=transition.interaction,
                     location_id=player.location_id,
-                    world_tick=world.tick,
+                    clock_tick=world.clock_tick,
                     created_at=now,
                 )
             )
@@ -274,6 +288,7 @@ class PlayerQuestRepository:
             QuestNotFoundError,
             QuestStateConflictError,
             QuestInteractionUnavailableError,
+            WorldVersionConflictError,
             PlayerQuestPersistenceError,
         ):
             self._session.rollback()

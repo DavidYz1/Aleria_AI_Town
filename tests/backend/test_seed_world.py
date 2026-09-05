@@ -24,7 +24,7 @@ from backend.app.database.models import (
     WorldAction,
     WorldState,
 )
-from backend.app.database.world_tick_repository import WorldTickRepository
+from backend.app.database.world_clock_repository import WorldTickRepository
 from backend.app.world.tick_engine import run_tick
 from scripts.seed_world import load_seed_data, seed_database
 
@@ -39,7 +39,7 @@ def _add_chat_turn(session, conversation_id: str, world_id: str) -> None:
             id=conversation_id,
             world_id=world_id,
             npc_id="ryan",
-            created_tick=0,
+            created_clock_tick=0,
             created_at=now,
             updated_at=now,
         )
@@ -54,7 +54,7 @@ def _add_chat_turn(session, conversation_id: str, world_id: str) -> None:
                 provider=None,
                 fallback_used=0,
                 prompt_version=None,
-                world_tick=0,
+                clock_tick=0,
                 created_at=now,
             ),
             ConversationMessage(
@@ -65,7 +65,7 @@ def _add_chat_turn(session, conversation_id: str, world_id: str) -> None:
                 provider="mock",
                 fallback_used=0,
                 prompt_version="v1",
-                world_tick=0,
+                clock_tick=0,
                 created_at=now,
             ),
         ]
@@ -96,7 +96,12 @@ def test_seed_database_is_idempotent(database_url, seed_dir):
         ryan = session.get(NpcState, "ryan")
 
     assert world is not None
-    assert (world.name, world.day, world.time, world.tick) == ("曦谷", 1, "08:00", 0)
+    assert (
+        world.name,
+        world.day,
+        world.time,
+        world.clock_tick,
+    ) == ("曦谷", 1, "08:00", 0)
     assert ryan is not None
     assert (ryan.location_id, ryan.energy, ryan.mood, ryan.social) == (
         "park",
@@ -156,13 +161,13 @@ def test_seed_initializes_and_resets_default_player_missing_child_quest(
         assert (
             progress.status,
             progress.version,
-            progress.updated_tick,
+            progress.updated_clock_tick,
         ) == ("available", 0, 0)
 
         player.location_id = "castle"
         progress.status = "accepted"
         progress.version = 1
-        progress.updated_tick = 3
+        progress.updated_clock_tick = 3
         session.add(
             QuestEvent(
                 player_id="default-player",
@@ -171,7 +176,7 @@ def test_seed_initializes_and_resets_default_player_missing_child_quest(
                 to_status="accepted",
                 interaction="accept_quest",
                 location_id="tavern",
-                world_tick=3,
+                clock_tick=3,
             )
         )
         session.commit()
@@ -194,7 +199,7 @@ def test_seed_initializes_and_resets_default_player_missing_child_quest(
     assert (
         progress.status,
         progress.version,
-        progress.updated_tick,
+        progress.updated_clock_tick,
     ) == ("available", 0, 0)
     assert event_count == 0
 
@@ -212,7 +217,9 @@ def test_reseed_preserves_player_quest_data_for_other_worlds(
                 name="远方小镇",
                 day=2,
                 time="10:00",
-                tick=5,
+                clock_tick=5,
+                world_version=5,
+                event_sequence=0,
             )
         )
         session.flush()
@@ -230,7 +237,7 @@ def test_reseed_preserves_player_quest_data_for_other_worlds(
                 quest_id="missing-child",
                 status="accepted",
                 version=4,
-                updated_tick=5,
+                updated_clock_tick=5,
             )
         )
         session.add(
@@ -241,7 +248,7 @@ def test_reseed_preserves_player_quest_data_for_other_worlds(
                 to_status="accepted",
                 interaction="accept_quest",
                 location_id="park",
-                world_tick=5,
+                clock_tick=5,
             )
         )
         session.commit()
@@ -265,7 +272,11 @@ def test_reseed_preserves_player_quest_data_for_other_worlds(
     assert player is not None
     assert player.location_id == "park"
     assert progress is not None
-    assert (progress.status, progress.version, progress.updated_tick) == (
+    assert (
+        progress.status,
+        progress.version,
+        progress.updated_clock_tick,
+    ) == (
         "accepted",
         4,
         5,
@@ -286,9 +297,9 @@ def test_reseed_resets_tick_history_consistently(database_url, seed_dir):
         assert session.scalar(select(func.count()).select_from(WorldAction)) == 0
         assert session.scalar(select(func.count()).select_from(Event)) == 0
         repository = WorldTickRepository(session)
-        assert repository.get_snapshot().tick == 0
+        assert repository.get_snapshot().clock_tick == 0
         persisted = repository.persist_tick(0, run_tick(repository.get_snapshot()))
-        assert persisted.result.world.tick == 1
+        assert persisted.result.world.clock_tick == 1
 
 
 def test_reseed_removes_chat_history_before_resetting_canonical_world(
@@ -318,7 +329,7 @@ def test_reseed_removes_chat_history_before_resetting_canonical_world(
         world = session.get(WorldState, "aleria-town")
 
     assert world is not None
-    assert (world.day, world.time, world.tick) == (1, "08:00", 0)
+    assert (world.day, world.time, world.clock_tick) == (1, "08:00", 0)
 
 
 def test_reseed_preserves_chat_history_for_other_worlds(database_url, seed_dir):
@@ -331,7 +342,9 @@ def test_reseed_preserves_chat_history_for_other_worlds(database_url, seed_dir):
                 name="远方小镇",
                 day=2,
                 time="10:00",
-                tick=5,
+                clock_tick=5,
+                world_version=5,
+                event_sequence=0,
             )
         )
         session.flush()
@@ -411,4 +424,4 @@ def test_seed_script_can_be_executed_directly(database_url):
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Seeded Aleria world into SQLite." in result.stdout
+    assert "Seeded Aleria world." in result.stdout

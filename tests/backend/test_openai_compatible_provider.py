@@ -30,7 +30,7 @@ def _request() -> ChatProviderRequest:
         world_name="曦谷",
         world_day=1,
         world_time="08:10",
-        world_tick=1,
+        clock_tick=1,
         time_phase="morning",
         location_id="park",
         location_name="中央公园",
@@ -40,7 +40,7 @@ def _request() -> ChatProviderRequest:
         social=72,
         recent_actions=(
             ChatActionContext(
-                tick=1,
+                clock_tick=1,
                 world_time="08:10",
                 action_type="socialize",
                 target_name="Shir",

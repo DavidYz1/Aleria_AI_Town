@@ -58,6 +58,7 @@ class PlayerQuestService:
                 self.PLAYER_ID,
                 self.QUEST_ID,
                 request.target_location_id,
+                request.expected_world_version,
             )
         )
 
@@ -69,7 +70,7 @@ class PlayerQuestService:
                 status=cast(QuestStatus, records.status),
                 version=records.version,
                 player_location_id=records.location_id,
-                world_tick=records.world_tick,
+                clock_tick=records.clock_tick,
                 target_npc_location_id=records.target_npc_location_id,
             ),
             QuestCommand(
@@ -82,6 +83,7 @@ class PlayerQuestService:
                 player_id=self.PLAYER_ID,
                 quest_id=self.QUEST_ID,
                 expected_version=request.expected_version,
+                expected_world_version=request.expected_world_version,
                 transition=transition,
             )
         )

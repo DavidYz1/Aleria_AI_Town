@@ -18,7 +18,7 @@ class ChatHistoryMessage:
 
 @dataclass(frozen=True)
 class ChatActionContext:
-    tick: int
+    clock_tick: int
     world_time: str
     action_type: str
     target_name: str | None
@@ -56,7 +56,7 @@ class ChatProviderRequest:
     world_name: str
     world_day: int
     world_time: str
-    world_tick: int
+    clock_tick: int
     time_phase: Literal["morning", "day", "evening", "night"]
     location_id: str
     location_name: str

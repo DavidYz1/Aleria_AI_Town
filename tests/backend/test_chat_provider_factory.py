@@ -25,7 +25,7 @@ def _request() -> ChatProviderRequest:
         world_name="曦谷",
         world_day=1,
         world_time="08:00",
-        world_tick=0,
+        clock_tick=0,
         time_phase="morning",
         location_id="park",
         location_name="中央公园",

@@ -10,6 +10,7 @@ from backend.app.database.player_quest_repository import (
     PlayerQuestRepository,
     QuestNotFoundError,
 )
+from backend.app.database.world_version import WorldVersionConflictError
 from backend.app.quests.missing_child import MissingChildQuestPolicy
 from backend.app.schemas.common import ApiResponse, ErrorResponse
 from backend.app.schemas.player import PlayerTravelRequest
@@ -64,6 +65,7 @@ def get_player(session: Session = Depends(get_session)):
     response_model=ApiResponse[PlayerQuestData],
     responses={
         404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
     },
 )
@@ -80,6 +82,11 @@ def travel_player(
     ) as exc:
         return JSONResponse(
             status_code=404,
+            content=ErrorResponse(message=str(exc)).model_dump(),
+        )
+    except WorldVersionConflictError as exc:
+        return JSONResponse(
+            status_code=409,
             content=ErrorResponse(message=str(exc)).model_dump(),
         )
     except (

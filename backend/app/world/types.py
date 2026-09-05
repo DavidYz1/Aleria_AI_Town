@@ -35,7 +35,9 @@ class WorldSnapshot:
     name: str
     day: int
     time: str
-    tick: int
+    clock_tick: int
+    world_version: int
+    event_sequence: int
     locations: tuple[LocationSnapshot, ...]
     npcs: tuple[NpcSnapshot, ...]
 

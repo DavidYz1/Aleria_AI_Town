@@ -29,7 +29,7 @@ class NpcDetailUnavailableError(RuntimeError):
 @dataclass(frozen=True)
 class NpcActionRecord:
     id: int
-    tick: int
+    clock_tick: int
     world_time: str
     action_type: str
     target_kind: str | None
@@ -73,14 +73,14 @@ class NpcRepository:
                         WorldAction.world_id == CANONICAL_WORLD_ID,
                         WorldAction.actor_id == npc_id,
                     )
-                    .order_by(WorldAction.tick.desc(), WorldAction.id.desc())
+                    .order_by(WorldAction.clock_tick.desc(), WorldAction.id.desc())
                     .limit(3)
                 )
             )
             actions = tuple(
                 NpcActionRecord(
                     id=action.id,
-                    tick=action.tick,
+                    clock_tick=action.clock_tick,
                     world_time=action.world_time,
                     action_type=action.action_type,
                     target_kind=action.target_kind,

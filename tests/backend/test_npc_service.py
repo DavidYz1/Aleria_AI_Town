@@ -35,7 +35,7 @@ def test_service_maps_authoritative_detail_and_empty_history(
         "world_context": {
             "day": 1,
             "time": "08:00",
-            "tick": 0,
+            "clock_tick": 0,
             "time_phase": "morning",
         },
         "recent_actions": [],
@@ -53,12 +53,12 @@ def test_service_maps_resolved_action_targets_and_explanations(
         world = session.get(WorldState, "aleria-town")
         assert world is not None
         world.time = "10:00"
-        world.tick = 2
+        world.clock_tick = 2
         session.add_all(
             [
                 WorldAction(
                     world_id="aleria-town",
-                    tick=1,
+                    clock_tick=1,
                     actor_id="ryan",
                     action_type="move",
                     target_kind="location",
@@ -69,7 +69,7 @@ def test_service_maps_resolved_action_targets_and_explanations(
                 ),
                 WorldAction(
                     world_id="aleria-town",
-                    tick=2,
+                    clock_tick=2,
                     actor_id="ryan",
                     action_type="social",
                     target_kind="npc",
@@ -87,7 +87,7 @@ def test_service_maps_resolved_action_targets_and_explanations(
     assert [action.model_dump() for action in detail.recent_actions] == [
         {
             "id": 2,
-            "tick": 2,
+            "clock_tick": 2,
             "world_time": "10:00",
             "action_type": "social",
             "target_kind": "npc",
@@ -98,7 +98,7 @@ def test_service_maps_resolved_action_targets_and_explanations(
         },
         {
             "id": 1,
-            "tick": 1,
+            "clock_tick": 1,
             "world_time": "09:00",
             "action_type": "move",
             "target_kind": "location",
@@ -122,7 +122,7 @@ def test_service_preserves_unresolved_target_id_as_display_name(
         session.add(
             WorldAction(
                 world_id="aleria-town",
-                tick=1,
+                clock_tick=1,
                 actor_id="ryan",
                 action_type="move",
                 target_kind="location",
@@ -138,7 +138,7 @@ def test_service_preserves_unresolved_target_id_as_display_name(
 
     assert detail.recent_actions[0].model_dump() == {
         "id": 1,
-        "tick": 1,
+        "clock_tick": 1,
         "world_time": "09:00",
         "action_type": "move",
         "target_kind": "location",

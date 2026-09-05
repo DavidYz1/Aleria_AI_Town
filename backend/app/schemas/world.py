@@ -11,7 +11,9 @@ class WorldInfo(BaseModel):
     name: str
     day: int = Field(ge=1)
     time: str
-    tick: int = Field(ge=0)
+    world_version: int = Field(ge=0)
+    clock_tick: int = Field(ge=0)
+    event_sequence: int = Field(ge=0)
 
 
 class LocationInfo(BaseModel):

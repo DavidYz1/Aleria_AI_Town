@@ -6,12 +6,12 @@ from backend.app.schemas.world import ActionId, WorldData
 
 
 class WorldTickRequest(BaseModel):
-    expected_tick: int = Field(ge=0)
+    expected_world_version: int = Field(ge=0)
 
 
 class WorldActionInfo(BaseModel):
     id: int
-    tick: int = Field(ge=1)
+    clock_tick: int = Field(ge=1)
     actor_id: str
     action_type: ActionId
     target_kind: Literal["location", "npc"] | None
@@ -23,7 +23,7 @@ class WorldActionInfo(BaseModel):
 
 class WorldEventInfo(BaseModel):
     id: int
-    tick: int = Field(ge=1)
+    clock_tick: int = Field(ge=1)
     event_type: Literal["npc_action"]
     actor_id: str
     action_id: int

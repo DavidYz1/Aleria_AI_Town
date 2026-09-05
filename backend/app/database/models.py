@@ -21,14 +21,18 @@ class WorldState(Base):
     __tablename__ = "world_state"
     __table_args__ = (
         CheckConstraint("day >= 1"),
-        CheckConstraint("tick >= 0"),
+        CheckConstraint("clock_tick >= 0"),
+        CheckConstraint("world_version >= 0"),
+        CheckConstraint("event_sequence >= 0"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     day: Mapped[int] = mapped_column(Integer, nullable=False)
     time: Mapped[str] = mapped_column(String(5), nullable=False)
-    tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    clock_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    world_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class Location(Base):
@@ -91,7 +95,7 @@ class QuestProgress(Base):
     __tablename__ = "quest_progress"
     __table_args__ = (
         CheckConstraint("version >= 0"),
-        CheckConstraint("updated_tick >= 0"),
+        CheckConstraint("updated_clock_tick >= 0"),
     )
 
     player_id: Mapped[str] = mapped_column(
@@ -100,7 +104,7 @@ class QuestProgress(Base):
     quest_id: Mapped[str] = mapped_column(String, primary_key=True)
     status: Mapped[str] = mapped_column(String, nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
-    updated_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_clock_tick: Mapped[int] = mapped_column(Integer, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -111,7 +115,7 @@ class QuestProgress(Base):
 class QuestEvent(Base):
     __tablename__ = "quest_events"
     __table_args__ = (
-        CheckConstraint("world_tick >= 0"),
+        CheckConstraint("clock_tick >= 0"),
         Index(
             "ix_quest_events_player_quest_id",
             "player_id",
@@ -131,7 +135,7 @@ class QuestEvent(Base):
     location_id: Mapped[str] = mapped_column(
         ForeignKey("locations.id"), nullable=False
     )
-    world_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    clock_tick: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -142,12 +146,12 @@ class QuestEvent(Base):
 class WorldAction(Base):
     __tablename__ = "actions"
     __table_args__ = (
-        CheckConstraint("tick >= 1"),
+        CheckConstraint("clock_tick >= 1"),
         CheckConstraint("action_type IN ('move', 'rest', 'work', 'eat', 'social')"),
         CheckConstraint("target_kind IS NULL OR target_kind IN ('location', 'npc')"),
         CheckConstraint("status = 'recorded'"),
-        UniqueConstraint("world_id", "tick", "actor_id"),
-        Index("ix_actions_actor_tick", "actor_id", "tick"),
+        UniqueConstraint("world_id", "clock_tick", "actor_id"),
+        Index("ix_actions_actor_clock_tick", "actor_id", "clock_tick"),
     )
 
     id: Mapped[int] = mapped_column(
@@ -158,7 +162,7 @@ class WorldAction(Base):
     world_id: Mapped[str] = mapped_column(
         ForeignKey("world_state.id"), nullable=False
     )
-    tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    clock_tick: Mapped[int] = mapped_column(Integer, nullable=False)
     actor_id: Mapped[str] = mapped_column(
         ForeignKey("npc_profiles.id"), nullable=False
     )
@@ -173,16 +177,16 @@ class WorldAction(Base):
 class Event(Base):
     __tablename__ = "events"
     __table_args__ = (
-        CheckConstraint("tick >= 1"),
+        CheckConstraint("clock_tick >= 1"),
         CheckConstraint("event_type = 'npc_action'"),
-        Index("ix_events_actor_tick", "actor_id", "tick"),
+        Index("ix_events_actor_clock_tick", "actor_id", "clock_tick"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     world_id: Mapped[str] = mapped_column(
         ForeignKey("world_state.id"), nullable=False
     )
-    tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    clock_tick: Mapped[int] = mapped_column(Integer, nullable=False)
     event_type: Mapped[str] = mapped_column(String, nullable=False)
     actor_id: Mapped[str] = mapped_column(
         ForeignKey("npc_profiles.id"), nullable=False
@@ -197,7 +201,7 @@ class Event(Base):
 class Conversation(Base):
     __tablename__ = "conversations"
     __table_args__ = (
-        CheckConstraint("created_tick >= 0"),
+        CheckConstraint("created_clock_tick >= 0"),
         Index("ix_conversations_npc_updated", "npc_id", "updated_at"),
     )
 
@@ -208,7 +212,7 @@ class Conversation(Base):
     npc_id: Mapped[str] = mapped_column(
         ForeignKey("npc_profiles.id"), nullable=False
     )
-    created_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_clock_tick: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -226,7 +230,7 @@ class ConversationMessage(Base):
     __table_args__ = (
         CheckConstraint("role IN ('user', 'assistant')"),
         CheckConstraint("fallback_used IN (0, 1)"),
-        CheckConstraint("world_tick >= 0"),
+        CheckConstraint("clock_tick >= 0"),
         Index(
             "ix_conversation_messages_conversation_id_id",
             "conversation_id",
@@ -248,7 +252,7 @@ class ConversationMessage(Base):
         default=0,
     )
     prompt_version: Mapped[str | None] = mapped_column(String, nullable=True)
-    world_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    clock_tick: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

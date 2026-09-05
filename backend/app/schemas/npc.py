@@ -22,13 +22,13 @@ class NpcStateDetail(BaseModel):
 class NpcWorldContext(BaseModel):
     day: int = Field(ge=1)
     time: str
-    tick: int = Field(ge=0)
+    clock_tick: int = Field(ge=0)
     time_phase: Literal["morning", "day", "evening", "night"]
 
 
 class NpcRecentAction(BaseModel):
     id: int
-    tick: int = Field(ge=1)
+    clock_tick: int = Field(ge=1)
     world_time: str
     action_type: ActionId
     target_kind: Literal["location", "npc"] | None

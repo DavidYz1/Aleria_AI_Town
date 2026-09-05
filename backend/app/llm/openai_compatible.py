@@ -178,7 +178,7 @@ class OpenAICompatibleChatProvider:
     ) -> list[dict[str, str]]:
         recent_actions = "\n".join(
             (
-                f"- tick={action.tick}, time={action.world_time}, "
+                f"- clock_tick={action.clock_tick}, time={action.world_time}, "
                 f"action={action.action_type}, target={action.target_name or '-'}, "
                 f"reason={action.reason_code}"
             )
@@ -219,7 +219,7 @@ class OpenAICompatibleChatProvider:
                     "[Authoritative current state]\n"
                     f"World: {request.world_name} ({request.world_id})\n"
                     f"Day/time/tick: {request.world_day} / {request.world_time} / "
-                    f"{request.world_tick}\n"
+                    f"{request.clock_tick}\n"
                     f"Time phase: {request.time_phase}\n"
                     f"NPC: {request.npc_name} ({request.npc_id}), role={request.role}\n"
                     f"Personality: {personality}\n"

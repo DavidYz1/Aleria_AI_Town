@@ -46,13 +46,22 @@ def npc(
     )
 
 
-def world(*npcs: NpcSnapshot, day: int = 1, time: str = "08:00", tick: int = 0):
+def world(
+    *npcs: NpcSnapshot,
+    day: int = 1,
+    time: str = "08:00",
+    clock_tick: int = 0,
+    world_version: int = 0,
+    event_sequence: int = 0,
+):
     return WorldSnapshot(
         id="aleria-town",
         name="曦谷",
         day=day,
         time=time,
-        tick=tick,
+        clock_tick=clock_tick,
+        world_version=world_version,
+        event_sequence=event_sequence,
         locations=LOCATIONS,
         npcs=tuple(npcs),
     )

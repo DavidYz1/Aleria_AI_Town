@@ -1,4 +1,4 @@
-from backend.app.database.world_tick_repository import (
+from backend.app.database.world_clock_repository import (
     WorldTickConflictError,
     WorldTickRepository,
 )
@@ -9,7 +9,7 @@ from backend.app.schemas.world import (
     WorldData,
     WorldInfo,
 )
-from backend.app.schemas.world_tick import (
+from backend.app.schemas.world_clock import (
     WorldActionInfo,
     WorldEventInfo,
     WorldTickData,
@@ -25,7 +25,9 @@ def snapshot_to_world_data(snapshot: WorldSnapshot) -> WorldData:
             name=snapshot.name,
             day=snapshot.day,
             time=snapshot.time,
-            tick=snapshot.tick,
+            world_version=snapshot.world_version,
+            clock_tick=snapshot.clock_tick,
+            event_sequence=snapshot.event_sequence,
         ),
         locations=[
             LocationInfo(
@@ -58,20 +60,18 @@ class WorldTickService:
     def __init__(self, repository: WorldTickRepository) -> None:
         self._repository = repository
 
-    def advance(self, expected_tick: int) -> WorldTickData:
+    def advance(self, expected_world_version: int) -> WorldTickData:
         snapshot = self._repository.get_snapshot()
-        if snapshot.tick != expected_tick:
-            raise WorldTickConflictError(
-                "world tick conflict; refresh and retry"
-            )
+        if snapshot.world_version != expected_world_version:
+            raise WorldTickConflictError("world version conflict; refresh and retry")
 
-        persisted = self._repository.persist_tick(expected_tick, run_tick(snapshot))
+        persisted = self._repository.persist_tick(expected_world_version, run_tick(snapshot))
         return WorldTickData(
             world=snapshot_to_world_data(persisted.result.world),
             actions=[
                 WorldActionInfo(
                     id=action.id,
-                    tick=action.tick,
+                    clock_tick=action.clock_tick,
                     actor_id=action.actor_id,
                     action_type=action.action_type,
                     target_kind=action.target_kind,
@@ -85,7 +85,7 @@ class WorldTickService:
             events=[
                 WorldEventInfo(
                     id=event.id,
-                    tick=event.tick,
+                    clock_tick=event.clock_tick,
                     event_type=event.event_type,
                     actor_id=event.actor_id,
                     action_id=event.action_id,

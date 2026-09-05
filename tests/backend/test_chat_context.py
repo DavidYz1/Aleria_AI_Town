@@ -9,7 +9,7 @@ from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import NpcState, QuestProgress
 from backend.app.database.npc_repository import NpcNotFoundError, NpcRepository
 from backend.app.llm.types import PlayerProfileChatContext
-from backend.app.database.world_tick_repository import WorldTickRepository
+from backend.app.database.world_clock_repository import WorldTickRepository
 from backend.app.services.chat_context import (
     ChatContextAssembler,
     PromptLoader,
@@ -29,7 +29,7 @@ def _persist_six_turns(repository: ChatRepository) -> None:
             create_conversation=turn_number == 1,
             npc_id="ryan",
             world_id="aleria-town",
-            world_tick=4,
+            clock_tick=4,
             user_content=f"user-{turn_number}",
             assistant_content=f"assistant-{turn_number}",
             emotion="guarded",
@@ -166,7 +166,10 @@ def test_context_assembler_uses_authoritative_state_actions_and_bounded_history(
         tick_repository = WorldTickRepository(session)
         for _ in range(4):
             snapshot = tick_repository.get_snapshot()
-            tick_repository.persist_tick(snapshot.tick, run_tick(snapshot))
+            tick_repository.persist_tick(
+                snapshot.world_version,
+                run_tick(snapshot),
+            )
 
         chat_repository = ChatRepository(session)
         _persist_six_turns(chat_repository)
@@ -191,7 +194,7 @@ def test_context_assembler_uses_authoritative_state_actions_and_bounded_history(
     assert (
         context.world_day,
         context.world_time,
-        context.world_tick,
+        context.clock_tick,
         context.time_phase,
     ) == (1, "12:00", 4, "day")
     assert (
@@ -200,7 +203,7 @@ def test_context_assembler_uses_authoritative_state_actions_and_bounded_history(
         context.current_action,
     ) == ("park", "中央公园", "work")
     assert (context.energy, context.mood, context.social) == (40, 66, 58)
-    assert [action.tick for action in context.recent_actions] == [4, 3, 2]
+    assert [action.clock_tick for action in context.recent_actions] == [4, 3, 2]
     assert [action.reason_code for action in context.recent_actions] == [
         "knight_training",
         "knight_training",

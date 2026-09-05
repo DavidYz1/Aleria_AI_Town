@@ -128,7 +128,7 @@ class ChatContextAssembler:
 
         actions = tuple(
             ChatActionContext(
-                tick=action.tick,
+                clock_tick=action.clock_tick,
                 world_time=action.world_time,
                 action_type=action.action_type,
                 target_name=self._target_name(records.target_names, action),
@@ -154,7 +154,7 @@ class ChatContextAssembler:
             world_name=records.world.name,
             world_day=records.world.day,
             world_time=records.world.time,
-            world_tick=records.world.tick,
+            clock_tick=records.world.clock_tick,
             time_phase=get_time_phase(records.world.time),
             location_id=records.state.location_id,
             location_name=records.location.name,

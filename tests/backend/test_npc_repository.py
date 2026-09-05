@@ -9,7 +9,7 @@ from backend.app.database.npc_repository import (
     NpcNotFoundError,
     NpcRepository,
 )
-from backend.app.database.world_tick_repository import WorldTickRepository
+from backend.app.database.world_clock_repository import WorldTickRepository
 from backend.app.world.tick_engine import run_tick
 from scripts.seed_world import seed_database
 
@@ -28,7 +28,11 @@ def test_repository_returns_authoritative_npc_detail_without_history(
     assert records.profile.name == "Ryan"
     assert records.state.location_id == "park"
     assert records.location.name == "中央公园"
-    assert (records.world.day, records.world.time, records.world.tick) == (
+    assert (
+        records.world.day,
+        records.world.time,
+        records.world.clock_tick,
+    ) == (
         1,
         "08:00",
         0,
@@ -46,15 +50,15 @@ def test_repository_returns_only_three_most_recent_actions_in_stable_order(
 
     with session_factory() as session:
         tick_repository = WorldTickRepository(session)
-        for expected_tick in range(4):
+        for expected_world_version in range(4):
             tick_repository.persist_tick(
-                expected_tick,
+                expected_world_version,
                 run_tick(tick_repository.get_snapshot()),
             )
 
         records = NpcRepository(session).get_detail_records("ryan")
 
-    assert [action.tick for action in records.actions] == [4, 3, 2]
+    assert [action.clock_tick for action in records.actions] == [4, 3, 2]
     assert [
         (
             action.world_time,
@@ -84,7 +88,7 @@ def test_repository_resolves_action_targets_in_batches_and_keeps_unknown_targets
             [
                 WorldAction(
                     world_id="aleria-town",
-                    tick=1,
+                    clock_tick=1,
                     actor_id="ryan",
                     action_type="move",
                     target_kind="location",
@@ -95,7 +99,7 @@ def test_repository_resolves_action_targets_in_batches_and_keeps_unknown_targets
                 ),
                 WorldAction(
                     world_id="aleria-town",
-                    tick=2,
+                    clock_tick=2,
                     actor_id="ryan",
                     action_type="social",
                     target_kind="npc",
@@ -106,7 +110,7 @@ def test_repository_resolves_action_targets_in_batches_and_keeps_unknown_targets
                 ),
                 WorldAction(
                     world_id="aleria-town",
-                    tick=3,
+                    clock_tick=3,
                     actor_id="ryan",
                     action_type="move",
                     target_kind="location",

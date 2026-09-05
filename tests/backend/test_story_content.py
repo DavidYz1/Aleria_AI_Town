@@ -62,7 +62,6 @@ def test_readme_is_game_first_deployable_and_documents_ai_workflow():
     positions = [readme.index(heading) for heading in ordered_headings]
 
     assert positions == sorted(positions)
-    assert "http://124.221.185.124/" in readme
     assert "CHAT_PROVIDER=mock" in readme
     assert "CHAT_LLM_MODEL=hy-role" in readme
     assert "CHAT_LLM_OUTPUT_MODE=text" in readme

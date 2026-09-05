@@ -70,11 +70,11 @@ async def test_travel_is_persistent_and_same_location_is_idempotent(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         same = await client.post(
             "/api/player/travel",
-            json={"target_location_id": "tavern"},
+            json={"target_location_id": "tavern", "expected_world_version": 0},
         )
         moved = await client.post(
             "/api/player/travel",
-            json={"target_location_id": "castle"},
+            json={"target_location_id": "castle", "expected_world_version": 0},
         )
 
     fresh_transport = ASGITransport(app=_app(database_url))
@@ -104,43 +104,43 @@ async def test_missing_child_api_completes_all_five_versioned_transitions(
         responses.append(
             await client.post(
                 "/api/quests/missing-child/interact",
-                json={"interaction": "accept_quest", "expected_version": 0},
+                json={"interaction": "accept_quest", "expected_version": 0, "expected_world_version": 0},
             )
         )
         await client.post(
             "/api/player/travel",
-            json={"target_location_id": "castle"},
+            json={"target_location_id": "castle", "expected_world_version": 1},
         )
         responses.append(
             await client.post(
                 "/api/quests/missing-child/interact",
-                json={"interaction": "ask_grey", "expected_version": 1},
+                json={"interaction": "ask_grey", "expected_version": 1, "expected_world_version": 2},
             )
         )
         await client.post(
             "/api/player/travel",
-            json={"target_location_id": "forest"},
+            json={"target_location_id": "forest", "expected_world_version": 3},
         )
         responses.append(
             await client.post(
                 "/api/quests/missing-child/interact",
-                json={"interaction": "inspect_shoe", "expected_version": 2},
+                json={"interaction": "inspect_shoe", "expected_version": 2, "expected_world_version": 4},
             )
         )
         responses.append(
             await client.post(
                 "/api/quests/missing-child/interact",
-                json={"interaction": "search_child", "expected_version": 3},
+                json={"interaction": "search_child", "expected_version": 3, "expected_world_version": 5},
             )
         )
         await client.post(
             "/api/player/travel",
-            json={"target_location_id": "tavern"},
+            json={"target_location_id": "tavern", "expected_world_version": 6},
         )
         responses.append(
             await client.post(
                 "/api/quests/missing-child/interact",
-                json={"interaction": "return_child", "expected_version": 4},
+                json={"interaction": "return_child", "expected_version": 4, "expected_world_version": 7},
             )
         )
 
@@ -188,11 +188,11 @@ async def test_ask_grey_follows_his_live_location_and_requires_colocation(
     ) as client:
         accepted = await client.post(
             "/api/quests/missing-child/interact",
-            json={"interaction": "accept_quest", "expected_version": 0},
+            json={"interaction": "accept_quest", "expected_version": 0, "expected_world_version": 0},
         )
         await client.post(
             "/api/player/travel",
-            json={"target_location_id": "castle"},
+            json={"target_location_id": "castle", "expected_world_version": 1},
         )
 
     with session_factory() as session:
@@ -208,16 +208,16 @@ async def test_ask_grey_follows_his_live_location_and_requires_colocation(
         separated = await client.get("/api/player")
         unavailable = await client.post(
             "/api/quests/missing-child/interact",
-            json={"interaction": "ask_grey", "expected_version": 1},
+            json={"interaction": "ask_grey", "expected_version": 1, "expected_world_version": 2},
         )
         await client.post(
             "/api/player/travel",
-            json={"target_location_id": "park"},
+            json={"target_location_id": "park", "expected_world_version": 2},
         )
         together = await client.get("/api/player")
         briefed = await client.post(
             "/api/quests/missing-child/interact",
-            json={"interaction": "ask_grey", "expected_version": 1},
+            json={"interaction": "ask_grey", "expected_version": 1, "expected_world_version": 3},
         )
 
     assert accepted.status_code == 200
@@ -276,7 +276,7 @@ async def test_player_quest_api_returns_404_for_unknown_location(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/player/travel",
-            json={"target_location_id": "missing-location"},
+            json={"target_location_id": "missing-location", "expected_world_version": 0},
         )
 
     assert response.status_code == 404
@@ -293,15 +293,15 @@ async def test_player_quest_api_returns_409_for_stale_or_unavailable_interaction
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         unavailable = await client.post(
             "/api/quests/missing-child/interact",
-            json={"interaction": "ask_grey", "expected_version": 0},
+            json={"interaction": "ask_grey", "expected_version": 0, "expected_world_version": 0},
         )
         accepted = await client.post(
             "/api/quests/missing-child/interact",
-            json={"interaction": "accept_quest", "expected_version": 0},
+            json={"interaction": "accept_quest", "expected_version": 0, "expected_world_version": 0},
         )
         stale = await client.post(
             "/api/quests/missing-child/interact",
-            json={"interaction": "accept_quest", "expected_version": 0},
+            json={"interaction": "accept_quest", "expected_version": 0, "expected_world_version": 1},
         )
 
     assert unavailable.status_code == 409
@@ -383,7 +383,7 @@ async def test_player_travel_returns_503_and_rolls_back_when_commit_fails(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/player/travel",
-            json={"target_location_id": "castle"},
+            json={"target_location_id": "castle", "expected_world_version": 0},
         )
 
     with session_factory() as session:

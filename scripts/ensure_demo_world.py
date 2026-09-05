@@ -12,18 +12,19 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.core.config import get_settings
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import Base, WorldState
+from backend.app.database.models import WorldState
 from backend.app.services.demo_reset_service import (
     DemoResetPersistenceError,
     DemoResetService,
     load_seed_data,
 )
+from scripts.upgrade_schema import upgrade_schema
 
 
 def ensure_demo_world(database_url: str, seed_dir: Path) -> bool:
     seed = load_seed_data(seed_dir)
     engine, session_factory = create_engine_and_session(database_url)
-    Base.metadata.create_all(engine)
+    upgrade_schema(database_url)
 
     with session_factory() as session:
         if session.get(WorldState, seed.world.id) is not None:

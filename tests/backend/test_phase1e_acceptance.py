@@ -38,7 +38,7 @@ def _game_snapshot(session_factory):
         assert player is not None
         assert quest is not None
         return {
-            "world": (world.day, world.time, world.tick),
+            "world": (world.day, world.time, world.clock_tick),
             "npcs": tuple(
                 (
                     state.npc_id,
@@ -59,7 +59,11 @@ def _game_snapshot(session_factory):
                 select(func.count()).select_from(Event)
             ),
             "player": player.location_id,
-            "quest": (quest.status, quest.version, quest.updated_tick),
+            "quest": (
+                quest.status,
+                quest.version,
+                quest.updated_clock_tick,
+            ),
         }
 
 
@@ -75,18 +79,33 @@ async def _interact(
     interaction: str,
     version: int,
 ):
+    world = await client.get("/api/world")
+    assert world.status_code == 200
     response = await client.post(
         "/api/quests/missing-child/interact",
-        json={"interaction": interaction, "expected_version": version},
+        json={
+            "interaction": interaction,
+            "expected_version": version,
+            "expected_world_version": world.json()["data"]["world"][
+                "world_version"
+            ],
+        },
     )
     assert response.status_code == 200
     return response.json()["data"]
 
 
 async def _travel(client: AsyncClient, location_id: str):
+    world = await client.get("/api/world")
+    assert world.status_code == 200
     response = await client.post(
         "/api/player/travel",
-        json={"target_location_id": location_id},
+        json={
+            "target_location_id": location_id,
+            "expected_world_version": world.json()["data"]["world"][
+                "world_version"
+            ],
+        },
     )
     assert response.status_code == 200
     return response.json()["data"]
