@@ -2,16 +2,12 @@ from dataclasses import replace
 
 import pytest
 
+from backend.app.agents.contracts import ActionProposal, ProposalSource
 from backend.app.world.action_rules import ActionValidationError, execute_action
 from backend.app.world.clock import advance_clock, get_time_phase
 from backend.app.world.decision import decide_action
 from backend.app.world.tick_engine import run_tick
-from backend.app.world.types import (
-    ActionPlan,
-    LocationSnapshot,
-    NpcSnapshot,
-    WorldSnapshot,
-)
+from backend.app.world.types import LocationSnapshot, NpcSnapshot, WorldSnapshot
 
 
 LOCATIONS = (
@@ -137,10 +133,11 @@ def test_low_social_uses_sort_order_for_target_and_location():
         "park",
     )
     assert (together.action_type, together.target_kind, together.target_id) == (
-        "social",
+        "talk",
         "npc",
         "ryan",
     )
+    assert together.source is ProposalSource.DETERMINISTIC
 
 
 def test_role_routines_change_with_phase_and_location():
@@ -151,7 +148,7 @@ def test_role_routines_change_with_phase_and_location():
 
     assert decide_action(assassin, snapshot).target_id == "forest"
     assert decide_action(guardian, snapshot).target_id == "castle"
-    assert decide_action(knight, snapshot).action_type == "social"
+    assert decide_action(knight, snapshot).action_type == "talk"
 
 
 @pytest.mark.parametrize(
@@ -196,7 +193,7 @@ def test_role_routines_use_character_duty_locations(
 
     plan = decide_action(actor, world(actor, time=phase_time))
 
-    assert (plan.action_type, plan.target_id, plan.reason) == (
+    assert (plan.action_type, plan.target_id, plan.reason_code) == (
         action,
         target,
         reason,
@@ -209,12 +206,12 @@ def test_low_mood_moves_to_tavern_then_eats_when_already_there():
     at_tavern = replace(actor, location_id="tavern")
     eat = decide_action(at_tavern, world(at_tavern, time="12:00"))
 
-    assert (move.action_type, move.target_id, move.reason) == (
+    assert (move.action_type, move.target_id, move.reason_code) == (
         "move",
         "tavern",
         "low_mood_find_food",
     )
-    assert (eat.action_type, eat.target_id, eat.reason) == (
+    assert (eat.action_type, eat.target_id, eat.reason_code) == (
         "eat",
         None,
         "low_mood_eat",
@@ -243,17 +240,17 @@ def test_execute_action_validates_target_and_clamps_needs():
     [
         (
             npc("ryan", "Knight", "park", 1),
-            ActionPlan("ryan", "move", "location", "missing", "test"),
+            ActionProposal("ryan", "move", "location", "missing", "test"),
             "valid location",
         ),
         (
             npc("ryan", "Knight", "tavern", 1),
-            ActionPlan("ryan", "work", reason="test"),
+            ActionProposal("ryan", "work", reason_code="test"),
             "actor duty location",
         ),
         (
             npc("shir", "Assassin", "park", 1),
-            ActionPlan("shir", "eat", reason="test"),
+            ActionProposal("shir", "eat", reason_code="test"),
             "tavern location",
         ),
     ],
@@ -280,7 +277,7 @@ def test_execute_work_accepts_each_actor_duty_location(
 
     updated = execute_action(
         actor,
-        ActionPlan(npc_id, "work", reason="test"),
+        ActionProposal(npc_id, "work", reason_code="test"),
         world(actor, time="12:00"),
     )
 
@@ -305,7 +302,7 @@ def test_execute_work_rejects_the_wrong_actor_duty_location(
     with pytest.raises(ActionValidationError, match="actor duty location"):
         execute_action(
             actor,
-            ActionPlan(npc_id, "work", reason="test"),
+            ActionProposal(npc_id, "work", reason_code="test"),
             world(actor, time="12:00"),
         )
 
@@ -314,7 +311,7 @@ def test_execute_action_clamps_lower_need_boundary():
     actor = npc("ryan", "Knight", "park", 1, energy=1, mood=1, social=1)
     updated = execute_action(
         actor,
-        ActionPlan("ryan", "work", reason="test"),
+        ActionProposal("ryan", "work", reason_code="test"),
         world(actor, time="12:00"),
     )
 

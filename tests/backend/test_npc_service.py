@@ -89,7 +89,7 @@ def test_service_maps_resolved_action_targets_and_explanations(
             "id": 2,
             "clock_tick": 2,
             "world_time": "10:00",
-            "action_type": "social",
+            "action_type": "talk",
             "target_kind": "npc",
             "target_id": "grey",
             "target_name": "Grey",

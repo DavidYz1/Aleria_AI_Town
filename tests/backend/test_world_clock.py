@@ -7,6 +7,7 @@ from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, inspect, select, text
 
+from backend.app.database.chat_repository import ChatRepository
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import (
     Base,
@@ -21,7 +22,9 @@ from backend.app.database.world_clock_repository import (
     WorldTickPersistenceError,
     WorldTickRepository,
 )
+from backend.app.database.npc_repository import NpcRepository
 from backend.app.main import create_app
+from backend.app.services.chat_context import ChatContextAssembler, PromptLoader
 from backend.app.world.tick_engine import run_tick
 from scripts.seed_world import seed_database
 from scripts.upgrade_schema import upgrade_schema
@@ -102,6 +105,78 @@ async def test_stale_expected_world_version_returns_409_without_duplicate_histor
         assert world is not None and world.clock_tick == 1
         assert session.scalar(select(func.count()).select_from(WorldAction)) == 3
         assert session.scalar(select(func.count()).select_from(Event)) == 3
+
+
+@pytest.mark.anyio
+async def test_tick_exposes_talk_while_persisting_legacy_social(
+    database_url,
+    seed_dir,
+):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        world = session.get(WorldState, "aleria-town")
+        ryan = session.get(NpcState, "ryan")
+        grey = session.get(NpcState, "grey")
+        assert world is not None and ryan is not None and grey is not None
+        world.time = "17:00"
+        ryan.social = 43
+        grey.location_id = "park"
+        session.commit()
+
+    transport = ASGITransport(app=create_app(database_url))
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/world/tick",
+            json={"expected_world_version": 0},
+        )
+        current_world = await client.get("/api/world")
+        current_ryan = await client.get("/api/npcs/ryan")
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    ryan_action = next(
+        action for action in body["actions"] if action["actor_id"] == "ryan"
+    )
+    ryan_state = next(
+        npc for npc in body["world"]["npcs"] if npc["id"] == "ryan"
+    )
+    assert ryan_action["action_type"] == "talk"
+    assert ryan_state["current_action"] == "talk"
+    assert current_world.status_code == 200
+    public_ryan = next(
+        npc
+        for npc in current_world.json()["data"]["npcs"]
+        if npc["id"] == "ryan"
+    )
+    assert public_ryan["current_action"] == "talk"
+    assert current_ryan.status_code == 200
+    detail = current_ryan.json()["data"]
+    assert detail["state"]["current_action"] == "talk"
+    assert detail["recent_actions"][0]["action_type"] == "talk"
+
+    with session_factory() as session:
+        stored_action = session.scalar(
+            select(WorldAction).where(WorldAction.actor_id == "ryan")
+        )
+        stored_state = session.get(NpcState, "ryan")
+        assert stored_action is not None and stored_state is not None
+        assert stored_action.action_type == "social"
+        assert stored_state.current_action == "social"
+        chat_context = ChatContextAssembler(
+            NpcRepository(session),
+            ChatRepository(session),
+            PromptLoader(),
+        ).assemble(
+            npc_id="ryan",
+            conversation_id=None,
+            player_message="你在做什么？",
+            history_limit=10,
+            prompt_version="v1",
+        )
+
+    assert chat_context.current_action == "talk"
+    assert chat_context.recent_actions[0].action_type == "talk"
 
 
 def test_repository_rolls_back_clock_state_and_history_on_invalid_result(

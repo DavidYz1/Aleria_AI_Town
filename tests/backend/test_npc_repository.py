@@ -128,6 +128,11 @@ def test_repository_resolves_action_targets_in_batches_and_keeps_unknown_targets
     assert records.target_names[("location", "park")] == "中央公园"
     assert records.target_names[("npc", "grey")] == "Grey"
     assert ("location", "missing-place") not in records.target_names
+    assert [action.action_type for action in records.actions] == [
+        "move",
+        "talk",
+        "move",
+    ]
     assert [action.target_id for action in records.actions] == [
         "missing-place",
         "grey",

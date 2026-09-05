@@ -2,7 +2,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import Base, WorldState
+from backend.app.database.models import Base, NpcState, WorldState
 from backend.app.main import create_app
 from scripts.seed_world import seed_database
 
@@ -60,6 +60,24 @@ async def test_get_world_returns_safe_503_when_database_is_uninitialized(databas
         "data": None,
         "message": "world state is unavailable",
     }
+
+
+@pytest.mark.anyio
+async def test_get_world_exposes_legacy_social_state_as_talk(database_url, seed_dir):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        state = session.get(NpcState, "ryan")
+        assert state is not None
+        state.current_action = "social"
+        session.commit()
+
+    transport = ASGITransport(app=create_app(database_url))
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/world")
+
+    assert response.status_code == 200
+    assert response.json()["data"]["npcs"][0]["current_action"] == "talk"
 
 
 @pytest.mark.anyio

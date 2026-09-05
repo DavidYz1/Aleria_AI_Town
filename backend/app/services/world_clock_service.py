@@ -1,3 +1,4 @@
+from backend.app.database.action_compat import to_public_action_type
 from backend.app.database.world_clock_repository import (
     WorldTickConflictError,
     WorldTickRepository,
@@ -73,7 +74,7 @@ class WorldTickService:
                     id=action.id,
                     clock_tick=action.clock_tick,
                     actor_id=action.actor_id,
-                    action_type=action.action_type,
+                    action_type=to_public_action_type(action.action_type),
                     target_kind=action.target_kind,
                     target_id=action.target_id,
                     reason=action.reason,

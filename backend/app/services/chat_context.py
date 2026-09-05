@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Protocol
 
+from backend.app.database.action_compat import to_public_action_type
 from backend.app.database.chat_repository import (
     ChatPersistenceError,
     ChatRepository,
@@ -158,7 +159,7 @@ class ChatContextAssembler:
             time_phase=get_time_phase(records.world.time),
             location_id=records.state.location_id,
             location_name=records.location.name,
-            current_action=records.state.current_action,
+            current_action=to_public_action_type(records.state.current_action),
             energy=records.state.energy,
             mood=records.state.mood,
             social=records.state.social,

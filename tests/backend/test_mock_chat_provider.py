@@ -14,6 +14,7 @@ def _request(
     npc_id: str,
     player_message: str,
     *,
+    current_action: str = "rest",
     player_quest_context: PlayerQuestChatContext | None = None,
     player_profile: PlayerProfileChatContext | None = None,
 ) -> ChatProviderRequest:
@@ -43,7 +44,7 @@ def _request(
         time_phase="morning",
         location_id="park",
         location_name="中央公园",
-        current_action="rest",
+        current_action=current_action,
         energy=80,
         mood=78,
         social=70,
@@ -83,6 +84,15 @@ async def test_mock_is_deterministic_for_the_same_request():
     second = await provider.generate_reply(request)
 
     assert first == second
+
+
+@pytest.mark.anyio
+async def test_mock_presents_talk_as_a_human_readable_action():
+    result = await MockChatProvider().generate_reply(
+        _request("ryan", "你在做什么", current_action="talk")
+    )
+
+    assert "正在交谈" in result.reply
 
 
 @pytest.mark.anyio

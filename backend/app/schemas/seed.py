@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field, model_validator
 
 
-ActionId = Literal["move", "rest", "work", "eat", "social"]
+ActionId = Literal["eat", "move", "rest", "talk", "wait", "work"]
 NeedValue = Annotated[int, Field(ge=0, le=100)]
 
 

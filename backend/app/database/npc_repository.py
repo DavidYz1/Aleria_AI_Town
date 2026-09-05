@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from backend.app.database.action_compat import to_public_action_type
 from backend.app.database.models import (
     Location,
     NpcProfile,
@@ -82,7 +83,7 @@ class NpcRepository:
                     id=action.id,
                     clock_tick=action.clock_tick,
                     world_time=action.world_time,
-                    action_type=action.action_type,
+                    action_type=to_public_action_type(action.action_type),
                     target_kind=action.target_kind,
                     target_id=action.target_id,
                     reason=action.reason,

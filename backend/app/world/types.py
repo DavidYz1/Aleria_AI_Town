@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Literal
 
+from backend.app.agents.contracts import ActionProposal
 
-ActionType = Literal["move", "rest", "work", "eat", "social"]
+ActionType = Literal["eat", "move", "rest", "talk", "wait", "work"]
 TargetKind = Literal["location", "npc"]
 TimePhase = Literal["morning", "day", "evening", "night"]
 
@@ -43,15 +44,6 @@ class WorldSnapshot:
 
 
 @dataclass(frozen=True)
-class ActionPlan:
-    actor_id: str
-    action_type: ActionType
-    target_kind: TargetKind | None = None
-    target_id: str | None = None
-    reason: str = ""
-
-
-@dataclass(frozen=True)
 class EventPlan:
     actor_id: str
     event_type: str
@@ -61,5 +53,5 @@ class EventPlan:
 @dataclass(frozen=True)
 class TickResult:
     world: WorldSnapshot
-    actions: tuple[ActionPlan, ...]
+    actions: tuple[ActionProposal, ...]
     events: tuple[EventPlan, ...]

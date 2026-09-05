@@ -1,3 +1,4 @@
+from backend.app.database.action_compat import to_public_action_type
 from backend.app.database.npc_repository import NpcRepository
 from backend.app.schemas.npc import (
     NpcDetailData,
@@ -49,7 +50,9 @@ class NpcService:
             state=NpcStateDetail(
                 location_id=records.state.location_id,
                 location_name=records.location.name,
-                current_action=records.state.current_action,
+                current_action=to_public_action_type(
+                    records.state.current_action
+                ),
                 status=NpcStatus(
                     energy=records.state.energy,
                     mood=records.state.mood,

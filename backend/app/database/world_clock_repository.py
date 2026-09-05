@@ -5,6 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from backend.app.database.action_compat import (
+    to_persistence_action_type,
+    to_public_action_type,
+)
 from backend.app.database.models import (
     Event,
     Location,
@@ -100,7 +104,9 @@ class WorldTickRepository:
                     personality=tuple(profile.personality_json),
                     sort_order=profile.sort_order,
                     location_id=states_by_npc[profile.id].location_id,
-                    current_action=states_by_npc[profile.id].current_action,
+                    current_action=to_public_action_type(
+                        states_by_npc[profile.id].current_action
+                    ),
                     energy=states_by_npc[profile.id].energy,
                     mood=states_by_npc[profile.id].mood,
                     social=states_by_npc[profile.id].social,
@@ -151,7 +157,9 @@ class WorldTickRepository:
                         f"NPC state is unavailable: {npc.id}"
                     )
                 state.location_id = npc.location_id
-                state.current_action = npc.current_action
+                state.current_action = to_persistence_action_type(
+                    npc.current_action
+                )
                 state.energy = npc.energy
                 state.mood = npc.mood
                 state.social = npc.social
@@ -161,10 +169,10 @@ class WorldTickRepository:
                     world_id=result.world.id,
                     clock_tick=result.world.clock_tick,
                     actor_id=action.actor_id,
-                    action_type=action.action_type,
+                    action_type=to_persistence_action_type(action.action_type),
                     target_kind=action.target_kind,
                     target_id=action.target_id,
-                    reason=action.reason,
+                    reason=action.reason_code,
                     status="recorded",
                     world_time=result.world.time,
                 )

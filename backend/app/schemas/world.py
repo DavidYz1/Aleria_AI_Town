@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-ActionId = Literal["move", "rest", "work", "eat", "social"]
+ActionId = Literal["eat", "move", "rest", "talk", "wait", "work"]
 
 
 class WorldInfo(BaseModel):

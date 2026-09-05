@@ -23,6 +23,7 @@ class MockChatProvider:
     _QUEST_KEYWORDS = ("任务", "委托", "孩子", "线索", "quest")
     _ACTION_NAMES = {
         "rest": "休息",
+        "talk": "交谈",
         "work": "工作",
         "socialize": "交谈",
         "sleep": "睡觉",

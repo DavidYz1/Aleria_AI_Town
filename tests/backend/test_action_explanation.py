@@ -79,7 +79,7 @@ from backend.app.services.action_explanation import explain_action
         ),
     ],
 )
-def test_explain_action_maps_every_current_reason_code(
+def test_explain_action_preserves_every_reason_code_after_talk_rename(
     reason_code: str,
     target_name: str | None,
     expected: str,

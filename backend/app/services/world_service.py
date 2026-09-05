@@ -1,3 +1,4 @@
+from backend.app.database.action_compat import to_public_action_type
 from backend.app.database.world_repository import WorldRepository
 from backend.app.schemas.world import (
     LocationInfo,
@@ -39,7 +40,7 @@ class WorldService:
                     role=profile.role,
                     personality=profile.personality_json,
                     location_id=state.location_id,
-                    current_action=state.current_action,
+                    current_action=to_public_action_type(state.current_action),
                     status=NpcStatus(
                         energy=state.energy,
                         mood=state.mood,

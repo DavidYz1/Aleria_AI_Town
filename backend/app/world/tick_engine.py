@@ -21,7 +21,7 @@ def _describe(actor: NpcSnapshot, action_type: str, target_id: str | None) -> st
         "rest": "休息",
         "work": "工作",
         "eat": "用餐",
-        "social": "交谈",
+        "talk": "交谈",
     }
     suffix = f" {target_id}" if target_id else ""
     return f"{actor.name} {labels[action_type]}{suffix}"
