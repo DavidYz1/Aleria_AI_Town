@@ -352,6 +352,7 @@ def test_run_tick_outcomes_do_not_depend_on_input_npc_order():
     first = run_tick(ordered)
     second = run_tick(reversed_input)
 
+    assert first == second
     assert {
         action.actor_id: (action.action_type, action.target_id)
         for action in first.actions

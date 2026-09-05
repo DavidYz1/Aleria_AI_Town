@@ -3,7 +3,10 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 import math
 from types import MappingProxyType
-from typing import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
+
+if TYPE_CHECKING:
+    from backend.app.world.types import WorldSnapshot
 
 
 JsonScalar: TypeAlias = None | bool | int | float | str
@@ -93,6 +96,12 @@ class ActionValidation:
 
 
 @dataclass(frozen=True)
+class ResolvedProposal:
+    proposal: ActionProposal
+    validation: ActionValidation
+
+
+@dataclass(frozen=True)
 class DomainEventDraft:
     event_type: str
     actor_id: str | None
@@ -116,6 +125,15 @@ class TraceDraft:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "data", _freeze_json_object(self.data))
+
+
+@dataclass(frozen=True)
+class AgentRuntimeResult:
+    world: "WorldSnapshot"
+    proposals: tuple[ActionProposal, ...]
+    resolutions: tuple[ResolvedProposal, ...]
+    events: tuple[DomainEventDraft, ...]
+    traces: tuple[TraceDraft, ...]
 
 
 def to_json_compatible(

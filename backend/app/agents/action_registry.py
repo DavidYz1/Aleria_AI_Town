@@ -32,6 +32,12 @@ class ActionDefinition:
     public_label: str
 
 
+@dataclass(frozen=True)
+class ActionEventMetadata:
+    event_type: str
+    public_label: str
+
+
 class ActionRegistry:
     def __init__(self, definitions: Iterable[ActionDefinition]) -> None:
         by_type: dict[str, ActionDefinition] = {}
@@ -82,6 +88,13 @@ class ActionRegistry:
                 f"{definition.required_target_kind} target",
             )
         return definition.validation_handler(proposal, actor, world)
+
+    def event_metadata(self, action_type: str) -> ActionEventMetadata:
+        definition = self._definitions[action_type]
+        return ActionEventMetadata(
+            event_type=definition.event_type,
+            public_label=definition.public_label,
+        )
 
     def execute(
         self,
