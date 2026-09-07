@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 import pytest
 from alembic import command
@@ -21,6 +22,9 @@ MODEL_TABLES = {
     "events",
     "conversations",
     "conversation_messages",
+    "agent_runs",
+    "action_proposals",
+    "agent_trace_entries",
 }
 
 
@@ -36,7 +40,7 @@ def test_empty_sqlite_database_upgrades_to_head_with_model_tables(
         "alembic_version"
     }
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0002"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
 
 
 def test_sqlite_url_with_percent_character_upgrades_to_head(tmp_path: Path) -> None:
@@ -76,7 +80,7 @@ def test_exact_unversioned_legacy_schema_is_adopted(tmp_path: Path) -> None:
     upgrade_schema(database_url)
 
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0002"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
 
 
 def test_partial_unversioned_schema_is_rejected(tmp_path: Path) -> None:
@@ -97,7 +101,7 @@ def test_0002_actions_unique_constraint_survives_upgrade_downgrade_round_trip(
     config = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
     config.set_main_option("sqlalchemy.url", database_url)
     command.upgrade(config, "0001")
-    command.upgrade(config, "head")
+    command.upgrade(config, "0002")
 
     engine = create_engine(database_url)
     assert {constraint["name"] for constraint in inspect(engine).get_unique_constraints("actions")} == {
@@ -133,7 +137,53 @@ def test_0002_actions_unique_constraint_survives_upgrade_downgrade_round_trip(
     assert {constraint["name"] for constraint in inspect(engine).get_unique_constraints("actions")} == {
         "uq_actions_world_tick_actor"
     }
-    command.upgrade(config, "head")
+    command.upgrade(config, "0002")
     assert {constraint["name"] for constraint in inspect(engine).get_unique_constraints("actions")} == {
         "uq_actions_world_clock_tick_actor"
     }
+
+
+def test_0003_backfills_legacy_groups_and_canonicalizes_actions(tmp_path):
+    url = f"sqlite:///{(tmp_path / 'history.db').as_posix()}"
+    config = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", url)
+    command.upgrade(config, "0002")
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO world_state VALUES ('w','World',1,'10:00',2,2,3)"))
+        conn.execute(text("INSERT INTO locations VALUES ('park','Park','Park',0)"))
+        conn.execute(text("INSERT INTO npc_profiles VALUES ('a','A','Guard','[]',1), ('b','B','Guard','[]',0)"))
+        conn.execute(text("INSERT INTO npc_states VALUES ('a','park','social',50,50,50)"))
+        conn.execute(text("INSERT INTO actions (id,world_id,clock_tick,actor_id,action_type,reason,status,world_time) VALUES (10,'w',1,'a','social','social_need','recorded','09:00'), (20,'w',1,'b','work','routine','recorded','09:00'), (30,'w',2,'a','rest','energy','recorded','10:00')"))
+        conn.execute(text("INSERT INTO events (id,world_id,clock_tick,event_type,actor_id,action_id,description,world_time) VALUES (4,'w',1,'npc_action','a',10,'Old talk','09:00'), (8,'w',1,'npc_action','b',20,'Old work','09:00'), (12,'w',2,'npc_action','a',30,'Old rest','10:00')"))
+    command.upgrade(config, "head")
+    assert "agent_runs" in inspect(engine).get_table_names()
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT mode,status,base_clock_tick,resulting_clock_tick FROM agent_runs ORDER BY resulting_clock_tick")).all() == [("deterministic","completed",0,1),("deterministic","completed",1,2)]
+        assert conn.execute(text("SELECT actor_id,ordinal FROM action_proposals ORDER BY id")).all() == [("b",0),("a",1),("a",0)]
+        assert conn.execute(text("SELECT action_type,status,reason_code FROM actions ORDER BY id")).all() == [("talk","executed","social_need"),("work","executed","routine"),("rest","executed","energy")]
+        assert conn.execute(text("SELECT event_sequence,description,world_time FROM events ORDER BY id")).all() == [(1,"Old talk","09:00"),(2,"Old work","09:00"),(3,"Old rest","10:00")]
+        assert conn.scalar(text("SELECT current_action FROM npc_states")) == "talk"
+        assert conn.scalar(text("SELECT COUNT(*) FROM events e JOIN actions a ON e.action_id=a.id JOIN agent_runs r ON e.run_id=r.id JOIN action_proposals p ON a.proposal_id=p.id WHERE a.run_id=r.id AND p.run_id=r.id")) == 3
+        assert conn.scalar(text("SELECT COUNT(DISTINCT created_at) FROM events")) == 1
+        assert conn.execute(text("PRAGMA foreign_key_check")).all() == []
+        assert conn.scalar(text("SELECT event_sequence FROM world_state")) == 3
+
+
+@pytest.mark.skipif(not os.getenv("ALERIA_TEST_POSTGRES_URL"), reason="opt-in empty PostgreSQL database required")
+def test_postgresql_empty_database_upgrades_to_runtime_head():
+    """Opt-in URL must point at a dedicated empty database with vector available.
+
+    This test does not delete an existing schema or provision a server. Migration
+    0002 requires permission to CREATE EXTENSION vector on that test database.
+    """
+    url = os.environ["ALERIA_TEST_POSTGRES_URL"]
+    engine = create_engine(url)
+    assert engine.dialect.name == "postgresql"
+    assert inspect(engine).get_table_names() == []
+    upgrade_schema(url)
+    assert set(inspect(engine).get_table_names()) == MODEL_TABLES | {"alembic_version"}
+    with engine.connect() as conn:
+        assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
+    checks = inspect(engine).get_check_constraints("actions")
+    assert not any("action_type" in check["sqltext"] for check in checks)

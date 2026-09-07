@@ -1,3 +1,7 @@
+from uuid import uuid4
+
+from backend.app.agents.orchestrator import run_deterministic_advance
+from backend.app.schemas.agent_run import AgentRunSummary
 from backend.app.database.action_compat import to_public_action_type
 from backend.app.database.world_clock_repository import (
     WorldTickConflictError,
@@ -15,7 +19,6 @@ from backend.app.schemas.world_clock import (
     WorldEventInfo,
     WorldTickData,
 )
-from backend.app.world.tick_engine import run_tick
 from backend.app.world.types import WorldSnapshot
 
 
@@ -66,8 +69,12 @@ class WorldTickService:
         if snapshot.world_version != expected_world_version:
             raise WorldTickConflictError("world version conflict; refresh and retry")
 
-        persisted = self._repository.persist_tick(expected_world_version, run_tick(snapshot))
+        persisted = self._repository.persist_run(
+            str(uuid4()), expected_world_version, run_deterministic_advance(snapshot),
+            correlation_id=str(uuid4()),
+        )
         return WorldTickData(
+            run=AgentRunSummary.model_validate(persisted.run),
             world=snapshot_to_world_data(persisted.result.world),
             actions=[
                 WorldActionInfo(
@@ -77,22 +84,17 @@ class WorldTickService:
                     action_type=to_public_action_type(action.action_type),
                     target_kind=action.target_kind,
                     target_id=action.target_id,
-                    reason=action.reason,
+                    reason=action.reason_code,
+                    run_id=action.run_id,
+                    proposal_id=action.proposal_id,
+                    world_version=action.world_version,
                     status=action.status,
                     world_time=action.world_time,
                 )
                 for action in persisted.actions
             ],
             events=[
-                WorldEventInfo(
-                    id=event.id,
-                    clock_tick=event.clock_tick,
-                    event_type=event.event_type,
-                    actor_id=event.actor_id,
-                    action_id=event.action_id,
-                    description=event.description,
-                    world_time=event.world_time,
-                )
+                WorldEventInfo.model_validate(event)
                 for event in persisted.events
             ],
         )

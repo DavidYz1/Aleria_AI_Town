@@ -70,7 +70,6 @@ def run_deterministic_advance(
                 "proposal_ordinal": ordinal,
                 "accepted": validation.accepted,
                 "code": validation.code,
-                "message": validation.message,
             },
         )
 
@@ -117,7 +116,6 @@ def run_deterministic_advance(
             {
                 "proposal_ordinal": ordinal,
                 "event_type": event.event_type,
-                "description": event.description,
             },
         )
 

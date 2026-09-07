@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import logging
+from uuid import uuid4
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database.models import (
     Location,
+    Event,
     NpcState,
     PlayerState,
     QuestEvent,
@@ -171,22 +173,32 @@ class PlayerQuestRepository:
             target = self._session.get(Location, target_location_id)
             if target is None:
                 raise LocationNotFoundError("Location not found")
-            if records.location_id == target_location_id:
-                return records
 
-            player = self._session.get(PlayerState, player_id)
+            player = self._session.get(
+                PlayerState,
+                player_id,
+                populate_existing=True,
+            )
             if player is None:
                 raise PlayerNotFoundError("Player not found")
+            if player.location_id == target_location_id:
+                return self.get_state(player_id, quest_id)
+            from_location_id = player.location_id
             bump_world_version(
-                self._session, records.world_id, expected_world_version
+                self._session, player.world_id, expected_world_version
             )
             player.location_id = target_location_id
             player.updated_at = datetime.now(UTC)
+            self._add_domain_event(player.world_id, "player_travelled", {
+                "player_id": player_id, "from_location_id": from_location_id,
+                "to_location_id": target_location_id,
+            }, "Player changed location")
             self._session.commit()
             return self.get_state(player_id, quest_id)
         except (
             PlayerNotFoundError,
             LocationNotFoundError,
+            WorldVersionConflictError,
             QuestNotFoundError,
             PlayerQuestPersistenceError,
         ):
@@ -281,6 +293,11 @@ class PlayerQuestRepository:
                     created_at=now,
                 )
             )
+            self._add_domain_event(player.world_id, "quest_transitioned", {
+                "player_id": player_id, "quest_id": quest_id,
+                "from_status": transition.from_status, "to_status": transition.to_status,
+                "interaction": transition.interaction, "location_id": player.location_id,
+            }, "Quest status changed")
             self._session.commit()
             return self.get_state(player_id, quest_id)
         except (
@@ -299,6 +316,19 @@ class PlayerQuestRepository:
             raise PlayerQuestPersistenceError(
                 "Player quest service is unavailable"
             ) from None
+
+    def _add_domain_event(self, world_id: str, event_type: str, payload: dict, description: str) -> None:
+        # The successful CAS owns this world's write lock. Refresh counters in
+        # case this session read an older world before another writer committed.
+        world = self._session.get(WorldState, world_id, populate_existing=True)
+        world.event_sequence += 1
+        self._session.add(Event(
+            world_id=world_id, world_version=world.world_version, clock_tick=world.clock_tick,
+            event_sequence=world.event_sequence, event_type=event_type, actor_id=None,
+            action_id=None, source_event_id=None, payload_json=payload,
+            visibility="public", secrecy="public", correlation_id=str(uuid4()),
+            description=description, world_time=world.time,
+        ))
 
     @staticmethod
     def _log_failure(category: str, player_id: str, quest_id: str) -> None:

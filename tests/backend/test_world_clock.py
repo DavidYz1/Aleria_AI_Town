@@ -108,7 +108,7 @@ async def test_stale_expected_world_version_returns_409_without_duplicate_histor
 
 
 @pytest.mark.anyio
-async def test_tick_exposes_talk_while_persisting_legacy_social(
+async def test_tick_exposes_and_persists_canonical_talk(
     database_url,
     seed_dir,
 ):
@@ -161,8 +161,8 @@ async def test_tick_exposes_talk_while_persisting_legacy_social(
         )
         stored_state = session.get(NpcState, "ryan")
         assert stored_action is not None and stored_state is not None
-        assert stored_action.action_type == "social"
-        assert stored_state.current_action == "social"
+        assert stored_action.action_type == "talk"
+        assert stored_state.current_action == "talk"
         chat_context = ChatContextAssembler(
             NpcRepository(session),
             ChatRepository(session),

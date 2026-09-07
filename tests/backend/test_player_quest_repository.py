@@ -5,7 +5,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import NpcState, QuestEvent, QuestProgress
+from backend.app.database.models import Event, NpcState, PlayerState, QuestEvent, QuestProgress, WorldState
 from backend.app.quests.missing_child import MissingChildQuestPolicy
 from backend.app.quests.types import QuestCommand, QuestSnapshot
 from scripts.seed_world import seed_database
@@ -135,6 +135,39 @@ def test_repository_travel_rejects_unknown_location(database_url, seed_dir):
                 "missing-location",
                 0,
             )
+
+
+def test_repository_travel_refreshes_stale_player_location_before_idempotency_check(
+    database_url,
+    seed_dir,
+):
+    repository_module = _repository_module()
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as first, session_factory() as second:
+        first_repository = repository_module.PlayerQuestRepository(first)
+        stale_player = first.get(PlayerState, "default-player")
+        assert stale_player is not None and stale_player.location_id == "tavern"
+
+        repository_module.PlayerQuestRepository(second).travel(
+            "default-player", "missing-child", "castle", 0
+        )
+        assert stale_player.location_id == "tavern"
+        repeated = first_repository.travel(
+            "default-player", "missing-child", "castle", 1
+        )
+
+    with session_factory() as session:
+        travel_events = tuple(
+            session.scalars(
+                select(Event).where(Event.event_type == "player_travelled")
+            )
+        )
+        world = session.get(WorldState, "aleria-town")
+
+    assert repeated.location_id == "castle"
+    assert len(travel_events) == 1
+    assert world is not None and world.world_version == 1
 
 
 def test_repository_applies_versioned_transition_and_inserts_event_atomically(

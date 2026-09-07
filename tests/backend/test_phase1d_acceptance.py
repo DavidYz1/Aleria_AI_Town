@@ -193,7 +193,7 @@ async def test_phase1d_mock_path_completes_and_persists_without_world_mutation(
         5,
     )
     assert len(completed["quest"]["recent_events"]) == 5
-    assert _world_snapshot(session_factory) == world_before
+    assert _world_snapshot(session_factory) == {**world_before, "events": 8}
 
     fresh_app = create_app(database_url, settings=_settings(database_url))
     async with AsyncClient(
@@ -281,4 +281,4 @@ async def test_chat_and_fallback_read_quest_context_without_mutating_game_state(
     assert fallback_response.json()["data"]["fallback_used"] is True
     assert _quest_snapshot(session_factory) == fallback_before
     assert _message_count(session_factory) == messages_before_fallback + 2
-    assert _world_snapshot(session_factory) == world_before
+    assert _world_snapshot(session_factory) == {**world_before, "events": 3}

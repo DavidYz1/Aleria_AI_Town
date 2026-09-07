@@ -10,7 +10,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, synonym
 
 
 class Base(DeclarativeBase):
@@ -143,13 +143,63 @@ class QuestEvent(Base):
     )
 
 
+class AgentRun(Base):
+    __tablename__ = "agent_runs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    world_id: Mapped[str] = mapped_column(ForeignKey("world_state.id"), index=True)
+    mode: Mapped[str] = mapped_column(String)
+    trigger_type: Mapped[str] = mapped_column(String)
+    status: Mapped[str] = mapped_column(String)
+    base_world_version: Mapped[int] = mapped_column(Integer)
+    resulting_world_version: Mapped[int] = mapped_column(Integer)
+    base_clock_tick: Mapped[int] = mapped_column(Integer)
+    resulting_clock_tick: Mapped[int] = mapped_column(Integer)
+    correlation_id: Mapped[str] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class ActionProposalRecord(Base):
+    __tablename__ = "action_proposals"
+    __table_args__ = (UniqueConstraint("run_id", "ordinal"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[str] = mapped_column(ForeignKey("agent_runs.id"))
+    ordinal: Mapped[int] = mapped_column(Integer)
+    actor_id: Mapped[str] = mapped_column(String)
+    action_type: Mapped[str] = mapped_column(String)
+    target_kind: Mapped[str | None] = mapped_column(String, nullable=True)
+    target_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    reason_code: Mapped[str] = mapped_column(String)
+    source: Mapped[str] = mapped_column(String)
+    payload_json: Mapped[dict] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String)
+    rejection_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    rejection_message: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class AgentTraceEntry(Base):
+    __tablename__ = "agent_trace_entries"
+    __table_args__ = (UniqueConstraint("run_id", "sequence"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[str] = mapped_column(ForeignKey("agent_runs.id"))
+    sequence: Mapped[int] = mapped_column(Integer)
+    stage: Mapped[str] = mapped_column(String)
+    actor_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    summary: Mapped[str] = mapped_column(String)
+    data_json: Mapped[dict] = mapped_column(JSON)
+    visibility: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class WorldAction(Base):
     __tablename__ = "actions"
     __table_args__ = (
         CheckConstraint("clock_tick >= 1"),
-        CheckConstraint("action_type IN ('move', 'rest', 'work', 'eat', 'social')"),
-        CheckConstraint("target_kind IS NULL OR target_kind IN ('location', 'npc')"),
-        CheckConstraint("status = 'recorded'"),
         UniqueConstraint("world_id", "clock_tick", "actor_id"),
         Index("ix_actions_actor_clock_tick", "actor_id", "clock_tick"),
     )
@@ -169,16 +219,21 @@ class WorldAction(Base):
     action_type: Mapped[str] = mapped_column(String, nullable=False)
     target_kind: Mapped[str | None] = mapped_column(String, nullable=True)
     target_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    reason: Mapped[str] = mapped_column(String, nullable=False)
-    status: Mapped[str] = mapped_column(String, nullable=False, default="recorded")
+    reason_code: Mapped[str] = mapped_column(String, nullable=False)
+    reason = synonym("reason_code")
+    run_id: Mapped[str | None] = mapped_column(ForeignKey("agent_runs.id"), nullable=True)
+    proposal_id: Mapped[int | None] = mapped_column(ForeignKey("action_proposals.id"), nullable=True)
+    world_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    status: Mapped[str] = mapped_column(String, nullable=False, default="executed")
     world_time: Mapped[str] = mapped_column(String(5), nullable=False)
 
 
 class Event(Base):
     __tablename__ = "events"
     __table_args__ = (
-        CheckConstraint("clock_tick >= 1"),
-        CheckConstraint("event_type = 'npc_action'"),
+        CheckConstraint("clock_tick >= 0"),
+        UniqueConstraint("world_id", "event_sequence"),
         Index("ix_events_actor_clock_tick", "actor_id", "clock_tick"),
     )
 
@@ -188,14 +243,25 @@ class Event(Base):
     )
     clock_tick: Mapped[int] = mapped_column(Integer, nullable=False)
     event_type: Mapped[str] = mapped_column(String, nullable=False)
-    actor_id: Mapped[str] = mapped_column(
-        ForeignKey("npc_profiles.id"), nullable=False
+    actor_id: Mapped[str | None] = mapped_column(
+        ForeignKey("npc_profiles.id"), nullable=True
     )
-    action_id: Mapped[int] = mapped_column(
-        ForeignKey("actions.id"), nullable=False, unique=True
+    action_id: Mapped[int | None] = mapped_column(
+        ForeignKey("actions.id"), nullable=True, unique=True
     )
     description: Mapped[str] = mapped_column(String, nullable=False)
     world_time: Mapped[str] = mapped_column(String(5), nullable=False)
+
+    run_id: Mapped[str | None] = mapped_column(ForeignKey("agent_runs.id"), nullable=True)
+    world_version: Mapped[int] = mapped_column(Integer)
+    event_sequence: Mapped[int] = mapped_column(Integer)
+    source_event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id"), nullable=True)
+    payload_json: Mapped[dict] = mapped_column(JSON)
+    visibility: Mapped[str] = mapped_column(String, default="public")
+    secrecy: Mapped[str] = mapped_column(String, default="public")
+    causation_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    correlation_id: Mapped[str] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 class Conversation(Base):

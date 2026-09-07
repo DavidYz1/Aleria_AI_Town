@@ -9,6 +9,9 @@ from backend.app.database.models import (
     Conversation,
     ConversationMessage,
     Event,
+    AgentRun,
+    ActionProposalRecord,
+    AgentTraceEntry,
     Location,
     NpcProfile,
     NpcState,
@@ -88,12 +91,14 @@ class DemoResetService:
         self._session.execute(
             delete(Conversation).where(Conversation.world_id == seed.world.id)
         )
-        self._session.execute(
-            delete(Event).where(Event.world_id == seed.world.id)
-        )
+        run_ids = select(AgentRun.id).where(AgentRun.world_id == seed.world.id)
+        self._session.execute(delete(AgentTraceEntry).where(AgentTraceEntry.run_id.in_(run_ids)))
+        self._session.execute(delete(Event).where(Event.world_id == seed.world.id))
         self._session.execute(
             delete(WorldAction).where(WorldAction.world_id == seed.world.id)
         )
+        self._session.execute(delete(ActionProposalRecord).where(ActionProposalRecord.run_id.in_(run_ids)))
+        self._session.execute(delete(AgentRun).where(AgentRun.world_id == seed.world.id))
 
         self._session.merge(WorldState(**seed.world.model_dump()))
         for location in seed.locations:
