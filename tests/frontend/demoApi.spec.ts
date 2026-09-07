@@ -15,7 +15,7 @@ describe('Demo reset API adapter', () => {
   it('posts the reset command and unwraps the canonical reset summary', async () => {
     const data = {
       world_id: 'aleria-town',
-      world_tick: 0,
+      clock_tick: 0,
       player_location_id: 'tavern',
       quest_status: 'available',
     }

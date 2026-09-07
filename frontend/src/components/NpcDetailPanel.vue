@@ -18,7 +18,8 @@ const actionLabels = {
   rest: '休息',
   work: '工作',
   eat: '用餐',
-  social: '交谈',
+  talk: '交谈',
+  wait: '等待',
 } as const
 
 const needLabels = {
@@ -110,7 +111,7 @@ const needLabels = {
         </p>
         <ol v-else class="action-history" aria-label="最近行动">
           <li v-for="action in detail.recent_actions" :key="action.id">
-            <p class="action-time">Tick {{ action.tick }} · {{ action.world_time }}</p>
+            <p class="action-time">第 {{ action.clock_tick }} 回合 · {{ action.world_time }}</p>
             <h4>{{ actionLabels[action.action_type] }}<template v-if="action.target_name"> → {{ action.target_name }}</template></h4>
             <p>{{ action.reason_text }}</p>
           </li>

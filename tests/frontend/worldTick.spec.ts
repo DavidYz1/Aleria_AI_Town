@@ -12,7 +12,7 @@ describe('world tick store', () => {
     setActivePinia(createPinia())
   })
 
-  it('sends current expected_tick and replaces world with authoritative response', async () => {
+  it('sends current world_version and replaces all authoritative counters from the response', async () => {
     const store = useWorldStore()
     store.data = worldFixture
     const advance = vi.fn<(expectedTick: number) => Promise<WorldTickData>>()
@@ -21,8 +21,9 @@ describe('world tick store', () => {
     await store.advanceTick(advance)
 
     expect(advance).toHaveBeenCalledWith(0)
-    expect(store.data?.world).toEqual({
-      id: 'aleria-town', name: '曦谷', day: 1, time: '09:00', tick: 1,
+    expect(store.data?.world).toMatchObject({
+      id: 'aleria-town', name: '曦谷', day: 1, time: '09:00',
+      world_version: 1, clock_tick: 1, event_sequence: 3,
     })
     expect(store.lastTick?.actions).toHaveLength(3)
     expect(store.tickError).toBeNull()
@@ -62,7 +63,10 @@ describe('world tick store', () => {
     store.lastTick = tickFixture
     const current: WorldData = {
       ...tickFixture.world,
-      world: { ...tickFixture.world.world, time: '10:00', tick: 2 },
+      world: {
+        ...tickFixture.world.world, time: '10:00',
+        world_version: 2, clock_tick: 2, event_sequence: 6,
+      },
     }
     const reload = vi.fn().mockResolvedValue(current)
 
@@ -72,7 +76,7 @@ describe('world tick store', () => {
     )
 
     expect(reload).toHaveBeenCalledTimes(1)
-    expect(store.data?.world.tick).toBe(2)
+    expect(store.data?.world.world_version).toBe(2)
     expect(store.lastTick).toBeNull()
     expect(store.tickError).toBe('世界已在其他请求中推进，已为你刷新最新状态。')
   })

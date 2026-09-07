@@ -15,6 +15,7 @@ import type {
   QuestInteractor,
 } from '../types/playerQuest'
 
+type WorldRefresher = () => Promise<boolean>
 
 export const usePlayerQuestStore = defineStore('playerQuest', () => {
   const data = ref<PlayerQuestData | null>(null)
@@ -27,18 +28,20 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
 
   async function load(
     fetcher: PlayerQuestFetcher = fetchPlayerQuest,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const version = ++stateRequestVersion
     loading.value = true
     error.value = null
 
     try {
       const result = await fetcher()
-      if (version !== stateRequestVersion) return
+      if (version !== stateRequestVersion) return false
       data.value = result
+      return true
     } catch {
-      if (version !== stateRequestVersion) return
+      if (version !== stateRequestVersion) return false
       error.value = '玩家任务加载失败，请稍后重试。'
+      return false
     } finally {
       if (version === stateRequestVersion) loading.value = false
     }
@@ -52,25 +55,31 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
 
   async function travel(
     locationId: string,
+    expectedWorldVersion: number,
     traveller: PlayerTraveller = travelPlayer,
+    refreshWorld: WorldRefresher = async () => true,
   ): Promise<boolean> {
-    return mutate(() => traveller(locationId))
+    return mutate(() => traveller(locationId, expectedWorldVersion), refreshWorld)
   }
 
   async function interact(
     interaction: QuestInteraction,
+    expectedWorldVersion: number,
     interactor: QuestInteractor = interactWithMissingChildQuest,
+    refreshWorld: WorldRefresher = async () => true,
   ): Promise<void> {
     const current = data.value
     if (current === null) return
     await mutate(() => interactor({
       interaction,
       expected_version: current.quest.version,
-    }))
+      expected_world_version: expectedWorldVersion,
+    }), refreshWorld)
   }
 
   async function mutate(
     operation: () => Promise<PlayerQuestData>,
+    refreshWorld: WorldRefresher,
   ): Promise<boolean> {
     if (mutating.value || data.value === null) return false
 
@@ -83,12 +92,22 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
       const result = await operation()
       if (stateVersion !== stateRequestVersion) return false
       data.value = result
+      const worldRefreshed = await safelyRefreshWorld(refreshWorld)
+      if (stateVersion !== stateRequestVersion) return false
+      if (!worldRefreshed) {
+        mutationError.value = '操作已完成，但世界刷新失败，请重试。'
+        return false
+      }
       return true
     } catch (caught) {
       if (stateVersion !== stateRequestVersion) return false
       if (caught instanceof PlayerQuestConflictError) {
-        await load()
-        mutationError.value = error.value === null
+        const [playerRefreshed, worldRefreshed] = await Promise.all([
+          load(),
+          safelyRefreshWorld(refreshWorld),
+        ])
+        if (mutationVersion !== mutationRequestVersion) return false
+        mutationError.value = playerRefreshed && worldRefreshed
           ? '任务状态已更新，已刷新最新进度。'
           : '任务状态已更新，但刷新失败，请重试。'
       } else {
@@ -99,6 +118,14 @@ export const usePlayerQuestStore = defineStore('playerQuest', () => {
       if (mutationVersion === mutationRequestVersion) {
         mutating.value = false
       }
+    }
+  }
+
+  async function safelyRefreshWorld(refreshWorld: WorldRefresher): Promise<boolean> {
+    try {
+      return await refreshWorld()
+    } catch {
+      return false
     }
   }
 

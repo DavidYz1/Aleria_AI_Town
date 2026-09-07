@@ -89,7 +89,7 @@ describe('NpcDetailPanel', () => {
       recent_actions: [
         {
           id: 2,
-          tick: 1,
+          clock_tick: 1,
           world_time: '09:00',
           action_type: 'move',
           target_kind: 'location',

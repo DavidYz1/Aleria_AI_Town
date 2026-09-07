@@ -58,7 +58,7 @@ function createStore() {
     introCompleted: true,
   }
   playerQuestStore.data = availablePlayerQuestFixture
-  const loadPlayerQuest = vi.spyOn(playerQuestStore, 'load').mockResolvedValue()
+  const loadPlayerQuest = vi.spyOn(playerQuestStore, 'load').mockResolvedValue(true)
   return {
     pinia,
     store: useWorldStore(),
@@ -110,6 +110,7 @@ describe('TownView', () => {
     const { pinia, store, playerQuestStore } = createStore()
     store.data = worldFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(store, 'refreshWorld').mockResolvedValue(true)
     const travelled = {
       ...availablePlayerQuestFixture,
       player: {
@@ -137,17 +138,19 @@ describe('TownView', () => {
 
     expect(post).toHaveBeenCalledWith('/api/player/travel', {
       target_location_id: 'castle',
+      expected_world_version: 0,
     })
     expect(teleportPlayer).toHaveBeenCalledWith('castle')
     expect(playerQuestStore.data?.player.location_id).toBe('castle')
     expect(castle!.classes()).toContain('is-current')
   })
 
-  it('advances the visible quest using its current Backend version', async () => {
+  it('advances the visible quest using its current quest and world versions, then refreshes world', async () => {
     const { pinia, store, playerQuestStore } = createStore()
     store.data = worldFixture
     playerQuestStore.data = acceptedPlayerQuestFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const refreshWorld = vi.spyOn(store, 'refreshWorld').mockResolvedValue(true)
     const briefed = {
       ...acceptedPlayerQuestFixture,
       quest: {
@@ -170,8 +173,52 @@ describe('TownView', () => {
     expect(post).toHaveBeenCalledWith('/api/quests/missing-child/interact', {
       interaction: 'ask_grey',
       expected_version: 1,
+      expected_world_version: 0,
     })
+    expect(refreshWorld).toHaveBeenCalledTimes(1)
     expect(wrapper.get('.quest-panel').text()).toContain('灰烬战争旧封锁线')
+  })
+
+  it('retries a quest with the world version refreshed after a conflict', async () => {
+    const { pinia, store, playerQuestStore } = createStore()
+    store.data = worldFixture
+    playerQuestStore.data = availablePlayerQuestFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const refreshedWorld = {
+      ...worldFixture,
+      world: { ...worldFixture.world, world_version: 1, event_sequence: 1 },
+    }
+    vi.spyOn(api, 'get').mockImplementation((url) => Promise.resolve({
+      data: {
+        success: true,
+        data: url === '/api/player' ? availablePlayerQuestFixture : refreshedWorld,
+        message: 'ok',
+      },
+    }) as ReturnType<typeof api.get>)
+    const conflict = {
+      isAxiosError: true,
+      response: { status: 409, data: { message: 'Quest state has changed' } },
+    }
+    const post = vi.spyOn(api, 'post')
+      .mockRejectedValueOnce(conflict)
+      .mockResolvedValueOnce({
+        data: { success: true, data: acceptedPlayerQuestFixture, message: 'ok' },
+      } as Awaited<ReturnType<typeof api.post>>)
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    await wrapper.get('.quest-actions button').trigger('click')
+    await flushPromises()
+
+    expect(store.data?.world.world_version).toBe(1)
+    await wrapper.get('.quest-actions button').trigger('click')
+    await flushPromises()
+
+    expect(post).toHaveBeenNthCalledWith(2, '/api/quests/missing-child/interact', {
+      interaction: 'accept_quest',
+      expected_version: 0,
+      expected_world_version: 1,
+    })
   })
 
   it('keeps World and NPC interactions available when PlayerQuest loading fails', async () => {
@@ -342,6 +389,99 @@ describe('TownView', () => {
     })
   })
 
+  it('keeps TownGameHost mounted while a successful travel waits for background world refresh', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    const refreshedWorld = deferred<Awaited<ReturnType<typeof api.get>>>()
+    const travelled = {
+      ...availablePlayerQuestFixture,
+      player: { ...availablePlayerQuestFixture.player, location_id: 'castle', location_name: '晨曦城堡' },
+    }
+    vi.spyOn(api, 'post').mockResolvedValue({
+      data: { success: true, data: travelled, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.post>>)
+    vi.spyOn(api, 'get')
+      .mockResolvedValueOnce({
+        data: { success: true, data: worldFixture, message: 'ok' },
+      } as Awaited<ReturnType<typeof api.get>>)
+      .mockReturnValueOnce(refreshedWorld.promise)
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    const castle = wrapper.findAll('.location-card').find(
+      (card) => card.get('h3').text() === '晨曦城堡',
+    )
+    void castle!.get('button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findComponent(TownGameHostStub).exists()).toBe(true)
+    expect(store.loading).toBe(false)
+
+    refreshedWorld.resolve({
+      data: {
+        success: true,
+        data: { ...worldFixture, world: { ...worldFixture.world, world_version: 1, event_sequence: 1 } },
+        message: 'ok',
+      },
+    } as Awaited<ReturnType<typeof api.get>>)
+    await flushPromises()
+
+    expect(store.data?.world.world_version).toBe(1)
+  })
+
+  it('recovers a failed background refresh in place before allowing a new travel token', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    await store.refreshWorld(() => Promise.reject(new Error('offline')))
+    const retryResponse = deferred<Awaited<ReturnType<typeof api.get>>>()
+    const worldAfterRetry = {
+      ...worldFixture,
+      world: { ...worldFixture.world, world_version: 2, event_sequence: 2 },
+    }
+    vi.spyOn(api, 'get')
+      .mockReturnValueOnce(retryResponse.promise)
+      .mockResolvedValueOnce({
+        data: { success: true, data: worldAfterRetry, message: 'ok' },
+      } as Awaited<ReturnType<typeof api.get>>)
+    const travelled = {
+      ...availablePlayerQuestFixture,
+      player: { ...availablePlayerQuestFixture.player, location_id: 'castle', location_name: '晨曦城堡' },
+    }
+    const post = vi.spyOn(api, 'post').mockResolvedValue({
+      data: { success: true, data: travelled, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.post>>)
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    expect(wrapper.findComponent(TownGameHostStub).exists()).toBe(true)
+    expect(wrapper.get('.world-refresh-error').text()).toContain('世界刷新失败')
+
+    void wrapper.get('.world-refresh-error button').trigger('click')
+    await flushPromises()
+    const castle = wrapper.findAll('.location-card').find(
+      (card) => card.get('h3').text() === '晨曦城堡',
+    )
+    expect(wrapper.findComponent(TownGameHostStub).exists()).toBe(true)
+    expect(wrapper.get('.world-refresh-error button').attributes('disabled')).toBeDefined()
+    await castle!.get('button').trigger('click')
+    expect(post).not.toHaveBeenCalled()
+
+    retryResponse.resolve({
+      data: { success: true, data: worldAfterRetry, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.get>>)
+    await flushPromises()
+    expect(wrapper.find('.world-refresh-error').exists()).toBe(false)
+    expect(store.data?.world.world_version).toBe(2)
+
+    await castle!.get('button').trigger('click')
+    await flushPromises()
+    expect(post).toHaveBeenCalledWith('/api/player/travel', {
+      target_location_id: 'castle',
+      expected_world_version: 2,
+    })
+  })
+
   it('restores each NPC chat after switching and closing detail', async () => {
     const { pinia, store } = createStore()
     const chatStore = useNpcChatStore()
@@ -398,7 +538,7 @@ describe('TownView', () => {
     await flushPromises()
     store.data = {
       ...worldFixture,
-      world: { ...worldFixture.world, tick: 1, time: '09:00' },
+      world: { ...worldFixture.world, world_version: 1, clock_tick: 1, event_sequence: 3, time: '09:00' },
     }
     await flushPromises()
 
@@ -443,7 +583,7 @@ describe('TownView', () => {
     expect(useNpcChatStore().sessionFor('ryan').messages).toHaveLength(2)
   })
 
-  it('refreshes an open NPC detail only when the world tick changes', async () => {
+  it('refreshes an open NPC detail when the authoritative world version changes without advancing the clock', async () => {
     const { pinia, store } = createStore()
     const detailStore = useNpcDetailStore()
     store.data = worldFixture
@@ -457,7 +597,7 @@ describe('TownView', () => {
 
     store.data = {
       ...worldFixture,
-      world: { ...worldFixture.world, tick: 1, time: '09:00' },
+      world: { ...worldFixture.world, world_version: 1 },
     }
     await flushPromises()
     expect(refresh).toHaveBeenCalledTimes(1)
@@ -472,7 +612,7 @@ describe('TownView', () => {
     detailStore.close()
     store.data = {
       ...store.data,
-      world: { ...store.data.world, tick: 2, time: '10:00' },
+      world: { ...store.data.world, world_version: 2 },
     }
     await flushPromises()
     expect(refresh).toHaveBeenCalledTimes(1)
@@ -482,6 +622,7 @@ describe('TownView', () => {
     const { pinia, store } = createStore()
     store.data = worldFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(store, 'refreshWorld').mockResolvedValue(true)
     const post = vi.spyOn(api, 'post')
 
     const wrapper = mountTownView(pinia)
@@ -519,6 +660,7 @@ describe('TownView', () => {
     const { pinia, store, playerQuestStore } = createStore()
     store.data = worldFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(store, 'refreshWorld').mockResolvedValue(true)
     const travelled = {
       ...availablePlayerQuestFixture,
       player: {
@@ -543,6 +685,7 @@ describe('TownView', () => {
 
     expect(post).toHaveBeenCalledWith('/api/player/travel', {
       target_location_id: 'castle',
+      expected_world_version: 0,
     })
     expect(playerQuestStore.data?.player.location_id).toBe('castle')
     expect(wrapper.get('.player-location-panel').text()).toContain('晨曦城堡')
@@ -554,6 +697,7 @@ describe('TownView', () => {
     store.data = worldFixture
     playerQuestStore.data = acceptedPlayerQuestFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(store, 'refreshWorld').mockResolvedValue(true)
     const interactionResponse = deferred<Awaited<ReturnType<typeof api.post>>>()
     const briefed = {
       ...acceptedPlayerQuestFixture,
@@ -592,6 +736,7 @@ describe('TownView', () => {
 
     expect(post).toHaveBeenNthCalledWith(2, '/api/player/travel', {
       target_location_id: 'forest',
+      expected_world_version: 0,
     })
     expect(playerQuestStore.data?.player.location_id).toBe('forest')
     expect(teleportPlayer).not.toHaveBeenCalled()
@@ -601,6 +746,7 @@ describe('TownView', () => {
     const { pinia, store, playerQuestStore } = createStore()
     store.data = worldFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(store, 'refreshWorld').mockResolvedValue(true)
     const quickTravelResponse = deferred<Awaited<ReturnType<typeof api.post>>>()
     const travelled = {
       ...availablePlayerQuestFixture,
@@ -654,6 +800,7 @@ describe('TownView', () => {
     const { pinia, store } = createStore()
     store.data = worldFixture
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(store, 'refreshWorld').mockResolvedValue(true)
     vi.spyOn(api, 'post').mockResolvedValue({
       data: {
         success: true,
@@ -737,7 +884,7 @@ describe('TownView', () => {
         success: true,
         data: {
           world_id: 'aleria-town',
-          world_tick: 0,
+          clock_tick: 0,
           player_location_id: 'tavern',
           quest_status: 'available',
         },
@@ -801,7 +948,7 @@ describe('TownView', () => {
         success: true,
         data: {
           world_id: 'aleria-town',
-          world_tick: 0,
+          clock_tick: 0,
           player_location_id: 'tavern',
           quest_status: 'available',
         },

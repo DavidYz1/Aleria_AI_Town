@@ -9,7 +9,9 @@ export interface WorldInfo {
   name: string
   day: number
   time: string
-  tick: number
+  world_version: number
+  clock_tick: number
+  event_sequence: number
 }
 
 export interface LocationInfo {
@@ -24,7 +26,7 @@ export interface NpcStatus {
   social: number
 }
 
-export type ActionId = 'move' | 'rest' | 'work' | 'eat' | 'social'
+export type ActionId = 'move' | 'rest' | 'work' | 'eat' | 'talk' | 'wait'
 
 export interface NpcInfo {
   id: string

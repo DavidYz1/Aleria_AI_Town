@@ -194,18 +194,18 @@ describe('NPC detail store', () => {
       world_context: {
         ...npcDetailFixture.world_context,
         time: '10:00',
-        tick: 2,
+        clock_tick: 2,
       },
     }
 
     const pending = store.refresh(() => request.promise)
     expect(store.loading).toBe(true)
-    expect(store.data?.world_context.tick).toBe(1)
+    expect(store.data?.world_context.clock_tick).toBe(1)
 
     request.resolve(refreshedDetail)
     await pending
 
     expect(store.loading).toBe(false)
-    expect(store.data?.world_context.tick).toBe(2)
+    expect(store.data?.world_context.clock_tick).toBe(2)
   })
 })

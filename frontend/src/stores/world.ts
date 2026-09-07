@@ -10,7 +10,7 @@ import type { WorldData } from '../types/world'
 import type { WorldTickData } from '../types/worldTick'
 
 type WorldFetcher = () => Promise<WorldData>
-type TickAdvancer = (expectedTick: number) => Promise<WorldTickData>
+type TickAdvancer = (expectedWorldVersion: number) => Promise<WorldTickData>
 
 export const useWorldStore = defineStore('world', () => {
   const data = ref<WorldData | null>(null)
@@ -19,16 +19,23 @@ export const useWorldStore = defineStore('world', () => {
   const advancing = ref(false)
   const tickError = ref<string | null>(null)
   const lastTick = ref<WorldTickData | null>(null)
+  const refreshing = ref(false)
+  const refreshError = ref<string | null>(null)
   let loadRequestVersion = 0
   let tickRequestVersion = 0
   const isEmpty = computed(
     () => data.value !== null && (data.value.locations.length === 0 || data.value.npcs.length === 0),
+  )
+  const canMutate = computed(
+    () => data.value !== null && !refreshing.value && refreshError.value === null,
   )
 
   async function loadWorld(fetcher: WorldFetcher = fetchWorld): Promise<void> {
     const version = ++loadRequestVersion
     loading.value = true
     error.value = null
+    refreshing.value = false
+    refreshError.value = null
 
     try {
       const result = await fetcher()
@@ -43,17 +50,42 @@ export const useWorldStore = defineStore('world', () => {
     }
   }
 
+  async function refreshWorld(
+    fetcher: WorldFetcher = fetchWorld,
+  ): Promise<boolean> {
+    const version = ++loadRequestVersion
+    refreshing.value = true
+
+    try {
+      const result = await fetcher()
+      if (version !== loadRequestVersion) return false
+      data.value = result
+      refreshError.value = null
+      return true
+    } catch {
+      if (version !== loadRequestVersion) return false
+      refreshError.value = '世界刷新失败，请重试。'
+      return false
+    } finally {
+      if (version === loadRequestVersion) refreshing.value = false
+    }
+  }
+
+  async function retryRefresh(fetcher: WorldFetcher = fetchWorld): Promise<boolean> {
+    return refreshWorld(fetcher)
+  }
+
   async function advanceTick(
     advancer: TickAdvancer = advanceWorldTick,
     reloader: WorldFetcher = fetchWorld,
   ): Promise<void> {
-    if (advancing.value || data.value === null) return
+    if (advancing.value || data.value === null || !canMutate.value) return
 
     const version = ++tickRequestVersion
     advancing.value = true
     tickError.value = null
     try {
-      const result = await advancer(data.value.world.tick)
+      const result = await advancer(data.value.world.world_version)
       if (version !== tickRequestVersion) return
       data.value = result.world
       lastTick.value = result
@@ -80,17 +112,24 @@ export const useWorldStore = defineStore('world', () => {
     advancing.value = false
     tickError.value = null
     lastTick.value = null
+    refreshing.value = false
+    refreshError.value = null
   }
 
   return {
     data,
     loading,
     error,
+    refreshing,
+    refreshError,
     advancing,
     tickError,
     lastTick,
     isEmpty,
+    canMutate,
     loadWorld,
+    refreshWorld,
+    retryRefresh,
     advanceTick,
     reset,
   }

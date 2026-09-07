@@ -16,7 +16,8 @@ const actionLabels = {
   rest: '休息',
   work: '工作',
   eat: '用餐',
-  social: '交谈',
+  talk: '交谈',
+  wait: '等待',
 } as const
 
 const npcNames = computed(
@@ -54,7 +55,7 @@ function actionText(action: WorldActionInfo): string {
     <p v-if="error" class="tick-error" role="alert">{{ error }}</p>
 
     <div v-if="tick" class="tick-result" aria-live="polite">
-      <h3>Tick {{ tick.world.world.tick }} · {{ tick.world.world.time }}</h3>
+      <h3>第 {{ tick.world.world.clock_tick }} 回合 · {{ tick.world.world.time }}</h3>
       <div class="tick-columns">
         <div>
           <h4>NPC Actions</h4>

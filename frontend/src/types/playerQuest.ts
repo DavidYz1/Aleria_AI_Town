@@ -50,10 +50,14 @@ export interface PlayerQuestData {
 export interface QuestInteractRequest {
   interaction: QuestInteraction
   expected_version: number
+  expected_world_version: number
 }
 
 export type PlayerQuestFetcher = () => Promise<PlayerQuestData>
-export type PlayerTraveller = (locationId: string) => Promise<PlayerQuestData>
+export type PlayerTraveller = (
+  locationId: string,
+  expectedWorldVersion: number,
+) => Promise<PlayerQuestData>
 export type QuestInteractor = (
   request: QuestInteractRequest,
 ) => Promise<PlayerQuestData>

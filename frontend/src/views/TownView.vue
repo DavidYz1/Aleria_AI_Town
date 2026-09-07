@@ -63,6 +63,10 @@ function reloadWorld(): void {
   void store.loadWorld()
 }
 
+function retryWorldRefresh(): void {
+  void store.retryRefresh()
+}
+
 function loadTown(): void {
   void Promise.all([
     store.loadWorld(),
@@ -75,10 +79,17 @@ function retryPlayerQuest(): void {
 }
 
 async function travelPlayer(locationId: string): Promise<void> {
-  if (resettingDemo.value) return
+  if (resettingDemo.value || !store.canMutate) return
+  const expectedWorldVersion = store.data?.world.world_version
+  if (expectedWorldVersion === undefined) return
   quickTravelRequests += 1
   try {
-    const travelled = await playerQuestStore.travel(locationId)
+    const travelled = await playerQuestStore.travel(
+      locationId,
+      expectedWorldVersion,
+      undefined,
+      () => store.refreshWorld(),
+    )
     if (
       travelled
       && playerQuestStore.data?.player.location_id === locationId
@@ -100,6 +111,7 @@ async function syncEnteredPlayerLocation(): Promise<void> {
     || resettingDemo.value
     || quickTravelRequests > 0
     || playerQuestStore.mutating
+    || !store.canMutate
   ) return
   const locationId = pendingEnteredLocationId.value
   if (locationId === null) return
@@ -110,7 +122,15 @@ async function syncEnteredPlayerLocation(): Promise<void> {
 
   syncingEnteredLocation = true
   try {
-    await playerQuestStore.travel(locationId)
+    const expectedWorldVersion = store.data?.world.world_version
+    if (expectedWorldVersion !== undefined) {
+      await playerQuestStore.travel(
+        locationId,
+        expectedWorldVersion,
+        undefined,
+        () => store.refreshWorld(),
+      )
+    }
   } finally {
     syncingEnteredLocation = false
     if (pendingEnteredLocationId.value === locationId) {
@@ -129,12 +149,20 @@ function enterPlayerLocation(locationId: string): void {
 }
 
 function interactWithQuest(interaction: QuestInteraction): void {
-  if (resettingDemo.value) return
-  void playerQuestStore.interact(interaction)
+  if (resettingDemo.value || !store.canMutate) return
+  const expectedWorldVersion = store.data?.world.world_version
+  if (expectedWorldVersion !== undefined) {
+    void playerQuestStore.interact(
+      interaction,
+      expectedWorldVersion,
+      undefined,
+      () => store.refreshWorld(),
+    )
+  }
 }
 
 function advanceWorld(): void {
-  if (resettingDemo.value) return
+  if (resettingDemo.value || !store.canMutate) return
   void store.advanceTick()
 }
 
@@ -195,7 +223,7 @@ watch(
 )
 
 watch(
-  () => store.data?.world.tick,
+  () => store.data?.world.world_version,
   (nextTick, previousTick) => {
     if (
       nextTick !== undefined
@@ -255,6 +283,13 @@ onMounted(loadTown)
     </section>
 
     <template v-else-if="store.data">
+      <section v-if="store.refreshError" class="state-panel error-panel world-refresh-error" role="alert">
+        <p>{{ store.refreshError }}</p>
+        <button type="button" :disabled="store.refreshing" @click="retryWorldRefresh">
+          {{ store.refreshing ? '正在同步…' : '重新同步' }}
+        </button>
+      </section>
+
       <section
         v-if="playerProfileStore.profile"
         class="town-section town-map-section"

@@ -31,7 +31,7 @@ describe('TickPanel', () => {
       props: { advancing: false, error: null, tick: tickFixture },
     })
 
-    expect(wrapper.text()).toContain('Tick 1 · 09:00')
+    expect(wrapper.text()).toContain('第 1 回合 · 09:00')
     for (const text of ['Ryan · 工作', 'Shir · 移动 → 中央公园', 'Grey · 工作']) {
       expect(wrapper.text()).toContain(text)
     }

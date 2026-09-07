@@ -21,13 +21,13 @@ export interface NpcStateDetail {
 export interface NpcWorldContext {
   day: number
   time: string
-  tick: number
+  clock_tick: number
   time_phase: TimePhase
 }
 
 export interface NpcRecentAction {
   id: number
-  tick: number
+  clock_tick: number
   world_time: string
   action_type: ActionId
   target_kind: TargetKind | null

@@ -16,10 +16,10 @@ export async function fetchWorld(): Promise<WorldData> {
   return response.data.data
 }
 
-export async function advanceWorldTick(expectedTick: number): Promise<WorldTickData> {
+export async function advanceWorldTick(expectedWorldVersion: number): Promise<WorldTickData> {
   try {
     const response = await api.post<ApiResponse<WorldTickData>>('/api/world/tick', {
-      expected_tick: expectedTick,
+      expected_world_version: expectedWorldVersion,
     })
     return response.data.data
   } catch (error) {

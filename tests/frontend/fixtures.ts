@@ -41,7 +41,10 @@ const phaserTestStub = {
 export default phaserTestStub
 
 export const worldFixture: WorldData = {
-  world: { id: 'aleria-town', name: '曦谷', day: 1, time: '08:00', tick: 0 },
+  world: {
+    id: 'aleria-town', name: '曦谷', day: 1, time: '08:00',
+    world_version: 0, clock_tick: 0, event_sequence: 0,
+  },
   locations: [
     { id: 'tavern', name: '星辉酒馆', description: '炉火、消息与委托汇聚的温暖酒馆，许多旅人故事从这里开始' },
     { id: 'park', name: '中央公园', description: '居民散步与骑士训练的开阔绿地，日常生活掩映着战争旧痕' },
@@ -70,20 +73,29 @@ export const worldFixture: WorldData = {
 export const tickFixture: WorldTickData = {
   world: {
     ...worldFixture,
-    world: { ...worldFixture.world, time: '09:00', tick: 1 },
+    world: {
+      ...worldFixture.world, time: '09:00',
+      world_version: 1, clock_tick: 1, event_sequence: 3,
+    },
     npcs: worldFixture.npcs.map((npc) => npc.id === 'shir'
       ? { ...npc, location_id: 'park', current_action: 'move', status: { energy: 65, mood: 64, social: 32 } }
       : npc),
   },
+  run: {
+    id: '00000000-0000-0000-0000-000000000001', mode: 'deterministic',
+    trigger_type: 'world_advance', status: 'completed',
+    base_world_version: 0, resulting_world_version: 1,
+    base_clock_tick: 0, resulting_clock_tick: 1,
+  },
   actions: [
-    { id: 1, tick: 1, actor_id: 'ryan', action_type: 'work', target_kind: null, target_id: null, reason: 'knight_training', status: 'recorded', world_time: '09:00' },
-    { id: 2, tick: 1, actor_id: 'shir', action_type: 'move', target_kind: 'location', target_id: 'park', reason: 'low_social_find_companion', status: 'recorded', world_time: '09:00' },
-    { id: 3, tick: 1, actor_id: 'grey', action_type: 'work', target_kind: null, target_id: null, reason: 'guardian_patrol', status: 'recorded', world_time: '09:00' },
+    { id: 1, clock_tick: 1, actor_id: 'ryan', action_type: 'work', target_kind: null, target_id: null, reason: 'knight_training', status: 'executed', run_id: '00000000-0000-0000-0000-000000000001', proposal_id: 1, world_version: 1, world_time: '09:00' },
+    { id: 2, clock_tick: 1, actor_id: 'shir', action_type: 'move', target_kind: 'location', target_id: 'park', reason: 'low_social_find_companion', status: 'executed', run_id: '00000000-0000-0000-0000-000000000001', proposal_id: 2, world_version: 1, world_time: '09:00' },
+    { id: 3, clock_tick: 1, actor_id: 'grey', action_type: 'work', target_kind: null, target_id: null, reason: 'guardian_patrol', status: 'executed', run_id: '00000000-0000-0000-0000-000000000001', proposal_id: 3, world_version: 1, world_time: '09:00' },
   ],
   events: [
-    { id: 1, tick: 1, event_type: 'npc_action', actor_id: 'ryan', action_id: 1, description: 'Ryan 工作', world_time: '09:00' },
-    { id: 2, tick: 1, event_type: 'npc_action', actor_id: 'shir', action_id: 2, description: 'Shir 前往 park', world_time: '09:00' },
-    { id: 3, tick: 1, event_type: 'npc_action', actor_id: 'grey', action_id: 3, description: 'Grey 工作', world_time: '09:00' },
+    { id: 1, run_id: '00000000-0000-0000-0000-000000000001', world_version: 1, clock_tick: 1, event_sequence: 1, event_type: 'npc_action', actor_id: 'ryan', action_id: 1, source_event_id: null, description: 'Ryan performed work', world_time: '09:00', payload: { action_type: 'work', target: null, reason_code: 'knight_training', proposal_ordinal: 0 }, visibility: 'public', secrecy: 'public', causation_id: null, correlation_id: '00000000-0000-0000-0000-000000000002', created_at: '2026-09-04T08:00:00Z' },
+    { id: 2, run_id: '00000000-0000-0000-0000-000000000001', world_version: 1, clock_tick: 1, event_sequence: 2, event_type: 'npc_action', actor_id: 'shir', action_id: 2, source_event_id: null, description: 'Shir performed move', world_time: '09:00', payload: { action_type: 'move', target: { kind: 'location', id: 'park' }, reason_code: 'low_social_find_companion', proposal_ordinal: 1 }, visibility: 'public', secrecy: 'public', causation_id: null, correlation_id: '00000000-0000-0000-0000-000000000002', created_at: '2026-09-04T08:00:00Z' },
+    { id: 3, run_id: '00000000-0000-0000-0000-000000000001', world_version: 1, clock_tick: 1, event_sequence: 3, event_type: 'npc_action', actor_id: 'grey', action_id: 3, source_event_id: null, description: 'Grey performed work', world_time: '09:00', payload: { action_type: 'work', target: null, reason_code: 'guardian_patrol', proposal_ordinal: 2 }, visibility: 'public', secrecy: 'public', causation_id: null, correlation_id: '00000000-0000-0000-0000-000000000002', created_at: '2026-09-04T08:00:00Z' },
   ],
 }
 
@@ -107,13 +119,13 @@ export const npcDetailFixture: NpcDetailData = {
   world_context: {
     day: 1,
     time: '09:00',
-    tick: 1,
+    clock_tick: 1,
     time_phase: 'morning',
   },
   recent_actions: [
     {
       id: 1,
-      tick: 1,
+      clock_tick: 1,
       world_time: '09:00',
       action_type: 'work',
       target_kind: null,

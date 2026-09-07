@@ -45,18 +45,18 @@ describe('Player quest API adapter', () => {
     expect(get).toHaveBeenCalledWith('/api/player')
   })
 
-  it('sends only the target location when travelling', async () => {
+  it('sends the target location with the current global world version when travelling', async () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({
       data: { success: true, data: acceptedPlayerQuestFixture, message: 'ok' },
     } as Awaited<ReturnType<typeof api.post>>)
 
-    await expect(travelPlayer('castle')).resolves.toEqual(acceptedPlayerQuestFixture)
+    await expect(travelPlayer('castle', 4)).resolves.toEqual(acceptedPlayerQuestFixture)
     expect(post).toHaveBeenCalledWith('/api/player/travel', {
-      target_location_id: 'castle',
+      target_location_id: 'castle', expected_world_version: 4,
     })
   })
 
-  it('sends the interaction with the caller-owned quest version', async () => {
+  it('sends the interaction with both quest-local and global world versions', async () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({
       data: { success: true, data: acceptedPlayerQuestFixture, message: 'ok' },
     } as Awaited<ReturnType<typeof api.post>>)
@@ -64,10 +64,12 @@ describe('Player quest API adapter', () => {
     await expect(interactWithMissingChildQuest({
       interaction: 'ask_grey',
       expected_version: 1,
+      expected_world_version: 4,
     })).resolves.toEqual(acceptedPlayerQuestFixture)
     expect(post).toHaveBeenCalledWith('/api/quests/missing-child/interact', {
       interaction: 'ask_grey',
       expected_version: 1,
+      expected_world_version: 4,
     })
   })
 
@@ -79,6 +81,7 @@ describe('Player quest API adapter', () => {
     await expect(interactWithMissingChildQuest({
       interaction: 'accept_quest',
       expected_version: 0,
+      expected_world_version: 0,
     })).rejects.toEqual(
       new PlayerQuestConflictError('Quest state has changed'),
     )
@@ -90,7 +93,7 @@ describe('Player quest API adapter', () => {
   ])('maps HTTP %s to a safe player quest error', async (status, message) => {
     vi.spyOn(api, 'post').mockRejectedValue(axiosError(status, message))
 
-    await expect(travelPlayer('castle')).rejects.toEqual(
+    await expect(travelPlayer('castle', 0)).rejects.toEqual(
       new PlayerQuestApiError(status, message),
     )
   })

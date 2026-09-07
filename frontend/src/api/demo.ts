@@ -4,7 +4,7 @@ import type { ApiResponse } from '../types/world'
 
 export interface DemoResetData {
   world_id: string
-  world_tick: number
+  clock_tick: number
   player_location_id: string
   quest_status: string
 }

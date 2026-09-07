@@ -37,11 +37,11 @@ export const fetchPlayerQuest: PlayerQuestFetcher = async () => {
   }
 }
 
-export const travelPlayer: PlayerTraveller = async (locationId) => {
+export const travelPlayer: PlayerTraveller = async (locationId, expectedWorldVersion) => {
   try {
     const response = await api.post<ApiResponse<PlayerQuestData>>(
       '/api/player/travel',
-      { target_location_id: locationId },
+      { target_location_id: locationId, expected_world_version: expectedWorldVersion },
     )
     return response.data.data
   } catch (caught) {

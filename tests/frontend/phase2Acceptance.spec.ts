@@ -144,7 +144,7 @@ describe('Phase 2 presentation acceptance', () => {
       expect.objectContaining({ id: 'shir', anchorName: 'location:tavern' }),
       expect.objectContaining({ id: 'grey', anchorName: 'location:castle' }),
     ])
-    expect(useWorldStore().data?.world.tick).toBe(0)
+    expect(useWorldStore().data?.world.clock_tick).toBe(0)
     expect(usePlayerQuestStore().data?.quest.version).toBe(0)
 
     await host.get('button').trigger('click')
@@ -164,7 +164,7 @@ describe('Phase 2 presentation acceptance', () => {
       },
     })
     expect(wrapper.get('.npc-chat-panel').text()).toContain('你的过去仍没有可靠证据')
-    expect(useWorldStore().data?.world.tick).toBe(0)
+    expect(useWorldStore().data?.world.clock_tick).toBe(0)
     expect(usePlayerQuestStore().data?.quest.version).toBe(0)
   })
 
@@ -201,7 +201,7 @@ describe('Phase 2 presentation acceptance', () => {
 
     await wrapper.get('.tick-panel button').trigger('click')
     await flushPromises()
-    expect(post).toHaveBeenCalledWith('/api/world/tick', { expected_tick: 0 })
+    expect(post).toHaveBeenCalledWith('/api/world/tick', { expected_world_version: 0 })
     expect(host.props('npcs')).toEqual([
       expect.objectContaining({ id: 'ryan', anchorName: 'location:park' }),
       expect.objectContaining({ id: 'shir', anchorName: 'location:park' }),
@@ -214,8 +214,8 @@ describe('Phase 2 presentation acceptance', () => {
     await castle!.get('button').trigger('click')
     await flushPromises()
     expect(post.mock.calls).toEqual([
-      ['/api/world/tick', { expected_tick: 0 }],
-      ['/api/player/travel', { target_location_id: 'castle' }],
+      ['/api/world/tick', { expected_world_version: 0 }],
+      ['/api/player/travel', { target_location_id: 'castle', expected_world_version: 1 }],
     ])
     post.mock.calls.forEach(([, payload]) => expectNoCoordinateKeys(payload))
   })
