@@ -33,7 +33,7 @@
 2. 输入玩家名字，在法师、游侠、牧师中选择职业，观看或跳过剧情过场。
 3. 进入曦谷地图后，使用 WASD、方向键或地点卡片的“快速前往”移动。
 4. 点击地图上的 Ryan、Shir、Grey，查看状态、最近行动并开始交流。
-5. 点击“推进一回合”，观察世界时间、NPC 地点、状态与行动记录变化。
+5. 点击“推进 1 小时”，观察世界时间、NPC 地点、状态与行动记录变化。
 6. 前往星辉酒馆接受“失踪的孩子”，按照 Backend 返回的目标推进任务。
 7. 分别询问三位 NPC 关于战争、档案或玩家印记的问题，比较他们的知识边界和立场。
 8. 如需重新演示，点击“重新开始冒险”恢复初始世界并重新创建角色。
@@ -44,7 +44,7 @@ Aleria AI Town 是一个“**确定性世界模拟 + 生成式角色对话**”�
 
 ### 核心原则
 
-1. **Backend 是唯一事实来源**：World、NPC、玩家语义地点和 Quest 状态均由 FastAPI 与 SQLite 维护。
+1. **Backend 是唯一事实来源**：World、NPC、玩家语义地点和 Quest 状态均由 FastAPI 与数据库维护（本地 SQLite，Docker PostgreSQL）。
 2. **Phaser 负责游戏表现**：地图、碰撞、移动、镜头与 Sprite 由 Phaser 管理，但 Phaser 不独立完成任务状态迁移。
 3. **键盘与点击移动归一**：WASD 进入地点区域和“快速前往”最终都会同步到同一个 Backend 地点状态，避免输入设备限制阻断任务。
 4. **AI 只负责表达**：模型可以决定 NPC 如何说，但不能擅自推进 Tick、移动 NPC、完成任务或写入世界状态。
@@ -137,7 +137,7 @@ available → accepted → briefed_by_grey
 | 游戏与业务前端 | Vue 3、TypeScript、Pinia、Axios | 组件化展示业务状态，类型约束清晰，便于拆分 World、Player/Quest 和 Chat Store |
 | 2D 游戏层 | Phaser 3.90.0 | 已提供 Scene、Sprite、输入、碰撞、摄像机和游戏循环，适合快速实现 2D RPG |
 | Backend | FastAPI、Pydantic v2 | API 契约明确、校验能力完整，并自动提供 Swagger 文档 |
-| 持久化 | SQLAlchemy、SQLite | 单文件、低运维成本，满足单实例作业 Demo 的世界状态与聊天持久化 |
+| 持久化 | SQLAlchemy、Alembic、SQLite / PostgreSQL + pgvector | 本地轻量运行，Docker 持久部署；版本化迁移和原子 Runtime 记录 |
 | AI 接入 | OpenAI-compatible Adapter | 通过配置复用腾讯混元、Gemini 等兼容服务，业务层不依赖具体供应商 |
 | 部署 | Docker Compose、Nginx | 保持 Frontend + Backend 当前架构，支持环境隔离、健康检查和服务器迁移 |
 
@@ -167,7 +167,7 @@ flowchart LR
     Provider["ChatProvider"]
     Compatible["OpenAI-compatible Adapter<br/>hy-role · hy3 · Gemini"]
     Mock["Character-aware Mock"]
-    SQLite[("SQLite")]
+    SQLite[("SQLite / PostgreSQL")]
 
     Browser --> Vue
     Browser --> Phaser
@@ -188,7 +188,7 @@ flowchart LR
 
 架构中有两条明确隔离的运行链：
 
-- **确定性游戏链**：`Snapshot → Decision → Validation → Transaction → New State`。
+- **确定性游戏链**：`Snapshot → ActionProposal → Registry validation → deterministic resolution → atomic world/run/action/event/trace commit`。
 - **生成式对话链**：`Authoritative Context → Prompt v3 → Provider → Validation → Chat Persistence`。
 
 AI 对话不能进入 Action Execution、Quest Transition 或 World Update。
@@ -211,12 +211,13 @@ AI 对话不能进入 Action Execution、Quest Transition 或 World Update。
 | --- | --- | --- | --- |
 | `GET` | `/api/health` | 检查 API、数据库和当前 Chat Provider | 数据库不可用返回 `503` |
 | `GET` | `/api/world` | 获取时间、地点与 NPC 基础状态 | 世界不存在或数据库异常时返回错误响应 |
-| `POST` | `/api/world/tick` | 以 `expected_tick` 推进一个世界回合 | 过期 Tick 返回 `409`，事务失败返回 `503` |
+| `POST` | `/api/world/tick` | 以 `expected_world_version` 同步推进一小时并返回 run | 过期世界版本返回 `409`，事务失败返回 `503` |
+| `GET` | `/api/agent-runs/{run_id}` | 查看持久化 proposal、event 与有序事实 trace | 不存在返回 `404`，非法 UUID 返回 `422` |
 | `GET` | `/api/npcs/{npc_id}` | 获取 NPC 档案、状态与最近行动 | NPC 不存在返回 `404` |
 | `POST` | `/api/npcs/{npc_id}/chat` | 创建或继续 NPC 多轮对话 | 校验 NPC、conversation、输入与模型输出；Primary 失败自动尝试 Mock |
 | `GET` | `/api/player` | 获取玩家地点、Quest objective、版本与事件 | 玩家或任务不存在返回 `404` |
-| `POST` | `/api/player/travel` | 更新玩家权威语义地点，不推进 Tick | 只接受稳定地点 ID；未知地点返回 `404` |
-| `POST` | `/api/quests/missing-child/interact` | 按 interaction 与 `expected_version` 推进任务 | 错误地点、跳步或版本冲突返回 `409` |
+| `POST` | `/api/player/travel` | 更新玩家权威语义地点，不推进时间 | 携带 `expected_world_version`；未知地点返回 `404`，过期返回 `409` |
+| `POST` | `/api/quests/missing-child/interact` | 按 interaction、`expected_version` 与 `expected_world_version` 推进任务 | 错误地点、跳步或版本冲突返回 `409` |
 | `POST` | `/api/demo/reset` | 恢复 Demo 初始数据 | 在单事务中重建种子状态，失败返回 `503` |
 
 完整请求与响应字段见 [`docs/06_API_Contract.md`](docs/06_API_Contract.md)，数据库结构见 [`docs/07_Database_Schema.md`](docs/07_Database_Schema.md)。
@@ -224,7 +225,7 @@ AI 对话不能进入 Action Execution、Quest Transition 或 World Update。
 ### World Tick 决策流程
 
 ```text
-Frontend 提交 expected_tick
+Frontend 提交 expected_world_version
     ↓
 Backend 校验乐观锁版本
     ↓
@@ -232,14 +233,16 @@ Backend 校验乐观锁版本
     ↓
 每个 NPC 根据角色、地点、状态、时间和允许行为选择下一步
     ↓
-Action / Target Validation
+Registry validation → deterministic resolution
     ↓
-同一数据库事务保存 World、NPC、Action 与 Event
+同一数据库事务保存 World、NPC、Run、Proposal、Action、Event 与 Trace
     ↓
-返回新的权威世界状态
+同步 HTTP 200 返回新的权威世界状态与 Run 摘要
 ```
 
-NPC 决策不由前端写死，所有 NPC 从同一快照决策，避免先执行的 NPC 影响后执行 NPC 的本回合输入。
+NPC 决策不由前端写死，所有 NPC 从同一不可变快照决策。Registry 初始行为为 `move/rest/work/eat/talk/wait`；`social` 仍是需求数值，不再是 action ID。
+
+`world_version` 是世界推进、实际旅行和任务迁移共享的乐观并发版本；`clock_tick` 只在推进时间时增加；`event_sequence` 对同一世界的事件连续排序。Chat 不改变这三个计数。Trace 只记录结构化引用与简短事实，不记录隐藏推理。Memory、LLM 规划、Agent Lab、异步 202、Celery/Redis/SSE 都留给后续阶段。
 
 ### NPC Chat 决策流程
 
@@ -287,7 +290,11 @@ Frontend 不复制任务迁移规则，只渲染 Backend 返回的目标与可�
 
 ## 方法一：Docker Compose，推荐
 
-这种方式只需要 Git 和 Docker，不需要在宿主机安装 Node.js、项目 Python 依赖或 SQLite。
+这种方式只需要 Git 和 Docker，不需要在宿主机安装 Node.js、项目 Python 依赖或数据库。
+
+Docker 基础拓扑包含 `pgvector/pgvector:0.8.6-pg17-bookworm`，只向宿主机发布 Web 端口。`.env.production.example` 由 PostgreSQL 变量生成 Psycopg 3 URL；示例密码只供 Demo，部署前必须替换。URL 中的用户名/密码需 URL-safe；使用保留字符时显式设置正确 percent-encoded `DATABASE_URL`。
+
+数据库升级只启用 vector 扩展，尚无 vector 列或 Memory 功能。迁移与 PostgreSQL loopback 测试 override 的完整命令见 [开发环境](docs/14_Development_Environment.md)。
 
 ### Windows PowerShell
 
@@ -301,7 +308,7 @@ Copy-Item .env.production.example .env.production
 notepad .env.production
 ```
 
-3. 在记事本中把 `HTTP_PORT=80` 改为 `HTTP_PORT=8080`。默认已经是 Mock 模式，不需要填写 API Key。保存并关闭文件，然后执行：
+3. 在记事本中替换示例 `POSTGRES_PASSWORD`，把 `HTTP_PORT=80` 改为 `HTTP_PORT=8080`。默认已经是 Mock 模式，不需要填写 API Key。保存并关闭文件，然后执行：
 
 ```powershell
 docker compose --env-file .env.production up -d --build
@@ -325,7 +332,7 @@ cd Aleria_AI_Town
 cp .env.production.example .env.production
 ```
 
-3. 使用文本编辑器打开 `.env.production`，把 `HTTP_PORT=80` 改成 `HTTP_PORT=8080`，然后执行：
+3. 使用文本编辑器打开 `.env.production`，替换示例 `POSTGRES_PASSWORD`，把 `HTTP_PORT=80` 改成 `HTTP_PORT=8080`，然后执行：
 
 ```bash
 docker compose --env-file .env.production up -d --build
@@ -343,7 +350,7 @@ Windows PowerShell 与 Bash 可以使用相同的 Compose 命令：
 # 查看日志；Ctrl+C 只退出日志，不停止容器
 docker compose --env-file .env.production logs -f
 
-# 停止并移除容器，SQLite 命名卷仍然保留
+# 停止并移除容器，PostgreSQL 与旧 SQLite 命名卷仍然保留
 docker compose --env-file .env.production down
 
 # 再次启动
@@ -353,7 +360,7 @@ docker compose --env-file .env.production up -d
 docker compose --env-file .env.production up -d --build
 ```
 
-不要随意执行 `docker compose down -v`；`-v` 会删除保存 SQLite 数据的 Docker Volume。
+不要随意执行 `docker compose down -v`；`-v` 会删除保存持久数据的 Docker Volume。
 
 仓库还提供 `scripts/deploy.cmd` 与 `scripts/deploy.sh` 一键部署包装器。它们会检查 Compose 配置、构建容器并等待健康检查，但宿主机需要额外安装 Python 3.11+。只安装 Docker 时，直接使用上面的 `docker compose` 命令即可。
 
@@ -582,10 +589,14 @@ nano .env.production
 
 ```env
 APP_ENV=production
-DATABASE_URL=sqlite:////app/backend/data/aleria.db
+POSTGRES_DB=aleria
+POSTGRES_USER=aleria
+POSTGRES_PASSWORD=<replace-with-url-safe-password>
 FRONTEND_ORIGIN=http://你的公网IP
 HTTP_PORT=80
 ```
+
+必须替换 POSTGRES_PASSWORD 占位值。Compose 会使用这些变量生成 PostgreSQL 连接地址；仅在需要覆盖连接地址或使用保留字符凭据时，另设正确 percent-encoded 的 `postgresql+psycopg://` DATABASE_URL，并保持数据库实际密码一致。
 
 然后从前面的 AI 配置中选择 Mock 或真实 Provider。真实 Key 只写入服务器上的 `.env.production`，不要提交 Git、发送到前端或放进截图。
 
@@ -614,7 +625,7 @@ docker compose --env-file .env.production up -d --build
 docker compose --env-file .env.production restart
 ```
 
-Backend 与 Web 容器均配置 `restart: unless-stopped` 和基础健康检查。SQLite 存放在 `aleria_data` 命名卷中，重新构建容器不会清除世界数据。迁移服务器时需要保留源码、真实 `.env.production`，并单独备份或迁移该 Volume 中的数据库文件。
+数据库、Backend 与 Web 均有健康检查和重启策略。PostgreSQL 使用 `aleria_postgres_data` 命名卷；Backend 等待数据库健康并执行 Alembic 升级后启动，Web 等待 Backend 健康。重建容器不会清除数据；迁移服务器需要备份私有配置和 PostgreSQL 数据。旧 SQLite 的 `aleria_data` 卷保留，但不会自动导入 PostgreSQL；已有部署切换前需单独规划数据迁移。
 
 当前线上入口是 HTTP，不适合传输隐私数据或用于正式生产服务。API Key 不会经过浏览器，Backend 到模型服务仍使用 HTTPS；但浏览器与服务器之间的游戏请求和聊天内容没有 TLS 保护。正式对外运营应增加域名与 HTTPS，并补充认证、限流和重置权限控制。
 
@@ -624,7 +635,7 @@ Town 页面右上角的“重新开始冒险”会：
 
 - 恢复初始 World 时间与 NPC 状态；
 - 恢复 Player 和“失踪的孩子”任务状态；
-- 清除聊天、NPC Action、World Event 和 Quest Event；
+- 清除聊天、Agent Run/Proposal/Trace、NPC Action、World Event 和 Quest Event；
 - 清除浏览器中的本地角色名字与职业；
 - 销毁旧 Phaser 实例并返回角色创建流程。
 
@@ -733,13 +744,13 @@ npm --prefix frontend run build
 docker compose --env-file .env.production.example config --quiet
 ```
 
-自动测试使用临时 SQLite、Mock 或假 Provider，不读取真实 API Key，也不发起外部模型请求。真实 Provider 验证属于显式、手动的 Smoke Test。
+默认自动测试使用临时 SQLite、Mock 或假 Provider，不读取真实 API Key，也不发起外部模型请求。PostgreSQL 集成测试只在显式设置 `TEST_POSTGRES_URL` 时运行，且使用独立可丢弃数据库中的测试 schema；缺失时明确 skip。真实 Provider 验证属于显式、手动的 Smoke Test。
 
 ### 已知限制
 
 - 当前公开部署是共享单世界、无账号的作业 Demo，不适合多人同时修改状态。
 - Demo Reset 是全局接口，尚未增加认证和权限控制。
-- SQLite 适合单实例部署，不支持多个 Backend 容器同时写入。
+- 本地 SQLite 为轻量单实例模式；Docker 使用 PostgreSQL，但异步提交、后台调度和多 worker Runtime 协调仍未实现。
 - 当前线上入口为 HTTP，没有域名和 TLS。
 - Phaser 像素坐标不持久化；Backend 只保存任务需要的语义地点。
 - 职业只影响外观、称谓和对话上下文，没有战斗数值差异。
@@ -751,7 +762,7 @@ docker compose --env-file .env.production.example config --quiet
 - [`docs/01_Assignment_Specification.md`](docs/01_Assignment_Specification.md)：腾讯作业要求整理。
 - [`docs/05_Engineering_Architecture.md`](docs/05_Engineering_Architecture.md)：工程架构与边界。
 - [`docs/06_API_Contract.md`](docs/06_API_Contract.md)：API 请求与响应契约。
-- [`docs/07_Database_Schema.md`](docs/07_Database_Schema.md)：SQLite / SQLAlchemy 数据结构。
+- [`docs/07_Database_Schema.md`](docs/07_Database_Schema.md)：SQLite / PostgreSQL、Alembic 与 Runtime 数据结构。
 - [`docs/08_Prompt_Engineering_CN.md`](docs/08_Prompt_Engineering_CN.md)：Prompt 版本与角色上下文设计。
 - [`docs/10_AI_Coding_Workflow.md`](docs/10_AI_Coding_Workflow.md)：AI 辅助开发与人工 Review 流程。
 - [`docs/12_Game_Experience_Design.md`](docs/12_Game_Experience_Design.md)：四场景游戏体验设计。

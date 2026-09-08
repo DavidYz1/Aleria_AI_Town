@@ -1,13 +1,28 @@
 name: aleria-ai-town
 
 services:
+  db:
+    image: pgvector/pgvector:0.8.6-pg17-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aleria}
+      POSTGRES_USER: ${POSTGRES_USER:-aleria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - aleria_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     environment:
       APP_ENV: ${APP_ENV:-production}
-      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/backend/data/aleria.db}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER:-aleria}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-aleria}}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost}
       CHAT_PROVIDER: ${CHAT_PROVIDER:-mock}
       CHAT_LLM_BASE_URL: ${CHAT_LLM_BASE_URL:-}
@@ -20,6 +35,9 @@ services:
       CHAT_PROMPT_VERSION: ${CHAT_PROMPT_VERSION:-v3}
     volumes:
       - aleria_data:/app/backend/data
+    depends_on:
+      db:
+        condition: service_healthy
     expose:
       - "8000"
     healthcheck:
@@ -60,3 +78,4 @@ services:
 
 volumes:
   aleria_data:
+  aleria_postgres_data:

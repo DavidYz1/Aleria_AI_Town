@@ -259,7 +259,16 @@ class WorldTickRepository:
             require(e.visibility in {"public", "private"})
         require(bool(result.traces))
         require(tuple(t.sequence for t in result.traces) == tuple(range(1, len(result.traces) + 1)))
-        require(result.traces[0].stage == "run_started" and result.traces[-1].stage == "run_completed")
+        expected_topology = [("run_started", None)]
+        expected_topology.extend(("proposal", ordinal) for ordinal in range(len(result.proposals)))
+        expected_topology.extend(("validation", ordinal) for ordinal in range(len(result.proposals)))
+        for ordinal, _ in accepted:
+            expected_topology.extend((("execution", ordinal), ("event", ordinal)))
+        expected_topology.append(("run_completed", None))
+        require(
+            [(trace.stage, trace.data.get("proposal_ordinal")) for trace in result.traces]
+            == expected_topology
+        )
         for t in result.traces:
             require(type(t.sequence) is int)
             require(t.visibility in {"public", "private"})

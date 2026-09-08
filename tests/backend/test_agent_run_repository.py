@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import event, func, select, text
 
-from backend.app.agents.contracts import ActionProposal, ActionValidation, ResolvedProposal
+from backend.app.agents.contracts import ActionProposal, ActionValidation, ResolvedProposal, TraceDraft
 from backend.app.agents.orchestrator import run_deterministic_advance
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import AgentRun, ActionProposalRecord, AgentTraceEntry, Event, NpcState, WorldAction, WorldState
@@ -23,19 +23,82 @@ def counts(session):
     return tuple(session.scalar(select(func.count()).select_from(model)) for model in (AgentRun, ActionProposalRecord, WorldAction, Event, AgentTraceEntry))
 
 
+@pytest.mark.parametrize("mutation,stage", [
+    ("boundaries_only", None),
+    *(("missing", stage) for stage in ("proposal", "validation", "execution", "event")),
+    *(("duplicate", stage) for stage in ("run_started", "proposal", "validation", "execution", "event", "run_completed")),
+    ("reordered_ordinals", "proposal"),
+    ("reordered_phases", "validation"),
+    ("reordered_execution_event", "execution"),
+])
+def test_incomplete_or_duplicate_trace_topology_is_rejected_before_writes(factory, mutation, stage):
+    with factory() as session:
+        repository = WorldTickRepository(session)
+        base = repository.get_snapshot()
+        result = run_deterministic_advance(base)
+        traces = list(result.traces)
+        if mutation == "boundaries_only":
+            traces = [traces[0], traces[-1]]
+        else:
+            index = next(i for i, trace in enumerate(traces) if trace.stage == stage)
+            if mutation == "missing":
+                traces.pop(index)
+            elif mutation == "duplicate":
+                traces.insert(index, traces[index])
+            elif mutation in {"reordered_ordinals", "reordered_execution_event"}:
+                traces[index], traces[index + 1] = traces[index + 1], traces[index]
+            elif mutation == "reordered_phases":
+                traces.insert(1, traces.pop(index))
+        malformed = replace(result, traces=tuple(
+            replace(trace, sequence=sequence)
+            for sequence, trace in enumerate(traces, 1)
+        ))
+        writes = []
+
+        def record_write(conn, cursor, statement, parameters, context, executemany):
+            if statement.lstrip().split()[0].upper() in {"INSERT", "UPDATE", "DELETE"}:
+                writes.append(statement)
+
+        event.listen(session.bind, "before_cursor_execute", record_write)
+        try:
+            with pytest.raises(WorldTickPersistenceError):
+                repository.persist_run(str(uuid4()), 0, malformed)
+        finally:
+            event.remove(session.bind, "before_cursor_execute", record_write)
+        assert writes == []
+        assert counts(session) == (0, 0, 0, 0, 0)
+        # Includes all counters, day/time, every NPC location/action/need and locations.
+        assert repository.get_snapshot() == base
+
+
 def test_complete_graph_commits_once_and_preserves_rejected_proposals(factory):
     with factory() as session:
         repository = WorldTickRepository(session)
         result = run_deterministic_advance(repository.get_snapshot())
         rejected = ActionProposal(actor_id="unknown-npc", action_type="unregistered", reason_code="invalid")
+        proposal_trace = TraceDraft(1, "proposal", "unknown-npc", "Action proposed", {
+            "action_type": "unregistered", "target": None,
+            "reason_code": "invalid", "proposal_ordinal": 3, "source": "deterministic",
+        })
+        validation_trace = TraceDraft(1, "validation", "unknown-npc", "Proposal validated", {
+            "proposal_ordinal": 3, "accepted": False, "code": "unknown_actor",
+        })
+        complete_traces = (
+            result.traces[0],
+            *(trace for trace in result.traces if trace.stage == "proposal"),
+            proposal_trace,
+            *(trace for trace in result.traces if trace.stage == "validation"),
+            validation_trace,
+            *(trace for trace in result.traces if trace.stage in {"execution", "event"}),
+            replace(result.traces[-1], data={**result.traces[-1].data, "rejected_count": 1}),
+        )
         result = replace(
             result,
             proposals=(*result.proposals, rejected),
             resolutions=(*result.resolutions, ResolvedProposal(rejected, ActionValidation(False, "unknown_actor", "Actor is unavailable"))),
             traces=tuple(
-                replace(trace, data={**trace.data, "rejected_count": 1})
-                if trace.stage == "run_completed" else trace
-                for trace in result.traces
+                replace(trace, sequence=sequence)
+                for sequence, trace in enumerate(complete_traces, 1)
             ),
         )
         commits = []
@@ -43,7 +106,16 @@ def test_complete_graph_commits_once_and_preserves_rejected_proposals(factory):
         assert hasattr(repository, "persist_run")
         persisted = repository.persist_run(str(uuid4()), 0, result, correlation_id=str(uuid4()))
         assert commits == [True]
-        assert counts(session) == (1,4,3,3,14)
+        assert counts(session) == (1,4,3,3,16)
+        assert [(trace.stage, trace.data_json.get("proposal_ordinal")) for trace in session.scalars(
+            select(AgentTraceEntry).order_by(AgentTraceEntry.sequence)
+        )] == [
+            ("run_started", None),
+            ("proposal", 0), ("proposal", 1), ("proposal", 2), ("proposal", 3),
+            ("validation", 0), ("validation", 1), ("validation", 2), ("validation", 3),
+            ("execution", 0), ("event", 0), ("execution", 1), ("event", 1),
+            ("execution", 2), ("event", 2), ("run_completed", None),
+        ]
         assert [p.status for p in session.scalars(select(ActionProposalRecord).order_by(ActionProposalRecord.ordinal))] == ["accepted","accepted","accepted","rejected"]
         assert all(a.run_id == persisted.run.id and a.proposal_id is not None for a in persisted.actions)
         assert [e.payload_json["proposal_ordinal"] for e in persisted.events] == [0,1,2]

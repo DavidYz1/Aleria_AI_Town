@@ -1,5 +1,4 @@
 from pathlib import Path
-import os
 
 import pytest
 from alembic import command
@@ -170,20 +169,18 @@ def test_0003_backfills_legacy_groups_and_canonicalizes_actions(tmp_path):
         assert conn.scalar(text("SELECT event_sequence FROM world_state")) == 3
 
 
-@pytest.mark.skipif(not os.getenv("ALERIA_TEST_POSTGRES_URL"), reason="opt-in empty PostgreSQL database required")
-def test_postgresql_empty_database_upgrades_to_runtime_head():
-    """Opt-in URL must point at a dedicated empty database with vector available.
-
-    This test does not delete an existing schema or provision a server. Migration
-    0002 requires permission to CREATE EXTENSION vector on that test database.
-    """
-    url = os.environ["ALERIA_TEST_POSTGRES_URL"]
+def test_postgresql_empty_database_upgrades_to_runtime_head(postgres_database_url):
+    """Migrate an isolated empty schema; vector extension permission is required."""
+    url = postgres_database_url
     engine = create_engine(url)
-    assert engine.dialect.name == "postgresql"
-    assert inspect(engine).get_table_names() == []
-    upgrade_schema(url)
-    assert set(inspect(engine).get_table_names()) == MODEL_TABLES | {"alembic_version"}
-    with engine.connect() as conn:
-        assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
-    checks = inspect(engine).get_check_constraints("actions")
-    assert not any("action_type" in check["sqltext"] for check in checks)
+    try:
+        assert engine.dialect.name == "postgresql"
+        assert inspect(engine).get_table_names() == []
+        upgrade_schema(url)
+        assert set(inspect(engine).get_table_names()) == MODEL_TABLES | {"alembic_version"}
+        with engine.connect() as conn:
+            assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
+        checks = inspect(engine).get_check_constraints("actions")
+        assert not any("action_type" in check["sqltext"] for check in checks)
+    finally:
+        engine.dispose()

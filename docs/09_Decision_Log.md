@@ -1048,4 +1048,24 @@ Backend `location_id` 是 Player、NPC 和 Quest 的权威语义位置；Phaser 
 许可清晰、来源可复核，比临时混用来源不明的美术更适合面试交付，也让后续替换视觉资产不会触碰业务代码。
 
 ------------------------------------------------------------------------
+# 39. ADR-036：确定性、同步的可观测 Agent Runtime（2026-09-07）
+
+本条与以下新决策覆盖前文早期阶段的未来架构设想；历史 ADR 保留其当时语境。
+
+本阶段采用 Snapshot -> ActionProposal -> Registry validation -> deterministic resolution -> atomic world/run/action/event/trace commit。每个 NPC 使用相同不可变决策快照，Registry 是合法行为、目标和效果的唯一权威。初始行为为 move/rest/work/eat/talk/wait；social 仅保留为 NPC 需求数值。
+
+POST /api/world/tick 继续同步返回 200；RPG 保持一个“推进 1 小时”入口。GET /api/agent-runs/{run_id} 提供有序 proposal/event/trace，摘要由结构化事实生成，不持久化隐藏推理、不返回原始 Prompt 或密钥。异步 202、队列、Agent Lab 模式控制需要后续完整生产运行时设计，本阶段不引入。
+
+# 40. ADR-037：区分世界版本、时钟与事件序号
+
+world_version 是所有权威变更共享的乐观并发 token；实际旅行、任务迁移和世界推进各增加一次。clock_tick 仅随游戏时间推进增加。event_sequence 在同一世界内严格连续排序，与状态在同一事务提交。任务还保留自身 expected_version，普通聊天不改变世界版本或时钟。
+
+# 41. ADR-038：Alembic + 本地 SQLite / Docker PostgreSQL 双模式
+
+Alembic 0001–0003 负责空库和受支持旧 SQLite 数据库升级。旧行为历史迁移为可观察运行记录；正常启动升级 schema 并仅在缺少世界时播种，不做无条件 reset。
+
+本地 .env.example 和快速测试继续使用 SQLite。Docker 默认 PostgreSQL 17，镜像固定 pgvector/pgvector:0.8.6-pg17-bookworm，驱动为 Psycopg 3；数据库健康后 Backend 才启动，Backend 健康后 Web 才启动。数据库持久卷为 aleria_postgres_data；base Compose 不发布数据库端口，测试 override 仅绑定 loopback。旧 SQLite 卷保留，跨数据库搬迁不在本阶段自动执行。
+
+pgvector 扩展已由迁移启用，但没有 vector ORM 列；首个向量列属于后续 Memory 阶段。PostgreSQL 测试仅由 TEST_POSTGRES_URL 显式启用，在各自空 schema 中验证从零迁移及完整运行。缺少 URL/Compose/daemon 时如实记录 skip/unavailable，不视为真实冒烟通过。
+
 # End of Document

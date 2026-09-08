@@ -12,7 +12,7 @@ from sqlalchemy import inspect
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.core.config import get_settings
-from backend.app.database.connection import create_engine_and_session
+from backend.app.database.connection import create_engine_and_session, normalize_database_url
 
 LEGACY_REVISION = "0001"
 LEGACY_TABLES = frozenset(
@@ -34,7 +34,8 @@ LEGACY_TABLES = frozenset(
 
 def _alembic_config(database_url: str) -> Config:
     config = Config(str(REPO_ROOT / "alembic.ini"))
-    config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
+    normalized_url = normalize_database_url(database_url).render_as_string(hide_password=False)
+    config.set_main_option("sqlalchemy.url", normalized_url.replace("%", "%%"))
     return config
 
 

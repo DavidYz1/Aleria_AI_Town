@@ -138,7 +138,7 @@ async def test_run_detail_redacts_out_of_shape_allowed_fact_values(database_url,
 @pytest.mark.anyio
 async def test_run_detail_rejects_unsafe_rejected_proposal_target_kind_at_write_boundary(database_url, seed_dir):
     from dataclasses import replace
-    from backend.app.agents.contracts import ActionProposal, ActionValidation, ResolvedProposal
+    from backend.app.agents.contracts import ActionProposal, ActionValidation, ResolvedProposal, TraceDraft
     from backend.app.agents.orchestrator import run_deterministic_advance
     from backend.app.database.connection import create_engine_and_session
     from backend.app.database.world_clock_repository import WorldTickPersistenceError, WorldTickRepository
@@ -154,14 +154,30 @@ async def test_run_detail_rejects_unsafe_rejected_proposal_target_kind_at_write_
             target_kind="PRIVATE PROMPT TEXT",
             reason_code="invalid",
         )
+        proposal_trace = TraceDraft(1, "proposal", "unknown-npc", "Action proposed", {
+            "action_type": "unregistered",
+            "target": {"kind": rejected.target_kind, "id": rejected.target_id},
+            "reason_code": "invalid", "proposal_ordinal": 3, "source": "deterministic",
+        })
+        validation_trace = TraceDraft(1, "validation", "unknown-npc", "Proposal validated", {
+            "proposal_ordinal": 3, "accepted": False, "code": "unknown_actor",
+        })
+        complete_traces = (
+            result.traces[0],
+            *(trace for trace in result.traces if trace.stage == "proposal"),
+            proposal_trace,
+            *(trace for trace in result.traces if trace.stage == "validation"),
+            validation_trace,
+            *(trace for trace in result.traces if trace.stage in {"execution", "event"}),
+            replace(result.traces[-1], data={**result.traces[-1].data, "rejected_count": 1}),
+        )
         result = replace(
             result,
             proposals=(*result.proposals, rejected),
             resolutions=(*result.resolutions, ResolvedProposal(rejected, ActionValidation(False, "unknown_actor", "unavailable"))),
             traces=tuple(
-                replace(trace, data={**trace.data, "rejected_count": 1})
-                if trace.stage == "run_completed" else trace
-                for trace in result.traces
+                replace(trace, sequence=sequence)
+                for sequence, trace in enumerate(complete_traces, 1)
             ),
         )
         with pytest.raises(WorldTickPersistenceError):

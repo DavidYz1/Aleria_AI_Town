@@ -18,6 +18,7 @@ COPY --chown=aleria:aleria backend /app/backend
 COPY --chown=aleria:aleria data /app/data
 COPY --chown=aleria:aleria prompts /app/prompts
 COPY --chown=aleria:aleria scripts /app/scripts
+COPY --chown=aleria:aleria alembic.ini /app/alembic.ini
 
 USER aleria
 

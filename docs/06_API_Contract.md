@@ -1,8 +1,8 @@
 # Aleria AI Town API Contract
 
-Version: v1.5
+Version: v2.0
 
-Last Updated: 2026-08-24
+Last Updated: 2026-09-07
 
 # 1. API Design Overview
 
@@ -38,245 +38,71 @@ Failure:
 }
 ```
 
-# 3. World APIs
+# 3. World and Runtime APIs
 
 ## 3.1 Get World State
 
-Phase 0权威契约：
+`GET /api/world` returns `data = {world, locations, npcs}`. The initial world object is:
 
-`docs/superpowers/specs/2026-08-22-phase-0-engineering-initialization-design.md`
+```json
+{"id":"aleria-town","name":"曦谷","day":1,"time":"08:00","world_version":0,"clock_tick":0,"event_sequence":0}
+```
 
-Method:
+Locations and NPCs are ordered by persisted sort_order. NPC data includes id/name/role/personality, location_id, current_action and energy/mood/social status. The three counters have different meanings: authoritative mutations increment world_version, advancement increments clock_tick, and domain events increment event_sequence. There is no writable tick alias.
 
-    GET /api/world
+Missing/unavailable world state returns HTTP 503 with `message="world state is unavailable"`.
 
-Purpose:
+## 3.2 Advance One Hour
 
-获取当前世界状态：
+`POST /api/world/tick` is synchronous and returns HTTP 200 after atomic persistence. It requires the client's latest world_version:
 
--   世界时间
--   地点
--   NPC状态
+```json
+{"expected_world_version":0}
+```
 
-玩家状态和最近事件将在对应功能进入实施阶段后扩展，不属于Phase 0响应。
+```text
+Snapshot -> ActionProposal -> Registry validation
+-> deterministic resolution -> atomic world/run/action/event/trace commit
+```
 
-Response example:
+Response data contains `run`, `world`, `actions`, and `events`. Here `world` is the entire `GET /api/world` data object, not a patch. For the first seed advancement its inner world is Day 1 09:00, world_version 1, clock_tick 1, event_sequence 3.
 
-``` json
+Example `run` summary:
+
+```json
 {
-  "success": true,
-  "data": {
-    "world": {
-      "id": "aleria-town",
-      "name": "曦谷",
-      "day": 1,
-      "time": "08:00",
-      "tick": 0
-    },
-    "locations": [
-      {
-        "id": "tavern",
-        "name": "星辉酒馆",
-        "description": "旅行者交换消息、接受委托和休息的温暖酒馆"
-      },
-      {
-        "id": "park",
-        "name": "中央公园",
-        "description": "居民散步、放松和进行日常训练的开阔绿地"
-      },
-      {
-        "id": "castle",
-        "name": "晨曦城堡",
-        "description": "守卫曦谷、眺望山谷边境的古老城堡"
-      },
-      {
-        "id": "forest",
-        "name": "低语森林",
-        "description": "林间低语与旧日传闻交织的幽深森林"
-      }
-    ],
-    "npcs": [
-      {
-        "id": "ryan",
-        "name": "Ryan",
-        "role": "Knight",
-        "personality": ["optimistic", "brave", "kind"],
-        "location_id": "castle",
-        "current_action": "rest",
-        "status": {
-          "energy": 80,
-          "mood": 78,
-          "social": 70
-        }
-      },
-      {
-        "id": "shir",
-        "name": "Shir",
-        "role": "Assassin",
-        "personality": ["quiet", "introverted", "observant"],
-        "location_id": "tavern",
-        "current_action": "eat",
-        "status": {
-          "energy": 72,
-          "mood": 65,
-          "social": 35
-        }
-      },
-      {
-        "id": "grey",
-        "name": "Grey",
-        "role": "Guardian",
-        "personality": ["reliable", "calm", "protective"],
-        "location_id": "park",
-        "current_action": "work",
-        "status": {
-          "energy": 88,
-          "mood": 74,
-          "social": 55
-        }
-      }
-    ]
-  },
-  "message": "ok"
+  "id":"00000000-0000-0000-0000-000000000001",
+  "mode":"deterministic",
+  "trigger_type":"world_advance",
+  "status":"completed",
+  "base_world_version":0,
+  "resulting_world_version":1,
+  "base_clock_tick":0,
+  "resulting_clock_tick":1
 }
 ```
 
-排序规则：
+The UUID is illustrative. Actions include id, clock_tick, actor_id, action_type, target_kind/target_id, reason (machine code), status `executed`, run_id, proposal_id, world_version and world_time. The seed produces three actions, three events and three proposals. Legal action IDs are `move/rest/work/eat/talk/wait`.
 
--   `locations`按照持久化的 `sort_order` 升序返回。
--   `npcs`按照 `npc_profiles.sort_order` 升序返回。
+Events include id/run_id, world_version/clock_tick/event_sequence, event_type, actor_id/action_id/source_event_id, factual description/payload, world_time, visibility/secrecy, causation_id/correlation_id and created_at. Event sequence is ordered within each world. Public summaries and structured payloads are sanitized.
 
-SQLite未初始化或世界状态不可用时：
+A stale expected_world_version returns HTTP 409; refresh world state before retry. Missing/negative version fields return HTTP 422. Unavailable state or persistence failure returns HTTP 503 without partial mutation. Async 202 submission is deferred.
 
-HTTP Status:
+## 3.3 Read a Persisted Run
 
-    503
+`GET /api/agent-runs/{run_id}` returns HTTP 200 and:
 
-``` json
-{
-  "success": false,
-  "data": null,
-  "message": "world state is unavailable"
-}
+```text
+data:
+  run: the same summary contract as advancement
+  proposals: ordered by ordinal
+  events: ordered by event_sequence
+  trace: ordered by sequence
 ```
 
-## 3.2 Advance World Tick
+Proposal fields are id, ordinal, actor_id, action_type, target_kind/target_id, reason_code, source, payload, status, rejection_code and rejection_message. Trace fields are sequence, stage, actor_id, summary, data, visibility and UTC created_at. The first three-NPC run has trace sequences 1–14 spanning run_started, proposal, validation, execution, event and run_completed.
 
-Phase 1A权威契约：
-
-`docs/superpowers/specs/2026-08-23-phase-1a-deterministic-world-tick-design.md`
-
-Method:
-
-    POST /api/world/tick
-
-Purpose:
-
-使用乐观锁推进一个一小时世界回合。请求必须携带Frontend当前看到的Tick：
-
-``` json
-{
-  "expected_tick": 0
-}
-```
-
-Flow:
-
-    Update Clock
-    ↓
-    NPC Decision
-    ↓
-    Action Validation
-    ↓
-    Execute Action
-    ↓
-    Update State
-    ↓
-    Save Event
-
-Response:
-
-``` json
-{
-  "success": true,
-  "data": {
-    "world": {
-      "world": {
-        "id": "aleria-town",
-        "name": "曦谷",
-        "day": 1,
-        "time": "09:00",
-        "tick": 1
-      },
-      "locations": [
-        {"id": "tavern", "name": "星辉酒馆", "description": "旅行者交换消息、接受委托和休息的温暖酒馆"},
-        {"id": "park", "name": "中央公园", "description": "居民散步、放松和进行日常训练的开阔绿地"},
-        {"id": "castle", "name": "晨曦城堡", "description": "守卫曦谷、眺望山谷边境的古老城堡"},
-        {"id": "forest", "name": "低语森林", "description": "林间低语与旧日传闻交织的幽深森林"}
-      ],
-      "npcs": [
-        {
-          "id": "ryan", "name": "Ryan", "role": "Knight",
-          "personality": ["optimistic", "brave", "kind"],
-          "location_id": "castle", "current_action": "work",
-          "status": {"energy": 70, "mood": 75, "social": 67}
-        },
-        {
-          "id": "shir", "name": "Shir", "role": "Assassin",
-          "personality": ["quiet", "introverted", "observant"],
-          "location_id": "park", "current_action": "move",
-          "status": {"energy": 65, "mood": 64, "social": 32}
-        },
-        {
-          "id": "grey", "name": "Grey", "role": "Guardian",
-          "personality": ["reliable", "calm", "protective"],
-          "location_id": "park", "current_action": "work",
-          "status": {"energy": 78, "mood": 71, "social": 52}
-        }
-      ]
-    },
-    "actions": [
-      {
-        "id": 1,
-        "tick": 1,
-        "actor_id": "ryan",
-        "action_type": "work",
-        "target_kind": null,
-        "target_id": null,
-        "reason": "knight_training",
-        "status": "recorded",
-        "world_time": "09:00"
-      }
-    ],
-    "events": [
-      {
-        "id": 1,
-        "tick": 1,
-        "event_type": "npc_action",
-        "actor_id": "ryan",
-        "action_id": 1,
-        "description": "Ryan 工作",
-        "world_time": "09:00"
-      }
-    ]
-  },
-  "message": "ok"
-}
-```
-
-`world`是完整的 `GET /api/world` Data对象，不是局部补丁。
-
-当 `expected_tick` 已过期时返回HTTP 409：
-
-``` json
-{
-  "success": false,
-  "data": null,
-  "message": "world tick conflict; refresh and retry"
-}
-```
-
-世界未初始化或事务持久化失败时返回HTTP 503。`expected_tick < 0` 返回HTTP 422。
+These are concise factual records. Hidden reasoning, raw prompts, credentials and raw provider errors are not exposed. Unknown run UUID returns 404, malformed UUID returns 422, database failure returns a safe 503. This read creates no new run and changes no world state.
 
 # 4. NPC APIs
 
@@ -319,13 +145,13 @@ Response:
     "world_context": {
       "day": 1,
       "time": "09:00",
-      "tick": 1,
+      "clock_tick": 1,
       "time_phase": "morning"
     },
     "recent_actions": [
       {
         "id": 1,
-        "tick": 1,
+        "clock_tick": 1,
         "world_time": "09:00",
         "action_type": "work",
         "target_kind": null,
@@ -342,7 +168,7 @@ Response:
 
 数据规则：
 
--   `recent_actions` 按 `tick DESC, id DESC` 返回，最多三条；Tick 0 时为空列表。
+-   `recent_actions` 按 `clock_tick DESC, id DESC` 返回，最多三条；Tick 0 时为空列表。
 -   历史 Action 的持久化 `reason` 机器代码对外暴露为 `reason_code`，`reason_text` 是确定性规则摘要。
 -   `reason_text` 不是 chain-of-thought、隐藏推理或完整 Agent Trace。
 -   地点/NPC 目标名称由 Backend 解析；无法解析时保留 `target_id` 并作为 `target_name` 回退。
@@ -557,10 +383,10 @@ Method:
 Request:
 
 ``` json
-{"target_location_id": "castle"}
+{"target_location_id": "castle", "expected_world_version": 0}
 ```
 
-旅行到当前地点是幂等成功。未知地点为 404，非法 ID 为 422，数据库失败为 503。成功旅行只更新 Player location，不推进 World Tick、NPC State 或 Quest。
+旅行到当前地点是幂等成功。未知地点为 404，非法 ID 为 422，数据库失败为 503。成功实际旅行更新 Player location、world_version，并写入 player_travelled 事件，不推进 clock_tick、NPC State 或 Quest。过期 expected_world_version 返回 409；旅行到当前地点不会重复增加版本或事件。
 
 ## 5.3 Interact With Missing Child Quest
 
@@ -573,80 +399,33 @@ Request:
 ``` json
 {
   "interaction": "ask_grey",
-  "expected_version": 1
+  "expected_version": 1,
+  "expected_world_version": 2
 }
 ```
 
-合法 interaction 为 `accept_quest/ask_grey/inspect_shoe/search_child/return_child`。Backend 校验当前状态、玩家位置、Grey 实时位置和版本；成功返回与 `GET /api/player` 相同的完整聚合，并原子写入 Quest Progress + Quest Event。
+合法 interaction 为 `accept_quest/ask_grey/inspect_shoe/search_child/return_child`。Backend 校验当前状态、玩家位置、Grey 实时位置、任务 expected_version 和全局 expected_world_version；成功返回与 `GET /api/player` 相同的完整聚合，并原子写入 Quest Progress + Quest Event + quest_transitioned 领域事件，同时增加 world_version。clock_tick 保持不变；示例版本值需使用客户端最新状态。
 
 错误契约：
 
 -   404：Player、Quest 或目标资源不存在。
--   409：`expected_version` 过期，或当前状态/地点不允许该 interaction。
+-   409：`expected_version` 或 `expected_world_version` 过期，或当前状态/地点不允许该 interaction。
 -   422：字段缺失、非法 ID、未知 interaction 或负版本。
 -   503：读取或事务提交失败；不得留下半次迁移。
 
-# 6. Event APIs
+# 6. Health, Reset and Deferred APIs
 
-独立 Event 查询 API 尚未实现。当前 Event 只在成功的 `POST /api/world/tick` 响应中返回。
+`GET /api/health` checks API/database/provider configuration and reports database unavailability as 503.
 
-## Get Timeline
+`POST /api/demo/reset` resets the target demo world and its quest/chat/runtime history in one transaction. It is an explicit demo reset, not an incremental migration.
 
-Method:
+There is no independent `GET /api/events` endpoint yet. Events are returned by advancement and persisted-run detail. Async submission, SSE, Agent Lab, memory and LLM action-cognition APIs are not implemented.
 
-    GET /api/events
+# 7. Internal Agent Contracts
 
-Purpose:
+`backend/app/agents/` implements immutable ActionProposal, ActionValidation, ResolvedProposal, DomainEventDraft, TraceDraft and AgentRuntimeResult contracts. The registry alone validates legal actions and effects. All proposals consume one immutable WorldSnapshot; no proposal sees another proposal's result.
 
-获取世界事件历史。
-
-Example:
-
-``` json
-{
-  "time": "10:00",
-  "actor": "Ryan",
-  "event": "started training"
-}
-```
-
-# 7. Internal Agent Interfaces
-
-以下是后续 Hybrid Agent 的概念接口，尚未作为可调用模块实现。Phase 1A/1B 当前使用 `backend/app/world/` 中经过测试的确定性 Decision Policy 和 Action Validation。
-
-## Decide Action
-
-    agent.decide_action()
-
-Input:
-
-``` json
-{
-  "npc_id": "ryan",
-  "world_state": {},
-  "memory": []
-}
-```
-
-Output:
-
-``` json
-{
-  "action": "social",
-  "target": "grey",
-  "reason": "want to talk"
-}
-```
-
-## Validate Action
-
-    agent.validate_action()
-
-Checks:
-
--   action validity
--   target existence
--   world rule constraints
+Proposal source enum values reserved for future modes do not mean that LLM planning or memory is implemented.
 
 # 8. Error Handling
 
@@ -690,7 +469,7 @@ Provider 失败不会修改 World Engine。若 Primary 与 Mock 均失败，则�
 
 支持未来：
 
--   Canvas/Pixi地图
+-   Agent Lab 与异步运行（当前 RPG 已使用 Phaser）
 -   Memory增强
 -   更多任务与通用 Quest 引擎
 -   多玩家扩展
