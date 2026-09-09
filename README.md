@@ -296,6 +296,8 @@ Docker 基础拓扑包含 `pgvector/pgvector:0.8.6-pg17-bookworm`，只向宿主
 
 数据库升级只启用 vector 扩展，尚无 vector 列或 Memory 功能。迁移与 PostgreSQL loopback 测试 override 的完整命令见 [开发环境](docs/14_Development_Environment.md)。
 
+PostgreSQL 验收必须把 backend 容器启动 Smoke 与迁移/Runtime 测试放在不同的 Compose project/volume 中；后者只启动 db，并要求 public 无应用表。2026-09-09 已完成容器健康检查及独立数据库的 13 项迁移/Runtime 测试；不要将 `TEST_POSTGRES_URL` 指向已有业务数据库。
+
 ### Windows PowerShell
 
 1. 安装 [Git](https://git-scm.com/download/win) 和 [Docker Desktop](https://www.docker.com/products/docker-desktop/)，启动 Docker Desktop。
@@ -367,6 +369,30 @@ docker compose --env-file .env.production up -d --build
 ## 方法二：一键启动开发环境
 
 `start-dev.cmd` 和 `start-dev.sh` 会升级数据库表、仅在数据库为空时写入 Demo 种子，并同时启动 Backend 与 Frontend。它们不会自动安装 Python、Node.js 或项目依赖，所以首次运行需要先完成下面的准备。
+
+### Windows：Git Bash（推荐）
+
+安装 Git、Python 3.11+、Node.js 20+ 并完成项目依赖准备后，在 Git Bash 中执行：
+
+```bash
+cd /d/pythonproject/Aleria_AI_Town
+./scripts/start-dev.sh --check
+./scripts/start-dev.sh
+```
+
+`--check` 只检查依赖，不修改数据或启动服务。脚本优先使用项目的 `.venv/Scripts/python.exe`，无需先激活 venv；其他系统会使用 `.venv/bin/python`。启动顺序为 **Migration → seed-if-empty → Backend/Frontend**，已有世界保留，空世界才写入种子。
+
+首次升级重要 SQLite 数据前，先停止使用该数据库的服务并备份；以下命令遇到同名备份或复制失败会停止，不覆盖已有备份：
+
+```bash
+cd /d/pythonproject/Aleria_AI_Town
+backup="backend/data/aleria.before-upgrade-$(date +%Y%m%d-%H%M%S).db"
+test ! -e "$backup" || exit 1
+cp -- backend/data/aleria.db "$backup" || exit 1
+./scripts/start-dev.sh
+```
+
+推荐从 Git Bash 或 PowerShell 终端启动，保留完整错误信息；双击窗口是否停留不是成功标准。升级失败时保留数据库和日志，禁止手工修改 `alembic_version`、删库或 Demo Reset 来伪造升级成功。启动后检查 `http://127.0.0.1:8000/api/health`、`/api/world` 与前端 5173；在启动终端按 `Ctrl+C` 停止两项服务。
 
 ### Windows：PowerShell + `start-dev.cmd`
 

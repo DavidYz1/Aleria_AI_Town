@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
 from scripts.upgrade_schema import upgrade_schema
+from tests.backend.legacy_sqlite_factory import create_unnamed_legacy_sqlite
 
 
 MODEL_TABLES = {
@@ -90,6 +91,186 @@ def test_partial_unversioned_schema_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="database schema is partial or unsupported"):
         upgrade_schema(database_url)
+
+
+@pytest.mark.parametrize("stamped_revision", [None, "0001"])
+def test_real_orm_legacy_sqlite_upgrades_without_data_loss(
+    tmp_path: Path,
+    stamped_revision: str | None,
+) -> None:
+    suffix = stamped_revision or "unversioned"
+    database_url = f"sqlite:///{(tmp_path / f'legacy-{suffix}.db').as_posix()}"
+    sentinels = create_unnamed_legacy_sqlite(
+        database_url,
+        stamped_revision=stamped_revision,
+    )
+
+    upgrade_schema(database_url)
+
+    engine = create_engine(database_url)
+    inspector = inspect(engine)
+    assert "tick" not in {
+        column["name"] for column in inspector.get_columns("world_state")
+    }
+    assert {"clock_tick", "world_version", "event_sequence"}.issubset(
+        column["name"] for column in inspector.get_columns("world_state")
+    )
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
+        assert connection.execute(
+            text(
+                "SELECT day, time, clock_tick, world_version, event_sequence "
+                "FROM world_state WHERE id=:id"
+            ),
+            {"id": sentinels.world_id},
+        ).one() == (7, "16:00", 44, 44, 1)
+        assert connection.execute(
+            text(
+                "SELECT location_id, current_action, energy, mood, social "
+                "FROM npc_states WHERE npc_id=:id"
+            ),
+            {"id": sentinels.npc_id},
+        ).one() == ("tavern", "talk", 72, 61, 39)
+        assert connection.scalar(
+            text("SELECT location_id FROM player_states WHERE id=:id"),
+            {"id": sentinels.player_id},
+        ) == "castle"
+        assert connection.execute(
+            text(
+                "SELECT status, version, updated_clock_tick FROM quest_progress "
+                "WHERE player_id=:player AND quest_id=:quest"
+            ),
+            {"player": sentinels.player_id, "quest": sentinels.quest_id},
+        ).one() == ("accepted", 2, 44)
+        assert connection.execute(
+            text(
+                "SELECT from_status, to_status, interaction, location_id, clock_tick "
+                "FROM quest_events WHERE player_id=:player AND quest_id=:quest"
+            ),
+            {"player": sentinels.player_id, "quest": sentinels.quest_id},
+        ).one() == ("locked", "accepted", "investigate", "castle", 44)
+        assert connection.execute(
+            text(
+                "SELECT action_type, target_kind, target_id, reason_code, status, "
+                "world_time FROM actions WHERE actor_id=:id"
+            ),
+            {"id": sentinels.npc_id},
+        ).one() == (
+            "talk",
+            "npc",
+            sentinels.player_id,
+            "legacy_social",
+            "executed",
+            "15:00",
+        )
+        assert connection.execute(
+            text(
+                "SELECT e.event_type, e.actor_id, e.description, e.world_time "
+                "FROM events e JOIN actions a ON e.action_id=a.id "
+                "WHERE a.actor_id=:id"
+            ),
+            {"id": sentinels.npc_id},
+        ).one() == (
+            "npc_action",
+            sentinels.npc_id,
+            "Grey spoke with the player.",
+            "15:00",
+        )
+        assert connection.scalar(
+            text("SELECT created_clock_tick FROM conversations WHERE id=:id"),
+            {"id": sentinels.conversation_id},
+        ) == 42
+        assert connection.execute(
+            text(
+                "SELECT role, content, emotion, provider, fallback_used, "
+                "prompt_version, clock_tick FROM conversation_messages "
+                "WHERE conversation_id=:id AND role='user'"
+            ),
+            {"id": sentinels.conversation_id},
+        ).one() == (
+            "user",
+            "Have you seen the missing child?",
+            None,
+            None,
+            0,
+            None,
+            42,
+        )
+        assert connection.execute(
+            text(
+                "SELECT role, content, emotion, provider, fallback_used, "
+                "prompt_version, clock_tick FROM conversation_messages "
+                "WHERE conversation_id=:id AND role='assistant'"
+            ),
+            {"id": sentinels.conversation_id},
+        ).one() == (
+            "assistant",
+            "Ask at the castle gate.",
+            "concerned",
+            "legacy-provider",
+            1,
+            "legacy-v1",
+            43,
+        )
+        assert connection.scalar(
+            text(
+                "SELECT count(*) FROM conversation_messages "
+                "WHERE conversation_id=:id"
+            ),
+            {"id": sentinels.conversation_id},
+        ) == 2
+        assert not connection.execute(
+            text("SELECT name FROM sqlite_master WHERE name LIKE '_alembic_tmp_%'")
+        ).all()
+
+
+@pytest.mark.parametrize("stamped_revision", [None, "0001"])
+def test_real_orm_legacy_sqlite_preserves_unrelated_schema_objects(
+    tmp_path: Path,
+    stamped_revision: str | None,
+) -> None:
+    suffix = stamped_revision or "unversioned"
+    database_url = f"sqlite:///{(tmp_path / f'legacy-check-{suffix}.db').as_posix()}"
+    sentinels = create_unnamed_legacy_sqlite(
+        database_url,
+        stamped_revision=stamped_revision,
+    )
+
+    upgrade_schema(database_url)
+
+    engine = create_engine(database_url)
+    inspector = inspect(engine)
+    assert inspector.get_pk_constraint("actions")["constrained_columns"] == ["id"]
+    assert {
+        (
+            tuple(foreign_key["constrained_columns"]),
+            foreign_key["referred_table"],
+            tuple(foreign_key["referred_columns"]),
+        )
+        for foreign_key in inspector.get_foreign_keys("actions")
+    }.issuperset(
+        {
+            (("world_id",), "world_state", ("id",)),
+            (("actor_id",), "npc_profiles", ("id",)),
+        }
+    )
+    assert ("action_id",) in {
+        tuple(constraint["column_names"])
+        for constraint in inspector.get_unique_constraints("events")
+    }
+    assert {
+        index["name"]: tuple(index["column_names"])
+        for index in inspector.get_indexes("conversation_messages")
+    }["ix_conversation_messages_conversation_id_id"] == (
+        "conversation_id",
+        "id",
+    )
+    with engine.begin() as connection:
+        with pytest.raises(IntegrityError):
+            connection.execute(
+                text("UPDATE world_state SET day=0 WHERE id=:id"),
+                {"id": sentinels.world_id},
+            )
 
 
 def test_0002_actions_unique_constraint_survives_upgrade_downgrade_round_trip(

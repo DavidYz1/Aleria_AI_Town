@@ -1,4 +1,5 @@
 import importlib
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,35 @@ from backend.app.database.world_repository import CANONICAL_WORLD_ID
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_shell_launcher_prefers_windows_project_venv(tmp_path: Path) -> None:
+    if shutil.which("sh") is None:
+        pytest.skip("Windows shell launcher probe requires a POSIX-compatible sh.")
+
+    repo = tmp_path / "repo"
+    scripts = repo / "scripts"
+    windows_python = repo / ".venv" / "Scripts" / "python.exe"
+    scripts.mkdir(parents=True)
+    windows_python.parent.mkdir(parents=True)
+    shutil.copy(REPO_ROOT / "scripts" / "start-dev.sh", scripts / "start-dev.sh")
+    windows_python.write_text(
+        "#!/usr/bin/env sh\n"
+        "printf '%s\\n' \"$@\"\n",
+        encoding="utf-8",
+    )
+    windows_python.chmod(0o755)
+
+    result = subprocess.run(
+        ["sh", str(scripts / "start-dev.sh"), "--check"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["-m", "scripts.start_dev", "--check"]
 
 
 def load_launcher() -> ModuleType:

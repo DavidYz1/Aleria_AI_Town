@@ -3,7 +3,9 @@ set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
-if [ -x "$repo_root/.venv/bin/python" ]; then
+if [ -x "$repo_root/.venv/Scripts/python.exe" ]; then
+    python_command="$repo_root/.venv/Scripts/python.exe"
+elif [ -x "$repo_root/.venv/bin/python" ]; then
     python_command="$repo_root/.venv/bin/python"
 elif command -v python3 >/dev/null 2>&1; then
     python_command=$(command -v python3)
