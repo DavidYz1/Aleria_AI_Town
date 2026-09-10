@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from backend.app.api.dependencies import get_session
+from backend.app.api.dependencies import get_app_settings, get_cognition_session, get_session
+from backend.app.core.config import Settings
+from backend.app.database.cognition_repository import CognitionRepository
+from backend.app.services.cognition_projection import CognitionProjectionService
 from backend.app.database.player_quest_repository import (
     PlayerNotFoundError,
     PlayerQuestPersistenceError,
@@ -41,10 +44,13 @@ router = APIRouter()
 def interact_with_missing_child_quest(
     request: QuestInteractRequest,
     session: Session = Depends(get_session),
+    settings: Settings = Depends(get_app_settings),
+    cognition_session: Session = Depends(get_cognition_session),
 ):
     service = PlayerQuestService(
         PlayerQuestRepository(session),
         MissingChildQuestPolicy(),
+        cognition=CognitionProjectionService(CognitionRepository(cognition_session), settings=settings),
     )
     try:
         data = service.interact(request)

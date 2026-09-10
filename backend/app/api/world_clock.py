@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from backend.app.api.dependencies import get_session
+from backend.app.api.dependencies import get_app_settings, get_cognition_session, get_session
+from backend.app.core.config import Settings
+from backend.app.database.cognition_repository import CognitionRepository
+from backend.app.services.cognition_projection import CognitionProjectionService
 from backend.app.database.world_repository import WorldUnavailableError
 from backend.app.database.world_clock_repository import (
     WorldTickConflictError,
@@ -28,8 +31,11 @@ router = APIRouter()
 def advance_world_clock(
     request: WorldTickRequest,
     session: Session = Depends(get_session),
+    settings: Settings = Depends(get_app_settings),
+    cognition_session: Session = Depends(get_cognition_session),
 ):
-    service = WorldTickService(WorldTickRepository(session))
+    service = WorldTickService(WorldTickRepository(session),
+        cognition=CognitionProjectionService(CognitionRepository(cognition_session), settings=settings))
     try:
         data = service.advance(request.expected_world_version)
     except WorldTickConflictError as exc:

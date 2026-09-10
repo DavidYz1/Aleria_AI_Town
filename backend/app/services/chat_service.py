@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID, uuid4
 
 from backend.app.database.chat_repository import (
@@ -17,6 +18,10 @@ from backend.app.services.chat_context import (
     ChatContextAssembler,
     PromptUnavailableError,
 )
+from backend.app.services.cognition_projection import CognitionProjectionError, CognitionProjectionService
+
+
+logger = logging.getLogger(__name__)
 
 
 PLAYER_CLASS_TITLES = {
@@ -43,12 +48,14 @@ class ChatService:
         provider: ChatProvider,
         history_limit: int,
         prompt_version: str,
+        cognition: CognitionProjectionService | None = None,
     ) -> None:
         self._repository = repository
         self._context_assembler = context_assembler
         self._provider = provider
         self._history_limit = history_limit
         self._prompt_version = prompt_version
+        self._cognition = cognition
 
     async def chat(
         self,
@@ -115,7 +122,7 @@ class ChatService:
                 "Chat service is unavailable"
             ) from None
 
-        return NpcChatData(
+        result = NpcChatData(
             conversation_id=UUID(conversation_id),
             npc_id=context.npc_id,
             turn=ChatTurnData(
@@ -132,3 +139,9 @@ class ChatService:
             provider=provider_result.provider,
             fallback_used=provider_result.fallback_used,
         )
+        if self._cognition is not None:
+            try:
+                self._cognition.catch_up_owner(context.world_id, context.npc_id)
+            except CognitionProjectionError:
+                logger.warning("Post-commit cognition projection failed", extra={"category": "core_projection"})
+        return result

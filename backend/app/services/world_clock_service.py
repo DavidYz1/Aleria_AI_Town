@@ -1,3 +1,4 @@
+import logging
 from uuid import uuid4
 
 from backend.app.agents.orchestrator import run_deterministic_advance
@@ -20,6 +21,10 @@ from backend.app.schemas.world_clock import (
     WorldTickData,
 )
 from backend.app.world.types import WorldSnapshot
+from backend.app.services.cognition_projection import CognitionProjectionError, CognitionProjectionService
+
+
+logger = logging.getLogger(__name__)
 
 
 def snapshot_to_world_data(snapshot: WorldSnapshot) -> WorldData:
@@ -61,8 +66,9 @@ def snapshot_to_world_data(snapshot: WorldSnapshot) -> WorldData:
 
 
 class WorldTickService:
-    def __init__(self, repository: WorldTickRepository) -> None:
+    def __init__(self, repository: WorldTickRepository, cognition: CognitionProjectionService | None = None) -> None:
         self._repository = repository
+        self._cognition = cognition
 
     def advance(self, expected_world_version: int) -> WorldTickData:
         snapshot = self._repository.get_snapshot()
@@ -73,7 +79,7 @@ class WorldTickService:
             str(uuid4()), expected_world_version, run_deterministic_advance(snapshot),
             correlation_id=str(uuid4()),
         )
-        return WorldTickData(
+        result = WorldTickData(
             run=AgentRunSummary.model_validate(persisted.run),
             world=snapshot_to_world_data(persisted.result.world),
             actions=[
@@ -98,3 +104,9 @@ class WorldTickService:
                 for event in persisted.events
             ],
         )
+        if self._cognition is not None:
+            try:
+                self._cognition.catch_up_world(persisted.result.world.id)
+            except CognitionProjectionError:
+                logger.warning("Post-commit cognition projection failed", extra={"category": "core_projection"})
+        return result

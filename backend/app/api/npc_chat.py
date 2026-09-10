@@ -5,9 +5,12 @@ from sqlalchemy.orm import Session
 from backend.app.api.dependencies import (
     get_app_settings,
     get_chat_provider,
+    get_cognition_session,
     get_session,
 )
 from backend.app.core.config import Settings
+from backend.app.database.cognition_repository import CognitionRepository
+from backend.app.services.cognition_projection import CognitionProjectionService
 from backend.app.database.chat_repository import (
     ChatRepository,
     ConversationNotFoundError,
@@ -46,6 +49,7 @@ async def chat_with_npc(
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_app_settings),
     provider: ChatProvider = Depends(get_chat_provider),
+    cognition_session: Session = Depends(get_cognition_session),
 ):
     chat_repository = ChatRepository(session)
     service = ChatService(
@@ -62,6 +66,7 @@ async def chat_with_npc(
         provider=provider,
         history_limit=settings.chat_history_limit,
         prompt_version=settings.chat_prompt_version,
+        cognition=CognitionProjectionService(CognitionRepository(cognition_session), settings=settings),
     )
 
     try:

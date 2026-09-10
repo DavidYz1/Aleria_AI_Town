@@ -3,11 +3,11 @@ from datetime import UTC, datetime
 import logging
 from typing import Literal, cast
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from backend.app.database.models import Conversation, ConversationMessage
+from backend.app.database.models import Conversation, ConversationMessage, NpcProfile
 
 
 logger = logging.getLogger(__name__)
@@ -99,6 +99,17 @@ class ChatRepository:
     ) -> PersistedChatTurn:
         now = datetime.now(UTC)
         try:
+            # Serialize this owner's source transactions before any message IDs
+            # are allocated. PostgreSQL sequences do not follow commit order;
+            # the shared row lock makes the message checkpoint safe. The no-op
+            # UPDATE also takes SQLite's write lock and changes no profile data.
+            # This runs only during persistence, after provider work is complete.
+            self._session.execute(
+                update(NpcProfile)
+                .where(NpcProfile.id == npc_id)
+                .values(sort_order=NpcProfile.sort_order)
+                .execution_options(synchronize_session=False)
+            )
             if create_conversation:
                 conversation = Conversation(
                     id=conversation_id,

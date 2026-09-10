@@ -16,6 +16,65 @@ from scripts.seed_world import seed_database
 CONVERSATION_ID = "5e547c21-a228-4e86-940d-a1bf5d65702f"
 
 
+@pytest.mark.parametrize("database_fixture", ["database_url", "postgres_database_url"])
+def test_same_owner_turns_cannot_overtake_before_message_id_allocation(request, database_fixture, seed_dir):
+    """Catch a later conversation allocating/committing IDs before an earlier owner transaction."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event as Signal
+    from sqlalchemy import event
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.models import Memory
+    from backend.app.services.cognition_projection import CognitionProjectionService
+
+    url = request.getfixturevalue(database_fixture)
+    seed_database(url, seed_dir)
+    engine, factory = create_engine_and_session(url)
+    first_at_source_flush, release_first, second_attempted, second_finished = (Signal() for _ in range(4))
+
+    def persist_first():
+        with factory() as session:
+            def pause_before_source_flush(session, context, instances):
+                if any(isinstance(row, Conversation) for row in session.new):
+                    first_at_source_flush.set()
+                    assert release_first.wait(10), "test did not release the first source transaction"
+            event.listen(session, "before_flush", pause_before_source_flush)
+            return _persist_turn(ChatRepository(session), create_conversation=True, turn_number=1)
+
+    def persist_second():
+        with factory() as session:
+            # Observe the real second connection attempting its first SQL write.
+            connection = session.connection()
+            def attempted(connection, cursor, statement, parameters, context, executemany):
+                if statement.lstrip().upper().startswith(("UPDATE", "INSERT")):
+                    second_attempted.set()
+            event.listen(connection, "before_cursor_execute", attempted)
+            try:
+                return _persist_turn(ChatRepository(session), conversation_id=str(UUID(int=2)),
+                                     create_conversation=True, turn_number=2)
+            finally:
+                second_finished.set()
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first = pool.submit(persist_first)
+            try:
+                assert first_at_source_flush.wait(5)
+                second = pool.submit(persist_second)
+                assert second_attempted.wait(5)
+                overtook = second_finished.wait(0.5)
+            finally:
+                release_first.set()
+            first_turn, second_turn = first.result(timeout=10), second.result(timeout=10)
+        assert not overtook, "same-owner source transaction overtook the first before its commit"
+        assert (first_turn.user.id, first_turn.assistant.id, second_turn.user.id, second_turn.assistant.id) == (1, 2, 3, 4)
+        with factory() as session:
+            result = CognitionProjectionService(CognitionRepository(session)).catch_up_owner("aleria-town", "ryan")
+            assert result.created_memories == 2
+            assert session.scalar(select(func.count()).select_from(Memory).where(Memory.memory_type == "conversation")) == 2
+    finally:
+        engine.dispose()
+
+
 def _persist_turn(
     repository: ChatRepository,
     *,

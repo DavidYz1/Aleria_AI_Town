@@ -8,6 +8,41 @@ from backend.app.database.player_quest_repository import PlayerQuestRepository
 from backend.app.quests.missing_child import MissingChildQuestPolicy
 from scripts.seed_world import seed_database
 
+
+@pytest.mark.parametrize("operation", ["travel", "quest"])
+def test_player_post_commit_failure_preserves_source_and_later_compensates(database_url, seed_dir, caplog, operation):
+    # Catches missing post-commit coordination and cognition changing a successful command.
+    from sqlalchemy import func, select
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.models import AgentCognitionState, Event, Observation, WorldState
+    from backend.app.schemas.player import PlayerTravelRequest
+    from backend.app.schemas.quest import QuestInteractRequest
+    from backend.app.services.cognition_projection import CognitionProjectionService
+    from backend.app.services.player_quest_service import PlayerQuestService
+    from tests.backend.test_cognition_projection import FailingCoreRepository
+
+    seed_database(database_url, seed_dir)
+    engine, factory = create_engine_and_session(database_url)
+    with factory() as session, factory() as cognition_session:
+        service = PlayerQuestService(PlayerQuestRepository(session), MissingChildQuestPolicy(),
+            cognition=CognitionProjectionService(FailingCoreRepository(cognition_session)))
+        if operation == "travel":
+            result = service.travel(PlayerTravelRequest(target_location_id="castle", expected_world_version=0))
+            assert result.player.location_id == "castle"
+        else:
+            result = service.interact(QuestInteractRequest(interaction="accept_quest", expected_version=0, expected_world_version=0))
+            assert result.quest.status == "accepted"
+        with factory() as observer:
+            world = observer.get(WorldState, "aleria-town")
+            assert (world.world_version, world.clock_tick, world.event_sequence) == (1, 0, 1)
+            assert observer.scalar(select(func.count()).select_from(Event)) == 1
+            assert observer.scalar(select(func.count()).select_from(Observation)) == 0
+            assert observer.scalar(select(func.count()).select_from(AgentCognitionState)) == 0
+        assert any(getattr(record, "category", None) == "core_projection" for record in caplog.records)
+        assert "sensitive injected secret" not in caplog.text
+        assert CognitionProjectionService(CognitionRepository(cognition_session)).catch_up_world("aleria-town").created_memories > 0
+    engine.dispose()
+
 EXPECTED_EVENT_FRAGMENTS = {
     "accept_quest": ("星辉酒馆", "接受"),
     "ask_grey": ("Grey", "灰烬战争旧封锁线"),

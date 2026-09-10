@@ -12,6 +12,12 @@ def get_session(request: Request) -> Generator[Session, None, None]:
         yield session
 
 
+def get_cognition_session(request: Request) -> Generator[Session, None, None]:
+    """Own a separate lazy Session for post-commit cognition, closed per request."""
+    with request.app.state.session_factory() as session:
+        yield session
+
+
 def get_app_settings(request: Request) -> Settings:
     return request.app.state.settings
 

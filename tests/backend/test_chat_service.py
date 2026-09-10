@@ -29,6 +29,43 @@ from backend.app.services.chat_service import (
 from scripts.seed_world import seed_database
 
 
+@pytest.mark.anyio
+async def test_chat_post_commit_failure_preserves_complete_turn_and_later_compensates(database_url, seed_dir, caplog):
+    # Catches projection before reply/commit, missing hooks, or a lost successful chat response.
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.models import AgentCognitionState, Observation
+    from backend.app.services.cognition_projection import CognitionProjectionService
+    from tests.backend.test_cognition_projection import FailingCoreRepository
+
+    seed_database(database_url, seed_dir)
+    engine, factory = create_engine_and_session(database_url)
+    class Provider(_CapturingProvider):
+        async def generate_reply(self, request):
+            with factory() as observer:
+                assert observer.scalar(select(func.count()).select_from(Observation)) == 0
+                assert observer.scalar(select(func.count()).select_from(ConversationMessage)) == 0
+            return await super().generate_reply(request)
+    with factory() as session, factory() as cognition_session:
+        repository = ChatRepository(session)
+        service = ChatService(repository=repository,
+            context_assembler=ChatContextAssembler(NpcRepository(session), repository, PromptLoader()),
+            provider=Provider(), history_limit=10, prompt_version="v1",
+            cognition=CognitionProjectionService(FailingCoreRepository(cognition_session)))
+        result = await service.chat(npc_id="grey", request=NpcChatRequest(message="A private claim"))
+        assert result.npc_id == "grey" and result.turn.user.content == "A private claim"
+        with factory() as observer:
+            assert observer.scalar(select(func.count()).select_from(ConversationMessage)) == 2
+            assert observer.scalar(select(func.count()).select_from(Observation)) == 0
+            assert observer.scalar(select(func.count()).select_from(AgentCognitionState)) == 0
+            world = observer.get(WorldState, "aleria-town")
+            assert (world.world_version, world.clock_tick, world.event_sequence) == (0, 0, 0)
+        assert any(getattr(record, "category", None) == "core_projection" for record in caplog.records)
+        assert "sensitive injected secret" not in caplog.text
+        assert CognitionProjectionService(CognitionRepository(cognition_session)).catch_up_owner("aleria-town", "grey").created_memories == 1
+        assert session.get(AgentCognitionState, ("aleria-town", "ryan")) is None
+    engine.dispose()
+
+
 class _CapturingProvider:
     name = "test-provider"
 

@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 
 from pydantic import ValidationError
@@ -21,6 +22,10 @@ from backend.app.schemas.quest import (
     QuestInteractRequest,
     QuestInteractionData,
 )
+from backend.app.services.cognition_projection import CognitionProjectionError, CognitionProjectionService
+
+
+logger = logging.getLogger(__name__)
 
 
 class PlayerQuestServiceUnavailableError(RuntimeError):
@@ -43,9 +48,11 @@ class PlayerQuestService:
         self,
         repository: PlayerQuestRepository,
         policy: MissingChildQuestPolicy,
+        cognition: CognitionProjectionService | None = None,
     ) -> None:
         self._repository = repository
         self._policy = policy
+        self._cognition = cognition
 
     def get_state(self) -> PlayerQuestData:
         return self._to_data(
@@ -53,14 +60,15 @@ class PlayerQuestService:
         )
 
     def travel(self, request: PlayerTravelRequest) -> PlayerQuestData:
-        return self._to_data(
-            self._repository.travel(
-                self.PLAYER_ID,
-                self.QUEST_ID,
-                request.target_location_id,
-                request.expected_world_version,
-            )
+        records = self._repository.travel(
+            self.PLAYER_ID,
+            self.QUEST_ID,
+            request.target_location_id,
+            request.expected_world_version,
         )
+        result = self._to_data(records)
+        self._project_committed_sources(records.world_id)
+        return result
 
     def interact(self, request: QuestInteractRequest) -> PlayerQuestData:
         records = self._repository.get_state(self.PLAYER_ID, self.QUEST_ID)
@@ -78,15 +86,23 @@ class PlayerQuestService:
                 expected_version=request.expected_version,
             ),
         )
-        return self._to_data(
-            self._repository.apply_transition(
-                player_id=self.PLAYER_ID,
-                quest_id=self.QUEST_ID,
-                expected_version=request.expected_version,
-                expected_world_version=request.expected_world_version,
-                transition=transition,
-            )
+        persisted = self._repository.apply_transition(
+            player_id=self.PLAYER_ID,
+            quest_id=self.QUEST_ID,
+            expected_version=request.expected_version,
+            expected_world_version=request.expected_world_version,
+            transition=transition,
         )
+        result = self._to_data(persisted)
+        self._project_committed_sources(persisted.world_id)
+        return result
+
+    def _project_committed_sources(self, world_id: str) -> None:
+        if self._cognition is not None:
+            try:
+                self._cognition.catch_up_world(world_id)
+            except CognitionProjectionError:
+                logger.warning("Post-commit cognition projection failed", extra={"category": "core_projection"})
 
     def _to_data(self, records: PlayerQuestRecords) -> PlayerQuestData:
         try:

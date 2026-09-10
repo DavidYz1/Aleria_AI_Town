@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     chat_llm_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     chat_history_limit: int = Field(default=10, ge=1, le=50)
     chat_prompt_version: Literal["v1", "v2", "v3"] = "v3"
+    cognition_source_batch_size: int = Field(default=25, ge=1, le=100)
+    cognition_attention_budget: int = Field(default=12, ge=1, le=50)
+    cognition_post_commit_budget_seconds: float = Field(default=5.0, gt=0, le=30)
 
     model_config = SettingsConfigDict(
         env_file=REPO_ROOT / ".env",

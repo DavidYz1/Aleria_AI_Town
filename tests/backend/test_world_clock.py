@@ -31,6 +31,55 @@ from scripts.upgrade_schema import upgrade_schema
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("path,payload,want", [
+    ("/api/world/tick", {"expected_world_version": 0}, 5),
+    ("/api/player/travel", {"target_location_id": "castle", "expected_world_version": 0}, 1),
+    ("/api/quests/missing-child/interact", {"interaction": "accept_quest", "expected_version": 0, "expected_world_version": 0}, 1),
+    ("/api/npcs/grey/chat", {"message": "A player claim"}, 1),
+])
+async def test_source_routes_explicitly_enable_post_commit_projection(database_url, seed_dir, path, payload, want):
+    # Catches a service that works in isolation but is never enabled in production routes.
+    from backend.app.core.config import Settings
+    from backend.app.database.models import Observation
+    seed_database(database_url, seed_dir)
+    app = create_app(database_url, settings=Settings(_env_file=None, chat_provider="mock"))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(path, json=payload)
+    assert response.status_code == 200 and response.json()["success"] is True
+    with app.state.session_factory() as session:
+        assert session.scalar(select(func.count()).select_from(Observation)) == want
+
+
+def test_tick_post_commit_failure_preserves_source_and_later_compensates(database_url, seed_dir, caplog):
+    # Catches a missing hook, leaking its exception, or rolling back the source transaction.
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.models import AgentCognitionState, AgentRun, Observation
+    from backend.app.services.cognition_projection import CognitionProjectionService
+    from backend.app.services.world_clock_service import WorldTickService
+    from tests.backend.test_cognition_projection import FailingCoreRepository
+
+    seed_database(database_url, seed_dir)
+    engine, factory = create_engine_and_session(database_url)
+    with factory() as session, factory() as cognition_session:
+        service = WorldTickService(WorldTickRepository(session),
+            cognition=CognitionProjectionService(FailingCoreRepository(cognition_session)))
+        result = service.advance(0)
+        assert result.world.world.world_version == 1
+        assert len(result.actions) == len(result.events) == 3
+        with factory() as observer:
+            world = observer.get(WorldState, "aleria-town")
+            assert (world.world_version, world.clock_tick, world.event_sequence) == (1, 1, 3)
+            assert observer.scalar(select(func.count()).select_from(Event)) == 3
+            assert observer.scalar(select(func.count()).select_from(AgentRun)) == 1
+            assert observer.scalar(select(func.count()).select_from(Observation)) == 0
+            assert observer.scalar(select(func.count()).select_from(AgentCognitionState)) == 0
+        assert any(getattr(record, "category", None) == "core_projection" for record in caplog.records)
+        assert "sensitive injected secret" not in caplog.text
+        assert CognitionProjectionService(CognitionRepository(cognition_session)).catch_up_world("aleria-town").created_memories == 5
+    engine.dispose()
+
+
+@pytest.mark.anyio
 async def test_tick_advances_world_and_records_three_actions_and_events(
     database_url, seed_dir
 ):
