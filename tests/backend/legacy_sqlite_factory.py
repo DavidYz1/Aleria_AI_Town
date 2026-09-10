@@ -32,6 +32,9 @@ class LegacySentinels:
     player_id: str = "default-player"
     quest_id: str = "missing-child"
     conversation_id: str = "legacy-conversation"
+    event_id: int = 1
+    user_message_id: int = 1
+    assistant_message_id: int = 2
 
 
 def _alembic_config(database_url: str) -> Config:

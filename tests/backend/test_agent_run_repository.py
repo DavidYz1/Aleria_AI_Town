@@ -120,7 +120,55 @@ def test_complete_graph_commits_once_and_preserves_rejected_proposals(factory):
         assert all(a.run_id == persisted.run.id and a.proposal_id is not None for a in persisted.actions)
         assert [e.payload_json["proposal_ordinal"] for e in persisted.events] == [0,1,2]
         assert all(e.correlation_id == persisted.run.correlation_id for e in persisted.events)
+        assert [
+            (
+                e.location_id,
+                e.perception_scope,
+                e.participant_npc_ids_json,
+                e.witness_npc_ids_json,
+                e.professional_channels_json,
+                e.attention_priority,
+                e.is_critical,
+            )
+            for e in persisted.events
+        ] == [
+            ("park", "location", ["ryan"], ["ryan", "shir"], [], 0.25, 0),
+            ("park", "location", ["shir"], ["ryan", "shir"], [], 0.25, 0),
+            ("castle", "location", ["grey"], ["grey"], [], 0.25, 0),
+        ]
         assert session.get(WorldState, "aleria-town").event_sequence == 3
+
+
+def test_npc_target_event_persists_sorted_participants_and_location_witness_snapshot(factory):
+    with factory() as session:
+        ryan = session.get(NpcState, "ryan")
+        shir = session.get(NpcState, "shir")
+        assert ryan is not None and shir is not None
+        ryan.social = 43
+        shir.location_id = "park"
+        shir.energy = 30
+        session.commit()
+
+        repository = WorldTickRepository(session)
+        result = run_deterministic_advance(repository.get_snapshot())
+        proposal = next(
+            proposal for proposal in result.proposals if proposal.actor_id == "ryan"
+        )
+        assert (
+            proposal.action_type,
+            proposal.target_kind,
+            proposal.target_id,
+        ) == ("talk", "npc", "shir")
+
+        persisted = repository.persist_run(str(uuid4()), 0, result)
+        stored = next(event for event in persisted.events if event.actor_id == "ryan")
+
+        assert stored.location_id == "park"
+        assert stored.participant_npc_ids_json == ["ryan", "shir"]
+        assert stored.participant_npc_ids_json == sorted(
+            set(stored.participant_npc_ids_json)
+        )
+        assert stored.witness_npc_ids_json == ["ryan", "shir"]
 
 
 @pytest.mark.parametrize("broken", ["version", "clock", "sequence", "npc", "resolution", "event", "trace", "empty_trace", "unknown_action", "event_reason", "event_target", "boolean_version"])

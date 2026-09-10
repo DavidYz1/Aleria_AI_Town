@@ -154,6 +154,7 @@ class ChatContextAssembler:
             world_id=records.world.id,
             world_name=records.world.name,
             world_day=records.world.day,
+            world_version=records.world.world_version,
             world_time=records.world.time,
             clock_tick=records.world.clock_tick,
             time_phase=get_time_phase(records.world.time),

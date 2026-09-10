@@ -1,11 +1,17 @@
 import json
+import hashlib
+from datetime import UTC, datetime
 from pathlib import Path
+from uuid import NAMESPACE_URL, uuid5
 
 from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.app.database.models import (
+    AgentCognitionState,
+    Belief,
+    BeliefEvidence,
     Conversation,
     ConversationMessage,
     Event,
@@ -13,8 +19,11 @@ from backend.app.database.models import (
     ActionProposalRecord,
     AgentTraceEntry,
     Location,
+    Memory,
+    MemoryEvidence,
     NpcProfile,
     NpcState,
+    Observation,
     PlayerState,
     QuestEvent,
     QuestProgress,
@@ -34,11 +43,14 @@ def _read_json(path: Path):
 
 
 def load_seed_data(seed_dir: Path) -> SeedData:
+    authored_knowledge = _read_json(seed_dir / "agent_knowledge.json")
     return SeedData.model_validate(
         {
             "world": _read_json(seed_dir / "world.json"),
             "locations": _read_json(seed_dir / "locations.json"),
             "npcs": _read_json(seed_dir / "npcs.json"),
+            "authored_knowledge_version": authored_knowledge["version"],
+            "authored_knowledge": authored_knowledge["items"],
         }
     )
 
@@ -65,6 +77,28 @@ class DemoResetService:
         )
 
     def _reset(self, seed: SeedData) -> None:
+        memory_ids = select(Memory.id).where(Memory.world_id == seed.world.id)
+        belief_ids = select(Belief.id).where(Belief.world_id == seed.world.id)
+        self._session.execute(
+            delete(BeliefEvidence).where(BeliefEvidence.belief_id.in_(belief_ids))
+        )
+        self._session.execute(delete(Belief).where(Belief.world_id == seed.world.id))
+        self._session.execute(
+            delete(MemoryEvidence).where(
+                MemoryEvidence.derived_memory_id.in_(memory_ids)
+                | MemoryEvidence.evidence_memory_id.in_(memory_ids)
+            )
+        )
+        self._session.execute(delete(Memory).where(Memory.world_id == seed.world.id))
+        self._session.execute(
+            delete(Observation).where(Observation.world_id == seed.world.id)
+        )
+        self._session.execute(
+            delete(AgentCognitionState).where(
+                AgentCognitionState.world_id == seed.world.id
+            )
+        )
+
         player_ids = select(PlayerState.id).where(
             PlayerState.world_id == seed.world.id
         )
@@ -118,6 +152,51 @@ class DemoResetService:
             self._session.merge(
                 NpcState(npc_id=npc.id, **npc.state.model_dump())
             )
+
+        now = datetime.now(UTC)
+        for item in seed.authored_knowledge:
+            content = item.content.strip()
+            self._session.add(Memory(
+                id=str(uuid5(
+                    NAMESPACE_URL,
+                    f"aleria:{seed.world.id}:{item.owner_npc_id}:"
+                    f"{seed.authored_knowledge_version}:{item.source_id}",
+                )),
+                world_id=seed.world.id,
+                owner_npc_id=item.owner_npc_id,
+                memory_type="knowledge",
+                source_observation_id=None,
+                authored_source_id=item.source_id,
+                authored_source_version=seed.authored_knowledge_version,
+                content=content,
+                safe_summary=item.safe_summary.strip(),
+                normalized_content_hash=hashlib.sha256(
+                    content.encode("utf-8")
+                ).hexdigest(),
+                related_entity_ids_json=[],
+                occurred_world_version=item.occurred_world_version,
+                occurred_clock_tick=item.occurred_clock_tick,
+                created_world_version=seed.world.world_version,
+                created_clock_tick=seed.world.clock_tick,
+                occurred_world_time=item.occurred_world_time,
+                source_created_at=item.source_created_at,
+                created_at=now,
+                importance=item.importance,
+                confidence=item.confidence,
+                emotional_valence=item.emotional_valence,
+                secrecy=item.secrecy,
+                disclosure_scope=item.disclosure_scope,
+                lifecycle_state="active",
+                embedding_provider=None,
+                embedding_model=None,
+                embedding_version=None,
+                embedding_input_hash=None,
+                embedding_dimensions=None,
+                embedding_status="unavailable",
+                embedding=None,
+                last_accessed_at=None,
+                access_count=0,
+            ))
 
         self._session.merge(
             PlayerState(

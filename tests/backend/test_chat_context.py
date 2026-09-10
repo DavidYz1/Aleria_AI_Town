@@ -30,6 +30,9 @@ def _persist_six_turns(repository: ChatRepository) -> None:
             npc_id="ryan",
             world_id="aleria-town",
             clock_tick=4,
+            turn_id=str(importlib.import_module("uuid").UUID(int=turn_number)),
+            world_version=4,
+            world_time="12:00",
             user_content=f"user-{turn_number}",
             assistant_content=f"assistant-{turn_number}",
             emotion="guarded",
@@ -191,6 +194,7 @@ def test_context_assembler_uses_authoritative_state_actions_and_bounded_history(
     assert context.personality == ("optimistic", "brave", "kind")
     assert context.world_id == "aleria-town"
     assert context.world_name == "曦谷"
+    assert context.world_version == 4
     assert (
         context.world_day,
         context.world_time,

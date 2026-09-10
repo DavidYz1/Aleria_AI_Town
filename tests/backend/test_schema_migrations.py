@@ -27,6 +27,15 @@ MODEL_TABLES = {
     "agent_trace_entries",
 }
 
+COGNITION_TABLES = {
+    "agent_cognition_states",
+    "observations",
+    "memories",
+    "memory_evidence",
+    "beliefs",
+    "belief_evidence",
+}
+
 
 def test_empty_sqlite_database_upgrades_to_head_with_model_tables(
     tmp_path: Path,
@@ -36,11 +45,11 @@ def test_empty_sqlite_database_upgrades_to_head_with_model_tables(
     upgrade_schema(database_url)
 
     engine = create_engine(database_url)
-    assert set(inspect(engine).get_table_names()) == MODEL_TABLES | {
+    assert set(inspect(engine).get_table_names()) == MODEL_TABLES | COGNITION_TABLES | {
         "alembic_version"
     }
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
 
 
 def test_sqlite_url_with_percent_character_upgrades_to_head(tmp_path: Path) -> None:
@@ -80,7 +89,7 @@ def test_exact_unversioned_legacy_schema_is_adopted(tmp_path: Path) -> None:
     upgrade_schema(database_url)
 
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
 
 
 def test_partial_unversioned_schema_is_rejected(tmp_path: Path) -> None:
@@ -116,7 +125,7 @@ def test_real_orm_legacy_sqlite_upgrades_without_data_loss(
         column["name"] for column in inspector.get_columns("world_state")
     )
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
         assert connection.execute(
             text(
                 "SELECT day, time, clock_tick, world_version, event_sequence "
@@ -176,6 +185,13 @@ def test_real_orm_legacy_sqlite_upgrades_without_data_loss(
             "Grey spoke with the player.",
             "15:00",
         )
+        assert connection.execute(
+            text(
+                "SELECT location_id, perception_scope, participant_npc_ids_json, "
+                "witness_npc_ids_json FROM events WHERE id=:id"
+            ),
+            {"id": sentinels.event_id},
+        ).one() == (None, None, None, None)
         assert connection.scalar(
             text("SELECT created_clock_tick FROM conversations WHERE id=:id"),
             {"id": sentinels.conversation_id},
@@ -196,6 +212,13 @@ def test_real_orm_legacy_sqlite_upgrades_without_data_loss(
             None,
             42,
         )
+        assert connection.execute(
+            text(
+                "SELECT turn_id, world_version, world_time "
+                "FROM conversation_messages WHERE id=:id"
+            ),
+            {"id": sentinels.user_message_id},
+        ).one() == (None, None, None)
         assert connection.execute(
             text(
                 "SELECT role, content, emotion, provider, fallback_used, "
@@ -350,6 +373,69 @@ def test_0003_backfills_legacy_groups_and_canonicalizes_actions(tmp_path):
         assert conn.scalar(text("SELECT event_sequence FROM world_state")) == 3
 
 
+def test_0003_foundation_data_upgrades_to_cognition_head_without_fabricated_sources(tmp_path):
+    url = f"sqlite:///{(tmp_path / 'foundation-to-cognition.db').as_posix()}"
+    config = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", url)
+    command.upgrade(config, "0003")
+    engine = create_engine(url)
+    with engine.begin() as connection:
+        connection.execute(text(
+            "INSERT INTO world_state "
+            "(id,name,day,time,clock_tick,world_version,event_sequence) "
+            "VALUES ('w','World',1,'08:00',0,0,1)"
+        ))
+        connection.execute(text(
+            "INSERT INTO locations (id,name,description,sort_order) "
+            "VALUES ('castle','Castle','Stone castle',1)"
+        ))
+        connection.execute(text(
+            "INSERT INTO npc_profiles (id,name,role,personality_json,sort_order) "
+            "VALUES ('grey','Grey','Innkeeper','[]',1)"
+        ))
+        connection.execute(text(
+            "INSERT INTO npc_states "
+            "(npc_id,location_id,current_action,energy,mood,social) "
+            "VALUES ('grey','castle','wait',50,50,50)"
+        ))
+        connection.execute(text(
+            "INSERT INTO events "
+            "(world_id,clock_tick,event_type,actor_id,action_id,description,world_time,"
+            "run_id,world_version,event_sequence,source_event_id,payload_json,visibility,"
+            "secrecy,causation_id,correlation_id,created_at) VALUES "
+            "('w',0,'npc_action','grey',NULL,'Legacy event','08:00',NULL,0,1,NULL,'{}',"
+            "'public','public',NULL,'00000000-0000-0000-0000-000000000001',"
+            "'2026-09-09 00:00:00')"
+        ))
+        legacy_event_id = connection.scalar(text("SELECT id FROM events"))
+        connection.execute(text(
+            "INSERT INTO conversations "
+            "(id,world_id,npc_id,created_clock_tick,created_at,updated_at) VALUES "
+            "('conversation','w','grey',0,'2026-09-09 00:00:00','2026-09-09 00:00:00')"
+        ))
+        connection.execute(text(
+            "INSERT INTO conversation_messages "
+            "(conversation_id,role,content,emotion,provider,fallback_used,prompt_version,"
+            "clock_tick,created_at) VALUES "
+            "('conversation','user','Legacy claim',NULL,NULL,0,NULL,0,'2026-09-09 00:00:00')"
+        ))
+        legacy_message_id = connection.scalar(text("SELECT id FROM conversation_messages"))
+
+    command.upgrade(config, "head")
+
+    assert COGNITION_TABLES.issubset(inspect(engine).get_table_names())
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
+        assert connection.execute(text(
+            "SELECT location_id, perception_scope, participant_npc_ids_json, "
+            "witness_npc_ids_json FROM events WHERE id=:id"
+        ), {"id": legacy_event_id}).one() == (None, None, None, None)
+        assert connection.execute(text(
+            "SELECT turn_id, world_version, world_time FROM conversation_messages "
+            "WHERE id=:id"
+        ), {"id": legacy_message_id}).one() == (None, None, None)
+
+
 def test_postgresql_empty_database_upgrades_to_runtime_head(postgres_database_url):
     """Migrate an isolated empty schema; vector extension permission is required."""
     url = postgres_database_url
@@ -358,9 +444,9 @@ def test_postgresql_empty_database_upgrades_to_runtime_head(postgres_database_ur
         assert engine.dialect.name == "postgresql"
         assert inspect(engine).get_table_names() == []
         upgrade_schema(url)
-        assert set(inspect(engine).get_table_names()) == MODEL_TABLES | {"alembic_version"}
+        assert set(inspect(engine).get_table_names()) == MODEL_TABLES | COGNITION_TABLES | {"alembic_version"}
         with engine.connect() as conn:
-            assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
+            assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
         checks = inspect(engine).get_check_constraints("actions")
         assert not any("action_type" in check["sqltext"] for check in checks)
     finally:

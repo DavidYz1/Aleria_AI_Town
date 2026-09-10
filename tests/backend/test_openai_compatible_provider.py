@@ -29,6 +29,7 @@ def _request() -> ChatProviderRequest:
         world_id="aleria-town",
         world_name="曦谷",
         world_day=1,
+        world_version=1,
         world_time="08:10",
         clock_tick=1,
         time_phase="morning",

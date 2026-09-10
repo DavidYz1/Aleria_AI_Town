@@ -55,6 +55,7 @@ class ChatProviderRequest:
     world_id: str
     world_name: str
     world_day: int
+    world_version: int
     world_time: str
     clock_tick: int
     time_phase: Literal["morning", "day", "evening", "night"]

@@ -63,11 +63,17 @@ async def test_tick_advances_world_and_records_three_actions_and_events(
     ]
     assert len(body["data"]["events"]) == 3
     assert all(event["action_id"] for event in body["data"]["events"])
+    assert all(
+        "perception_scope" not in event for event in body["data"]["events"]
+    )
 
     _, session_factory = create_engine_and_session(database_url)
     with session_factory() as session:
         assert session.scalar(select(func.count()).select_from(WorldAction)) == 3
         assert session.scalar(select(func.count()).select_from(Event)) == 3
+        stored_events = tuple(
+            session.scalars(select(Event).order_by(Event.event_sequence))
+        )
         shir = session.get(NpcState, "shir")
         assert shir is not None
         assert (shir.location_id, shir.current_action, shir.energy) == (
@@ -75,6 +81,12 @@ async def test_tick_advances_world_and_records_three_actions_and_events(
             "move",
             65,
         )
+        assert [event.location_id for event in stored_events] == [
+            "park", "park", "castle"
+        ]
+        assert [event.participant_npc_ids_json for event in stored_events] == [
+            ["ryan"], ["shir"], ["grey"]
+        ]
 
 
 @pytest.mark.anyio

@@ -12,10 +12,12 @@ from sqlalchemy import func, select
 
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import (
+    AgentCognitionState,
     Conversation,
     ConversationMessage,
     Event,
     Location,
+    Memory,
     NpcProfile,
     NpcState,
     PlayerState,
@@ -138,6 +140,58 @@ def test_seed_data_defines_four_story_locations_and_grey_at_the_castle(seed_dir)
 
     grey = next(npc for npc in seed.npcs if npc.id == "grey")
     assert grey.state.location_id == "castle"
+    assert seed.authored_knowledge_version == "stage2-v1"
+    assert {item.owner_npc_id for item in seed.authored_knowledge} == {
+        "ryan", "shir", "grey"
+    }
+    assert all(item.source_id and item.safe_summary for item in seed.authored_knowledge)
+
+
+def test_seed_data_rejects_authored_knowledge_for_unknown_owner(tmp_path, seed_dir):
+    invalid_seed_dir = tmp_path / "data"
+    shutil.copytree(seed_dir, invalid_seed_dir)
+    knowledge_path = invalid_seed_dir / "agent_knowledge.json"
+    knowledge = json.loads(knowledge_path.read_text(encoding="utf-8"))
+    knowledge["items"][0]["owner_npc_id"] = "missing-npc"
+    knowledge_path.write_text(
+        json.dumps(knowledge, ensure_ascii=False), encoding="utf-8"
+    )
+
+    with pytest.raises(ValidationError, match="unknown owner_npc_id 'missing-npc'"):
+        load_seed_data(invalid_seed_dir)
+
+
+def test_ensure_existing_demo_world_preserves_cognition(database_url, seed_dir):
+    from scripts.ensure_demo_world import ensure_demo_world
+
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    now = datetime.now(UTC)
+    with session_factory() as session:
+        session.add(AgentCognitionState(
+            world_id="aleria-town", owner_npc_id="grey",
+            created_at=now, updated_at=now,
+        ))
+        session.add(Memory(
+            id="00000000-0000-0000-0000-000000000099",
+            world_id="aleria-town", owner_npc_id="grey", memory_type="knowledge",
+            source_observation_id=None, authored_source_id="preserve-me",
+            authored_source_version="test-v1", content="Preserve cognition",
+            safe_summary="Preserved", normalized_content_hash="9" * 64,
+            related_entity_ids_json=[], occurred_world_version=0,
+            occurred_clock_tick=0, created_world_version=0, created_clock_tick=0,
+            occurred_world_time="08:00", source_created_at=now, created_at=now,
+            importance=0.5, confidence=0.5, emotional_valence=0,
+            secrecy="private", disclosure_scope="player_dialogue",
+            lifecycle_state="active", embedding_status="unavailable", access_count=0,
+        ))
+        session.commit()
+
+    assert ensure_demo_world(database_url, seed_dir) is False
+
+    with session_factory() as session:
+        assert session.get(Memory, "00000000-0000-0000-0000-000000000099") is not None
+        assert session.get(AgentCognitionState, ("aleria-town", "grey")) is not None
 
 
 def test_seed_initializes_and_resets_default_player_missing_child_quest(

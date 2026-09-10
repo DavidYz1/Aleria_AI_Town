@@ -112,12 +112,25 @@ def test_repository_travel_persists_and_same_location_is_idempotent(
         event_count = session.scalar(
             select(func.count()).select_from(QuestEvent)
         )
+        event = session.scalar(
+            select(Event).where(Event.event_type == "player_travelled")
+        )
 
     assert travelled.location_id == "castle"
     assert repeated.location_id == "castle"
     assert persisted.location_id == "castle"
     assert persisted.version == 0
     assert event_count == 0
+    assert event is not None
+    assert (
+        event.location_id,
+        event.perception_scope,
+        event.participant_npc_ids_json,
+        event.witness_npc_ids_json,
+        event.professional_channels_json,
+        event.attention_priority,
+        event.is_critical,
+    ) == ("castle", "location", [], ["grey"], [], 0.35, 0)
 
 
 def test_repository_travel_rejects_unknown_location(database_url, seed_dir):
@@ -194,6 +207,9 @@ def test_repository_applies_versioned_transition_and_inserts_event_atomically(
             ("default-player", "missing-child"),
         )
         events = tuple(session.scalars(select(QuestEvent)))
+        domain_event = session.scalar(
+            select(Event).where(Event.event_type == "quest_transitioned")
+        )
 
     assert records.status == "accepted"
     assert records.version == 1
@@ -221,6 +237,96 @@ def test_repository_applies_versioned_transition_and_inserts_event_atomically(
         "tavern",
         0,
     )
+    assert domain_event is not None
+    assert (
+        domain_event.location_id,
+        domain_event.perception_scope,
+        domain_event.participant_npc_ids_json,
+        domain_event.witness_npc_ids_json,
+        domain_event.professional_channels_json,
+        domain_event.attention_priority,
+        domain_event.is_critical,
+    ) == ("tavern", "location", [], ["shir"], [], 0.6, 0)
+
+
+def test_repository_freezes_critical_quest_source_metadata_at_commit_time(
+    database_url,
+    seed_dir,
+):
+    repository_module = _repository_module()
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    policy = MissingChildQuestPolicy()
+
+    with session_factory() as session:
+        repository = repository_module.PlayerQuestRepository(session)
+        repository.apply_transition(
+            player_id="default-player", quest_id="missing-child",
+            expected_version=0, expected_world_version=0,
+            transition=_available_transition(),
+        )
+        repository.travel("default-player", "missing-child", "castle", 1)
+        records = repository.get_state("default-player", "missing-child")
+        repository.apply_transition(
+            player_id="default-player", quest_id="missing-child",
+            expected_version=1, expected_world_version=2,
+            transition=policy.transition(
+                QuestSnapshot(
+                    quest_id=records.quest_id, status=records.status,
+                    version=records.version,
+                    player_location_id=records.location_id,
+                    clock_tick=records.clock_tick,
+                    target_npc_location_id=records.target_npc_location_id,
+                ),
+                QuestCommand(interaction="ask_grey", expected_version=1),
+            ),
+        )
+        repository.travel("default-player", "missing-child", "forest", 3)
+        for version, interaction in ((2, "inspect_shoe"), (3, "search_child")):
+            records = repository.get_state("default-player", "missing-child")
+            repository.apply_transition(
+                player_id="default-player", quest_id="missing-child",
+                expected_version=version, expected_world_version=version + 2,
+                transition=policy.transition(
+                    QuestSnapshot(
+                        quest_id=records.quest_id, status=records.status,
+                        version=records.version,
+                        player_location_id=records.location_id,
+                        clock_tick=records.clock_tick,
+                    ),
+                    QuestCommand(interaction=interaction, expected_version=version),
+                ),
+            )
+        repository.travel("default-player", "missing-child", "tavern", 6)
+        records = repository.get_state("default-player", "missing-child")
+        repository.apply_transition(
+            player_id="default-player", quest_id="missing-child",
+            expected_version=4, expected_world_version=7,
+            transition=policy.transition(
+                QuestSnapshot(
+                    quest_id=records.quest_id, status=records.status,
+                    version=records.version,
+                    player_location_id=records.location_id,
+                    clock_tick=records.clock_tick,
+                ),
+                QuestCommand(interaction="return_child", expected_version=4),
+            ),
+        )
+        critical_events = tuple(session.scalars(
+            select(Event)
+            .where(Event.event_type == "quest_transitioned", Event.is_critical == 1)
+            .order_by(Event.event_sequence)
+        ))
+
+    assert [event.payload_json["interaction"] for event in critical_events] == [
+        "inspect_shoe", "search_child", "return_child"
+    ]
+    assert [event.location_id for event in critical_events] == ["forest", "forest", "tavern"]
+    assert [event.attention_priority for event in critical_events] == [0.9, 1.0, 1.0]
+    assert [event.professional_channels_json for event in critical_events] == [
+        ["scout_network"], ["town_guard"], ["town_guard"]
+    ]
+    assert [event.witness_npc_ids_json for event in critical_events] == [[], [], ["shir"]]
 
 
 def test_repository_rejects_stale_version_without_extra_event(

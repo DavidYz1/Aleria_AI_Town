@@ -1,6 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 import pytest
+from uuid import UUID
 
 from backend.app.database.chat_repository import (
     ChatPersistenceError,
@@ -22,12 +23,16 @@ def _persist_turn(
     create_conversation: bool,
     turn_number: int,
 ):
+    turn_id = str(UUID(int=turn_number))
     return repository.persist_turn(
         conversation_id=conversation_id,
         create_conversation=create_conversation,
         npc_id="ryan",
         world_id="aleria-town",
         clock_tick=turn_number - 1,
+        turn_id=turn_id,
+        world_version=0,
+        world_time="08:00",
         user_content=f"user-{turn_number}",
         assistant_content=f"assistant-{turn_number}",
         emotion="guarded",
@@ -74,6 +79,9 @@ def test_repository_persists_a_new_complete_turn(database_url, seed_dir):
     assert messages[1].provider == "mock"
     assert messages[1].fallback_used == 0
     assert messages[1].prompt_version == "v1"
+    assert messages[0].turn_id == messages[1].turn_id == str(UUID(int=1))
+    assert (messages[0].world_version, messages[0].world_time) == (0, "08:00")
+    assert (messages[1].world_version, messages[1].world_time) == (0, "08:00")
 
 
 def test_repository_returns_only_newest_messages_in_chronological_order(

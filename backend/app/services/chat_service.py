@@ -93,12 +93,16 @@ class ChatService:
             ) from None
 
         try:
+            turn_id = str(uuid4())
             persisted = self._repository.persist_turn(
                 conversation_id=conversation_id,
                 create_conversation=create_conversation,
                 npc_id=context.npc_id,
                 world_id=context.world_id,
                 clock_tick=context.clock_tick,
+                turn_id=turn_id,
+                world_version=context.world_version,
+                world_time=context.world_time,
                 user_content=request.message,
                 assistant_content=provider_result.reply,
                 emotion=provider_result.emotion,

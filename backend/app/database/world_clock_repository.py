@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.app.agents.contracts import AgentRuntimeResult, ProposalSource, to_json_compatible
+from backend.app.agents.cognition_contracts import EventPerceptionMetadata
 from backend.app.agents.action_registry import ActionRegistry, clamp_need
 from backend.app.agents.orchestrator import run_deterministic_advance
 from backend.app.world.action_rules import DEFAULT_ACTION_REGISTRY
@@ -136,15 +137,28 @@ class WorldTickRepository:
             ) for p in accepted)
             self._session.add_all(actions)
             self._session.flush()
-            events = tuple(Event(
-                world_id=base.id, run_id=run_id, clock_tick=world.clock_tick,
-                world_version=world.world_version, event_sequence=base.event_sequence + index,
-                event_type=draft.event_type, actor_id=draft.actor_id, action_id=action.id,
-                description=self._event_description(draft.actor_id, draft.event_type, draft.payload, base), world_time=world.time,
-                payload_json=to_json_compatible(draft.payload), visibility=draft.visibility,
-                secrecy=draft.visibility, causation_id=draft.causation_id,
-                correlation_id=correlation_id, created_at=now,
-            ) for index, (action, draft) in enumerate(zip(actions, result.events, strict=True), 1))
+            events = []
+            for index, (action, draft) in enumerate(
+                zip(actions, result.events, strict=True), 1
+            ):
+                perception = self._npc_action_perception(draft, result.world)
+                events.append(Event(
+                    world_id=base.id, run_id=run_id, clock_tick=world.clock_tick,
+                    world_version=world.world_version, event_sequence=base.event_sequence + index,
+                    event_type=draft.event_type, actor_id=draft.actor_id, action_id=action.id,
+                    description=self._event_description(draft.actor_id, draft.event_type, draft.payload, base), world_time=world.time,
+                    payload_json=to_json_compatible(draft.payload), visibility=draft.visibility,
+                    secrecy=draft.visibility, causation_id=draft.causation_id,
+                    correlation_id=correlation_id, created_at=now,
+                    location_id=perception.location_id,
+                    perception_scope=perception.perception_scope,
+                    participant_npc_ids_json=list(perception.participant_npc_ids),
+                    witness_npc_ids_json=list(perception.witness_npc_ids),
+                    professional_channels_json=list(perception.professional_channels),
+                    attention_priority=perception.attention_priority,
+                    is_critical=int(perception.is_critical),
+                ))
+            events = tuple(events)
             self._session.add_all(events)
             self._session.add_all(traces)
             self._session.commit()
@@ -393,6 +407,26 @@ class WorldTickRepository:
         target = payload["target"]
         suffix = f" {target['id']}" if target is not None else ""
         return f"{actor.name} {label}{suffix}"
+
+    @staticmethod
+    def _npc_action_perception(draft, world: WorldSnapshot) -> EventPerceptionMetadata:
+        actor = next(npc for npc in world.npcs if npc.id == draft.actor_id)
+        participants = {actor.id}
+        target = draft.payload.get("target")
+        if target is not None and target.get("kind") == "npc":
+            participants.add(target["id"])
+        witnesses = {
+            npc.id for npc in world.npcs if npc.location_id == actor.location_id
+        }
+        return EventPerceptionMetadata(
+            location_id=actor.location_id,
+            perception_scope="location",
+            participant_npc_ids=tuple(sorted(participants)),
+            witness_npc_ids=tuple(sorted(witnesses)),
+            professional_channels=(),
+            attention_priority=0.25,
+            is_critical=False,
+        )
 
     def get_snapshot(self) -> WorldSnapshot:
         try:

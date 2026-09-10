@@ -168,6 +168,11 @@ async def test_service_creates_and_persists_a_complete_chat_turn(
     assert messages[1].provider == "test-provider"
     assert messages[1].fallback_used == 1
     assert messages[1].prompt_version == "v1"
+    assert messages[0].turn_id == messages[1].turn_id
+    assert messages[0].turn_id is not None
+    assert (messages[0].world_version, messages[0].world_time) == (0, "08:00")
+    assert (messages[1].world_version, messages[1].world_time) == (0, "08:00")
+    assert provider.requests[0].world_version == 0
 
 
 @pytest.mark.anyio

@@ -44,6 +44,10 @@ def test_upgrade_schema_creates_chat_tables_and_indexes(database_url):
         index["name"]
         for index in inspector.get_indexes("conversation_messages")
     }
+    assert "ix_conversation_messages_turn_id_id" in {
+        index["name"]
+        for index in inspector.get_indexes("conversation_messages")
+    }
 
 
 def test_chat_models_store_one_complete_turn(database_url, seed_dir):
@@ -194,3 +198,48 @@ def test_conversation_message_requires_existing_conversation(
             )
             == 0
         )
+
+
+def test_conversation_message_rejects_duplicate_role_for_the_same_turn(
+    database_url,
+    seed_dir,
+):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    now = datetime.now(UTC)
+    turn_id = "00000000-0000-0000-0000-000000000001"
+
+    with session_factory() as session:
+        session.add(_conversation())
+        session.commit()
+        session.add_all([
+            ConversationMessage(
+                conversation_id=CONVERSATION_ID, role="user", content=content,
+                emotion=None, provider=None, fallback_used=0, prompt_version=None,
+                clock_tick=0, turn_id=turn_id, world_version=0,
+                world_time="08:00", created_at=now,
+            )
+            for content in ("first", "duplicate")
+        ])
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+
+def test_conversation_message_rejects_negative_source_world_version(
+    database_url,
+    seed_dir,
+):
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+
+    with session_factory() as session:
+        session.add(_conversation())
+        session.commit()
+        session.add(ConversationMessage(
+            conversation_id=CONVERSATION_ID, role="user", content="claim",
+            emotion=None, provider=None, fallback_used=0, prompt_version=None,
+            clock_tick=0, turn_id="00000000-0000-0000-0000-000000000001",
+            world_version=-1, world_time="08:00", created_at=datetime.now(UTC),
+        ))
+        with pytest.raises(IntegrityError):
+            session.commit()

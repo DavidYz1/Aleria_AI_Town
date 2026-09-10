@@ -87,6 +87,9 @@ class ChatRepository:
         npc_id: str,
         world_id: str,
         clock_tick: int,
+        turn_id: str,
+        world_version: int,
+        world_time: str,
         user_content: str,
         assistant_content: str,
         emotion: str,
@@ -123,6 +126,9 @@ class ChatRepository:
                 fallback_used=0,
                 prompt_version=None,
                 clock_tick=clock_tick,
+                turn_id=turn_id,
+                world_version=world_version,
+                world_time=world_time,
                 created_at=now,
             )
             assistant_message = ConversationMessage(
@@ -134,6 +140,9 @@ class ChatRepository:
                 fallback_used=int(fallback_used),
                 prompt_version=prompt_version,
                 clock_tick=clock_tick,
+                turn_id=turn_id,
+                world_version=world_version,
+                world_time=world_time,
                 created_at=now,
             )
             conversation.updated_at = now

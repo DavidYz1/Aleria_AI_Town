@@ -53,6 +53,9 @@ async def test_post_npc_chat_completes_mock_acceptance_loop(
     assert body["data"]["turn"]["assistant"]["emotion"] == "guarded"
     assert body["data"]["provider"] == "mock"
     assert body["data"]["fallback_used"] is False
+    assert set(body["data"]) == {
+        "conversation_id", "npc_id", "turn", "provider", "fallback_used"
+    }
 
 
 @pytest.mark.anyio
@@ -123,6 +126,13 @@ async def test_post_npc_chat_continues_existing_conversation_and_persists_pairs(
         "assistant",
     ]
     assert messages[-1].emotion == "reserved"
+    assert all(message.turn_id is not None for message in messages)
+    assert messages[0].turn_id == messages[1].turn_id
+    assert messages[2].turn_id == messages[3].turn_id
+    assert messages[0].turn_id != messages[2].turn_id
+    assert {(message.world_version, message.world_time) for message in messages} == {
+        (0, "08:00")
+    }
 
 
 @pytest.mark.anyio

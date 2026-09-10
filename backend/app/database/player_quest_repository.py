@@ -16,6 +16,7 @@ from backend.app.database.models import (
     QuestProgress,
     WorldState,
 )
+from backend.app.agents.cognition_contracts import EventPerceptionMetadata
 from backend.app.database.world_version import (
     WorldVersionConflictError,
     bump_world_version,
@@ -189,10 +190,25 @@ class PlayerQuestRepository:
             )
             player.location_id = target_location_id
             player.updated_at = datetime.now(UTC)
-            self._add_domain_event(player.world_id, "player_travelled", {
-                "player_id": player_id, "from_location_id": from_location_id,
-                "to_location_id": target_location_id,
-            }, "Player changed location")
+            self._add_domain_event(
+                player.world_id,
+                "player_travelled",
+                {
+                    "player_id": player_id,
+                    "from_location_id": from_location_id,
+                    "to_location_id": target_location_id,
+                },
+                "Player changed location",
+                EventPerceptionMetadata(
+                    location_id=target_location_id,
+                    perception_scope="location",
+                    participant_npc_ids=(),
+                    witness_npc_ids=self._npc_ids_at_location(target_location_id),
+                    professional_channels=(),
+                    attention_priority=0.35,
+                    is_critical=False,
+                ),
+            )
             self._session.commit()
             return self.get_state(player_id, quest_id)
         except (
@@ -293,11 +309,19 @@ class PlayerQuestRepository:
                     created_at=now,
                 )
             )
-            self._add_domain_event(player.world_id, "quest_transitioned", {
-                "player_id": player_id, "quest_id": quest_id,
-                "from_status": transition.from_status, "to_status": transition.to_status,
-                "interaction": transition.interaction, "location_id": player.location_id,
-            }, "Quest status changed")
+            self._add_domain_event(
+                player.world_id,
+                "quest_transitioned",
+                {
+                    "player_id": player_id, "quest_id": quest_id,
+                    "from_status": transition.from_status,
+                    "to_status": transition.to_status,
+                    "interaction": transition.interaction,
+                    "location_id": player.location_id,
+                },
+                "Quest status changed",
+                self._quest_perception(transition),
+            )
             self._session.commit()
             return self.get_state(player_id, quest_id)
         except (
@@ -317,7 +341,14 @@ class PlayerQuestRepository:
                 "Player quest service is unavailable"
             ) from None
 
-    def _add_domain_event(self, world_id: str, event_type: str, payload: dict, description: str) -> None:
+    def _add_domain_event(
+        self,
+        world_id: str,
+        event_type: str,
+        payload: dict,
+        description: str,
+        perception: EventPerceptionMetadata,
+    ) -> None:
         # The successful CAS owns this world's write lock. Refresh counters in
         # case this session read an older world before another writer committed.
         world = self._session.get(WorldState, world_id, populate_existing=True)
@@ -328,7 +359,46 @@ class PlayerQuestRepository:
             action_id=None, source_event_id=None, payload_json=payload,
             visibility="public", secrecy="public", correlation_id=str(uuid4()),
             description=description, world_time=world.time,
+            location_id=perception.location_id,
+            perception_scope=perception.perception_scope,
+            participant_npc_ids_json=list(perception.participant_npc_ids),
+            witness_npc_ids_json=list(perception.witness_npc_ids),
+            professional_channels_json=list(perception.professional_channels),
+            attention_priority=perception.attention_priority,
+            is_critical=int(perception.is_critical),
         ))
+
+    def _npc_ids_at_location(self, location_id: str) -> tuple[str, ...]:
+        return tuple(sorted(set(self._session.scalars(
+            select(NpcState.npc_id).where(NpcState.location_id == location_id)
+        ))))
+
+    def _quest_perception(self, transition: QuestTransition) -> EventPerceptionMetadata:
+        interaction = transition.interaction
+        priorities = {
+            "inspect_shoe": 0.9,
+            "search_child": 1.0,
+            "return_child": 1.0,
+        }
+        channels = {
+            "inspect_shoe": ("scout_network",),
+            "search_child": ("town_guard",),
+            "return_child": ("town_guard",),
+        }
+        participants = (
+            ()
+            if transition.required_npc_id is None
+            else (transition.required_npc_id,)
+        )
+        return EventPerceptionMetadata(
+            location_id=transition.location_id,
+            perception_scope="location",
+            participant_npc_ids=tuple(sorted(set(participants))),
+            witness_npc_ids=self._npc_ids_at_location(transition.location_id),
+            professional_channels=tuple(sorted(set(channels.get(interaction, ())))),
+            attention_priority=priorities.get(interaction, 0.6),
+            is_critical=interaction in priorities,
+        )
 
     @staticmethod
     def _log_failure(category: str, player_id: str, quest_id: str) -> None:

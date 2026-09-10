@@ -39,6 +39,7 @@ def _request(
         world_id="aleria-town",
         world_name="曦谷",
         world_day=1,
+        world_version=0,
         world_time="08:00",
         clock_tick=0,
         time_phase="morning",

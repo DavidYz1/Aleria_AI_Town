@@ -1,0 +1,50 @@
+{
+  "version": "stage2-v1",
+  "items": [
+    {
+      "source_id": "ryan-knight-duty",
+      "owner_npc_id": "ryan",
+      "content": "Ryan 知道自己的职责是守护曦谷居民，并在中央公园维持日常训练。",
+      "safe_summary": "Ryan 对自己的骑士职责有稳定认识。",
+      "secrecy": "public",
+      "disclosure_scope": "public",
+      "importance": 0.5,
+      "confidence": 0.9,
+      "emotional_valence": 0.2,
+      "occurred_world_version": 0,
+      "occurred_clock_tick": 0,
+      "occurred_world_time": "08:00",
+      "source_created_at": "2026-09-09T00:00:00Z"
+    },
+    {
+      "source_id": "shir-tavern-listening",
+      "owner_npc_id": "shir",
+      "content": "Shir 熟悉星辉酒馆的日常声音与出入口，但不会把每段听闻都当作事实。",
+      "safe_summary": "Shir 对星辉酒馆的日常环境保持谨慎观察。",
+      "secrecy": "private",
+      "disclosure_scope": "player_dialogue",
+      "importance": 0.4,
+      "confidence": 0.8,
+      "emotional_valence": 0.0,
+      "occurred_world_version": 0,
+      "occurred_clock_tick": 0,
+      "occurred_world_time": "08:00",
+      "source_created_at": "2026-09-09T00:00:00Z"
+    },
+    {
+      "source_id": "grey-ash-war-caution",
+      "owner_npc_id": "grey",
+      "content": "Grey 亲历过灰烬战争，但残存记录不足以证明所有传闻。",
+      "safe_summary": "Grey 对灰烬战争有谨慎且有来源限制的认识。",
+      "secrecy": "private",
+      "disclosure_scope": "player_dialogue",
+      "importance": 0.7,
+      "confidence": 0.8,
+      "emotional_valence": -0.4,
+      "occurred_world_version": 0,
+      "occurred_clock_tick": 0,
+      "occurred_world_time": "08:00",
+      "source_created_at": "2026-09-09T00:00:00Z"
+    }
+  ]
+}
