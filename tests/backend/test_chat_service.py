@@ -30,6 +30,147 @@ from scripts.seed_world import seed_database
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("phase", ["pre", "post"])
+async def test_slow_embedding_allows_another_chat_to_advance(database_url, seed_dir, phase):
+    """Event handshake: the other Chat must reach its provider before HTTP is released."""
+    import asyncio
+    from threading import Event as Signal, Thread
+    from backend.app.agents.memory_retrieval import MemoryRetriever
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    from backend.app.services.cognition_projection import CognitionProjectionService, EmbeddingEnrichmentService
+    seed_database(database_url, seed_dir)
+    engine, factory = create_engine_and_session(database_url)
+    entered, released, advanced = Signal(), Signal(), Signal()
+    loop = asyncio.get_running_loop()
+    fast_tasks, progress = [], []
+    class BlockingEmbedding(DeterministicEmbeddingProvider):
+        blocked = False
+        def embed(self, text):
+            if not self.blocked and (phase == "pre" or text == "slow claim"):
+                self.blocked = True
+                entered.set()
+                assert released.wait(10), "test failed to release blocked embedding"
+            return super().embed(text)
+    class FastProvider(_CapturingProvider):
+        async def generate_reply(self, request):
+            advanced.set()
+            return await super().generate_reply(request)
+    async def fast_chat():
+        with factory() as session:
+            return await _service(session, FastProvider()).chat(npc_id="ryan", request=NpcChatRequest(message="fast claim"))
+    def supervise():
+        try:
+            if not entered.wait(5):
+                progress.append(False)
+                return
+            loop.call_soon_threadsafe(lambda: fast_tasks.append(asyncio.create_task(fast_chat())))
+            # Timeout is a deadlock guard, not an arbitrary timing/sleep assertion.
+            progress.append(advanced.wait(5))
+        finally:
+            released.set()
+    supervisor = Thread(target=supervise, daemon=True)
+    try:
+        with factory() as session, factory() as cognition_session:
+            repository = ChatRepository(session)
+            cognition_repository = CognitionRepository(cognition_session)
+            cognition = CognitionProjectionService(cognition_repository,
+                enrichment=EmbeddingEnrichmentService(cognition_repository, BlockingEmbedding()))
+            service = ChatService(repository=repository,
+                context_assembler=ChatContextAssembler(NpcRepository(session), repository, PromptLoader(),
+                    cognition=cognition, memory_retriever=MemoryRetriever(cognition_repository, DeterministicEmbeddingProvider())),
+                provider=_CapturingProvider(), history_limit=2, prompt_version="v3", cognition=cognition)
+            supervisor.start()
+            slow = await service.chat(npc_id="grey", request=NpcChatRequest(message="slow claim"))
+            await asyncio.to_thread(supervisor.join)
+            fast = await asyncio.gather(*fast_tasks)
+            assert entered.is_set() and progress == [True], "slow embedding blocked the Chat event loop"
+            assert slow.turn.user.content == "slow claim"
+            assert fast[0].turn.user.content == "fast claim"
+            assert not cognition_session.in_transaction()
+        with factory() as observer:
+            assert observer.scalar(select(func.count()).select_from(ConversationMessage)) == 4
+    finally:
+        released.set()
+        if supervisor.is_alive():
+            await asyncio.to_thread(supervisor.join)
+        engine.dispose()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("phase", ["pre", "post"])
+async def test_cancelled_chat_waits_for_session_worker_before_request_cleanup(database_url, seed_dir, phase):
+    import asyncio
+    from threading import Event as Signal, Thread
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    from backend.app.services.cognition_projection import CognitionProjectionService, EmbeddingEnrichmentService
+    seed_database(database_url, seed_dir)
+    engine, factory = create_engine_and_session(database_url)
+    entered, released, loop_advanced, worker_finished = Signal(), Signal(), Signal(), Signal()
+    loop = asyncio.get_running_loop()
+    premature_cleanup = []
+    class BlockingEmbedding(DeterministicEmbeddingProvider):
+        def embed(self, text):
+            if phase == "pre" or text == "cancelled claim":
+                entered.set()
+                assert released.wait(10)
+            return super().embed(text)
+    class ObservedAssembler(ChatContextAssembler):
+        def assemble(self, **kwargs):
+            try:
+                return super().assemble(**kwargs)
+            finally:
+                if phase == "pre":
+                    worker_finished.set()
+    class ObservedCognition(CognitionProjectionService):
+        def catch_up_owner(self, world_id, owner_npc_id):
+            try:
+                return super().catch_up_owner(world_id, owner_npc_id)
+            finally:
+                if phase == "post" and entered.is_set():
+                    worker_finished.set()
+    async def run_chat():
+        with factory() as session, factory() as cognition_session:
+            repository = ChatRepository(session)
+            cognition_repository = CognitionRepository(cognition_session)
+            cognition = ObservedCognition(cognition_repository,
+                enrichment=EmbeddingEnrichmentService(cognition_repository, BlockingEmbedding()))
+            try:
+                return await ChatService(repository=repository,
+                    context_assembler=ObservedAssembler(NpcRepository(session), repository, PromptLoader(), cognition=cognition),
+                    provider=_CapturingProvider(), history_limit=2, prompt_version="v3", cognition=cognition).chat(
+                        npc_id="grey", request=NpcChatRequest(message="cancelled claim"))
+            finally:
+                premature_cleanup.append(not worker_finished.is_set())
+    task = asyncio.create_task(run_chat())
+    def cancel_on_loop():
+        task.cancel()
+        loop.call_soon(loop_advanced.set)
+    def supervise():
+        try:
+            assert entered.wait(5)
+            loop.call_soon_threadsafe(cancel_on_loop)
+            assert loop_advanced.wait(5)
+        finally:
+            released.set()
+    supervisor = Thread(target=supervise, daemon=True)
+    supervisor.start()
+    try:
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        await asyncio.to_thread(supervisor.join)
+        assert await asyncio.to_thread(worker_finished.wait, 10)
+        assert premature_cleanup == [False], "request cleanup raced its session-owning worker"
+        with factory() as observer:
+            assert observer.scalar(select(func.count()).select_from(ConversationMessage)) == (0 if phase == "pre" else 2)
+    finally:
+        released.set()
+        await asyncio.to_thread(supervisor.join)
+        engine.dispose()
+
+
+@pytest.mark.anyio
 async def test_chat_post_commit_failure_preserves_complete_turn_and_later_compensates(database_url, seed_dir, caplog):
     # Catches projection before reply/commit, missing hooks, or a lost successful chat response.
     from backend.app.database.cognition_repository import CognitionRepository

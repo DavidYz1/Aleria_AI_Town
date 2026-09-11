@@ -43,6 +43,16 @@ class PlayerProfileChatContext:
 
 
 @dataclass(frozen=True)
+class ChatMemoryContext:
+    memory_id: str
+    memory_type: str
+    source_label: Literal["authored_knowledge", "observed_event", "player_claim", "reflection"]
+    content: str
+    occurred_clock_tick: int
+    source_turn_id: str | None
+
+
+@dataclass(frozen=True)
 class ChatProviderRequest:
     npc_id: str
     npc_name: str
@@ -70,3 +80,5 @@ class ChatProviderRequest:
     conversation_history: tuple[ChatHistoryMessage, ...]
     player_message: str
     player_profile: PlayerProfileChatContext | None = None
+    long_term_memories: tuple[ChatMemoryContext, ...] = ()
+    memory_retrieval_mode: str = "memory_unavailable"

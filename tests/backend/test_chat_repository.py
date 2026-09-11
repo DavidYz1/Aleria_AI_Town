@@ -101,6 +101,20 @@ def _persist_turn(
     )
 
 
+def test_internal_history_records_preserve_turn_ids_for_memory_deduplication(database_url, seed_dir):
+    seed_database(database_url, seed_dir)
+    engine, factory = create_engine_and_session(database_url)
+    try:
+        with factory() as session:
+            repository = ChatRepository(session)
+            turn = _persist_turn(repository, create_conversation=True, turn_number=1)
+            assert turn.user.turn_id == turn.assistant.turn_id == str(UUID(int=1))
+            history = repository.get_recent_messages(conversation_id=CONVERSATION_ID, npc_id="ryan", world_id="aleria-town", limit=2)
+            assert [message.turn_id for message in history] == [str(UUID(int=1)), str(UUID(int=1))]
+    finally:
+        engine.dispose()
+
+
 def test_repository_persists_a_new_complete_turn(database_url, seed_dir):
     seed_database(database_url, seed_dir)
     _, session_factory = create_engine_and_session(database_url)

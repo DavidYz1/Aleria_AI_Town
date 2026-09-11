@@ -22,6 +22,31 @@ from scripts.seed_world import seed_database
 CONVERSATION_ID = "5e547c21-a228-4e86-940d-a1bf5d65702f"
 
 
+def test_failed_retrieval_keeps_short_history_and_closes_cognition_transaction(database_url, seed_dir):
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.agents.memory_retrieval import MemoryRetriever
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    seed_database(database_url, seed_dir)
+    engine, factory = create_engine_and_session(database_url)
+    class FailedRead(CognitionRepository):
+        def allowed_memories(self, request):
+            super().allowed_memories(request)
+            raise RuntimeError("private provider input")
+    try:
+        with factory() as session, factory() as cognition:
+            repository = ChatRepository(session)
+            _persist_six_turns(repository)
+            context = ChatContextAssembler(NpcRepository(session), repository, PromptLoader(),
+                memory_retriever=MemoryRetriever(FailedRead(cognition), DeterministicEmbeddingProvider())).assemble(
+                    npc_id="ryan", conversation_id=CONVERSATION_ID, player_message="你好", history_limit=2, prompt_version="v3")
+            assert [message.content for message in context.conversation_history] == ["user-6", "assistant-6"]
+            assert context.long_term_memories == ()
+            assert context.memory_retrieval_mode == "memory_unavailable"
+            assert not cognition.in_transaction()
+    finally:
+        engine.dispose()
+
+
 def _persist_six_turns(repository: ChatRepository) -> None:
     for turn_number in range(1, 7):
         repository.persist_turn(

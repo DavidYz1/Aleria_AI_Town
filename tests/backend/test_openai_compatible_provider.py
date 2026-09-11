@@ -5,6 +5,21 @@ from dataclasses import replace
 import httpx
 import pytest
 
+
+def test_memory_prompt_is_separate_labeled_bounded_and_non_authoritative():
+    from backend.app.llm import types
+    request = replace(_request(), long_term_memories=(types.ChatMemoryContext("m1", "conversation", "player_claim", "蓝色羽毛", 3, "t1"),))
+    provider = OpenAICompatibleChatProvider(name="test", base_url="https://example.test/v1", api_key="", model="chat", auth_mode="none", timeout_seconds=3)
+    messages = provider._build_messages(request)
+    system = messages[0]["content"]
+    assert "[Retrieved NPC memories; non-authoritative]" in system
+    assert "type=conversation" in system and "source=player_claim" in system and "tick=3" in system
+    assert "player claim is not a world fact" in system
+    assert "蓝色羽毛" in system
+    assert messages[-1] == {"role": "user", "content": request.player_message}
+    oversized = replace(request, long_term_memories=tuple(types.ChatMemoryContext(str(i), "knowledge", "authored_knowledge", "字" * 9000, 0, None) for i in range(20)))
+    assert len(provider._build_messages(oversized)[0]["content"]) < 12000
+
 from backend.app.llm.openai_compatible import OpenAICompatibleChatProvider
 from backend.app.llm.provider import ChatProviderError
 from backend.app.llm.types import (

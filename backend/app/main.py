@@ -14,6 +14,7 @@ from backend.app.core.config import Settings, get_settings
 from backend.app.database.connection import create_engine_and_session
 from backend.app.llm.factory import build_chat_provider
 from backend.app.llm.provider import ChatProvider
+from backend.app.llm.embedding_provider import EmbeddingProvider, build_embedding_provider
 
 
 def create_app(
@@ -21,6 +22,7 @@ def create_app(
     *,
     settings: Settings | None = None,
     chat_provider: ChatProvider | None = None,
+    embedding_provider: EmbeddingProvider | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     _, session_factory = create_engine_and_session(
@@ -32,6 +34,7 @@ def create_app(
     application.state.chat_provider = (
         chat_provider or build_chat_provider(resolved_settings)
     )
+    application.state.embedding_provider = embedding_provider or build_embedding_provider(resolved_settings)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=[resolved_settings.frontend_origin],

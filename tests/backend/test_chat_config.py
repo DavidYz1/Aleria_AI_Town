@@ -4,6 +4,12 @@ from pydantic import ValidationError
 from backend.app.core.config import Settings
 
 
+@pytest.mark.parametrize("field,value", [("embedding_timeout_seconds", 0), ("embedding_timeout_seconds", 31), ("embedding_dimensions", 7), ("embedding_dimensions", 4097), ("cognition_enrichment_batch_size", 51), ("memory_chat_limit", 13), ("memory_chat_char_budget", 199), ("memory_chat_char_budget", 8001), ("embedding_provider", "unknown"), ("embedding_auth_mode", "query")])
+def test_embedding_settings_reject_out_of_bounds_configuration(field, value):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, **{field: value})
+
+
 def test_mock_settings_require_no_llm_connection_details():
     settings = Settings(_env_file=None)
 

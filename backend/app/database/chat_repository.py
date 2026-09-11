@@ -27,6 +27,7 @@ class ChatMessageRecord:
     role: Literal["user", "assistant"]
     content: str
     emotion: str | None
+    turn_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -197,4 +198,5 @@ class ChatRepository:
             role=cast(Literal["user", "assistant"], message.role),
             content=message.content,
             emotion=message.emotion,
+            turn_id=message.turn_id,
         )

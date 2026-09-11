@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.config import Settings
 from backend.app.llm.provider import ChatProvider
+from backend.app.llm.embedding_provider import EmbeddingProvider
 
 
 def get_session(request: Request) -> Generator[Session, None, None]:
@@ -24,3 +25,7 @@ def get_app_settings(request: Request) -> Settings:
 
 def get_chat_provider(request: Request) -> ChatProvider:
     return request.app.state.chat_provider
+
+
+def get_embedding_provider(request: Request) -> EmbeddingProvider:
+    return request.app.state.embedding_provider

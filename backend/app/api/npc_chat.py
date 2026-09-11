@@ -5,12 +5,15 @@ from sqlalchemy.orm import Session
 from backend.app.api.dependencies import (
     get_app_settings,
     get_chat_provider,
+    get_embedding_provider,
     get_cognition_session,
     get_session,
 )
 from backend.app.core.config import Settings
 from backend.app.database.cognition_repository import CognitionRepository
-from backend.app.services.cognition_projection import CognitionProjectionService
+from backend.app.services.cognition_projection import CognitionProjectionService, EmbeddingEnrichmentService
+from backend.app.agents.memory_retrieval import MemoryRetriever
+from backend.app.llm.embedding_provider import EmbeddingProvider
 from backend.app.database.chat_repository import (
     ChatRepository,
     ConversationNotFoundError,
@@ -50,14 +53,22 @@ async def chat_with_npc(
     settings: Settings = Depends(get_app_settings),
     provider: ChatProvider = Depends(get_chat_provider),
     cognition_session: Session = Depends(get_cognition_session),
+    embedding_provider: EmbeddingProvider = Depends(get_embedding_provider),
 ):
     chat_repository = ChatRepository(session)
+    cognition_repository = CognitionRepository(cognition_session)
+    cognition = CognitionProjectionService(cognition_repository, settings=settings,
+        enrichment=EmbeddingEnrichmentService(cognition_repository, embedding_provider))
     service = ChatService(
         repository=chat_repository,
         context_assembler=ChatContextAssembler(
             NpcRepository(session),
             chat_repository,
             PromptLoader(),
+            memory_retriever=MemoryRetriever(cognition_repository, embedding_provider),
+            cognition=cognition,
+            memory_limit=settings.memory_chat_limit,
+            memory_char_budget=settings.memory_chat_char_budget,
             player_quest_context_reader=PlayerQuestChatContextReader(
                 PlayerQuestRepository(session),
                 MissingChildQuestPolicy(),
@@ -66,7 +77,7 @@ async def chat_with_npc(
         provider=provider,
         history_limit=settings.chat_history_limit,
         prompt_version=settings.chat_prompt_version,
-        cognition=CognitionProjectionService(CognitionRepository(cognition_session), settings=settings),
+        cognition=cognition,
     )
 
     try:

@@ -39,6 +39,12 @@ class MockChatProvider:
         if request.npc_id not in {"ryan", "shir", "grey"}:
             return self._result("我听见了。我们可以慢慢聊。", "neutral")
 
+        if self._contains(message, ("还记得", "之前的线索")):
+            claim = next((item for item in request.long_term_memories if item.source_label == "player_claim"), None)
+            if claim is not None:
+                return self._result(f"你之前说过：{claim.content[:380]}。我仍把它视为你的说法，需要进一步核实。", self._default_emotion(request))
+            return self._result("目前没有检索到你之前提供的相关线索。可以再告诉我一次。", self._default_emotion(request))
+
         if (
             request.player_quest_context is not None
             and self._contains(message, self._QUEST_KEYWORDS)

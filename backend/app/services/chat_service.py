@@ -1,5 +1,7 @@
 import logging
+import asyncio
 from uuid import UUID, uuid4
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.database.chat_repository import (
     ChatPersistenceError,
@@ -37,6 +39,27 @@ class ChatContextUnavailableError(RuntimeError):
 
 class ChatServiceUnavailableError(RuntimeError):
     pass
+
+
+async def _session_work(function, *args, **kwargs):
+    """Do not let request cancellation close a Session still used by its worker."""
+    worker = asyncio.create_task(run_in_threadpool(function, *args, **kwargs))
+    cancelled = False
+    while True:
+        try:
+            result = await asyncio.shield(worker)
+            break
+        except asyncio.CancelledError:
+            cancelled = True
+            if worker.cancelled():
+                raise
+        except Exception:
+            if cancelled:
+                raise asyncio.CancelledError from None
+            raise
+    if cancelled:
+        raise asyncio.CancelledError
+    return result
 
 
 class ChatService:
@@ -77,7 +100,10 @@ class ChatService:
         )
 
         try:
-            context = self._context_assembler.assemble(
+            # Each phase is awaited before the next touches either request-owned
+            # Session. The bounded AnyIO pool keeps synchronous DB/HTTP work off
+            # the event loop without concurrent access to those Sessions.
+            context = await _session_work(self._context_assembler.assemble,
                 npc_id=npc_id,
                 conversation_id=(
                     None if create_conversation else conversation_id
@@ -101,7 +127,7 @@ class ChatService:
 
         try:
             turn_id = str(uuid4())
-            persisted = self._repository.persist_turn(
+            persisted = await _session_work(self._repository.persist_turn,
                 conversation_id=conversation_id,
                 create_conversation=create_conversation,
                 npc_id=context.npc_id,
@@ -141,7 +167,7 @@ class ChatService:
         )
         if self._cognition is not None:
             try:
-                self._cognition.catch_up_owner(context.world_id, context.npc_id)
+                await _session_work(self._cognition.catch_up_owner, context.world_id, context.npc_id)
             except CognitionProjectionError:
                 logger.warning("Post-commit cognition projection failed", extra={"category": "core_projection"})
         return result

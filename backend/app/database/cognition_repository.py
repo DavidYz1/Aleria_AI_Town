@@ -5,7 +5,8 @@ from hashlib import sha256
 import json
 from uuid import NAMESPACE_URL, uuid5
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, select, or_, bindparam, cast, Float, String, tuple_, update
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import Session
 
 from backend.app.agents.cognition_contracts import ObservationDraft, SourceKind
@@ -42,6 +43,46 @@ class CognitionRepository:
     def __init__(self, session: Session):
         self.session = session
         self._batches: dict[tuple[str, str], SourceBatch] = {}
+
+    def _memory_filters(self, request):
+        from backend.app.agents.memory_retrieval import SCOPE_RULES
+        rule = SCOPE_RULES[request.scope]
+        filters = [Memory.world_id == request.world_id, Memory.owner_npc_id == request.owner_npc_id,
+            Memory.occurred_world_version <= request.current_world_version,
+            Memory.occurred_clock_tick <= request.current_clock_tick,
+            Memory.created_world_version <= request.current_world_version,
+            Memory.created_clock_tick <= request.current_clock_tick,
+            Memory.memory_type.in_(request.allowed_memory_types), Memory.secrecy.in_(rule.secrecy),
+            Memory.disclosure_scope.in_(rule.disclosure), Memory.lifecycle_state.in_(rule.lifecycle)]
+        if request.excluded_turn_ids:
+            filters.append(or_(Observation.source_turn_id.is_(None), Observation.source_turn_id.not_in(request.excluded_turn_ids)))
+        return filters
+
+    def allowed_memories(self, request):
+        return tuple(self.session.execute(select(Memory, Observation.source_turn_id)
+            .outerjoin(Observation, Observation.id == Memory.source_observation_id)
+            .where(*self._memory_filters(request)).order_by(Memory.id)).all())
+
+    def semantic_scores(self, request, query, *, expected_hashes):
+        if self.session.get_bind().dialect.name != "postgresql":
+            return None
+        distance = Memory.embedding.op("<=>", return_type=Float)(cast(bindparam("query_vector", type_=String), Vector()))
+        statement = select(Memory.id, distance.label("distance")).outerjoin(
+            Observation, Observation.id == Memory.source_observation_id).where(
+            *self._memory_filters(request),
+            tuple_(Memory.id, Memory.embedding_input_hash).in_(bindparam("expected_memory_inputs", expanding=True)),
+            Memory.embedding_status == "ready",
+            Memory.embedding.is_not(None), Memory.embedding_input_hash.is_not(None),
+            Memory.embedding_provider == query.provider, Memory.embedding_model == query.model,
+            Memory.embedding_version == query.version, Memory.embedding_dimensions == query.dimensions)
+        return {id: max(0.0, min(1.0, 1 - float(distance))) for id, distance in self.session.execute(
+            statement, {"query_vector": json.dumps(list(query.vector)),
+                "expected_memory_inputs": sorted(expected_hashes.items())})}
+
+    def record_access(self, memory_ids):
+        if memory_ids:
+            self.session.execute(update(Memory).where(Memory.id.in_(memory_ids)).values(
+                access_count=Memory.access_count + 1, last_accessed_at=datetime.now(UTC)))
 
     def get_or_create_state(self, world_id: str, owner_npc_id: str) -> AgentCognitionState:
         if self.session.get(WorldState, world_id) is None or self.session.get(NpcProfile, owner_npc_id) is None:

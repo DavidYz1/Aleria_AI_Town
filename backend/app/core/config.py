@@ -29,6 +29,16 @@ class Settings(BaseSettings):
     cognition_source_batch_size: int = Field(default=25, ge=1, le=100)
     cognition_attention_budget: int = Field(default=12, ge=1, le=50)
     cognition_post_commit_budget_seconds: float = Field(default=5.0, gt=0, le=30)
+    embedding_provider: Literal["fake", "openai_compatible"] = "fake"
+    embedding_base_url: str = ""
+    embedding_api_key: str = ""
+    embedding_model: str = ""
+    embedding_auth_mode: Literal["bearer", "none"] = "bearer"
+    embedding_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
+    embedding_dimensions: int = Field(default=32, ge=8, le=4096)
+    cognition_enrichment_batch_size: int = Field(default=12, ge=1, le=50)
+    memory_chat_limit: int = Field(default=6, ge=1, le=12)
+    memory_chat_char_budget: int = Field(default=1600, ge=200, le=8000)
 
     model_config = SettingsConfigDict(
         env_file=REPO_ROOT / ".env",

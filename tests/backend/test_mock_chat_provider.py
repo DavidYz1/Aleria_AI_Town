@@ -1,6 +1,19 @@
 import pytest
 from pydantic import ValidationError
 
+
+@pytest.mark.anyio
+async def test_memory_recall_uses_only_retrieved_claims_and_does_not_promote_facts():
+    from dataclasses import replace
+    from backend.app.llm import types
+    request = replace(_request("grey", "还记得之前的线索吗？"),
+        long_term_memories=(types.ChatMemoryContext("memory-1", "conversation", "player_claim", "蓝色羽毛", 1, "turn-1"),))
+    response = await MockChatProvider().generate_reply(request)
+    assert "蓝色羽毛" in response.reply and "你之前说过" in response.reply
+    assert "我仍把它视为你的说法" in response.reply
+    empty = await MockChatProvider().generate_reply(replace(request, long_term_memories=()))
+    assert "蓝色羽毛" not in empty.reply
+
 from backend.app.llm.mock import MockChatProvider
 from backend.app.llm.provider import ChatProviderResult
 from backend.app.llm.types import (

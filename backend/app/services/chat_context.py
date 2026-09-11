@@ -1,5 +1,9 @@
 from pathlib import Path
+import logging
 from typing import Protocol
+
+from backend.app.agents.memory_retrieval import MemoryRetriever, MemoryType, RetrievalRequest, RetrievalScope
+from backend.app.services.cognition_projection import CognitionProjectionService
 
 from backend.app.database.action_compat import to_public_action_type
 from backend.app.database.chat_repository import (
@@ -16,6 +20,7 @@ from backend.app.database.npc_repository import (
 from backend.app.llm.types import (
     ChatActionContext,
     ChatHistoryMessage,
+    ChatMemoryContext,
     ChatProviderRequest,
     PlayerProfileChatContext,
     PlayerQuestChatContext,
@@ -84,11 +89,17 @@ class ChatContextAssembler:
         chat_repository: ChatRepository,
         prompt_loader: PromptLoader,
         player_quest_context_reader: PlayerQuestContextReader | None = None,
+        memory_retriever: MemoryRetriever | None = None,
+        cognition: CognitionProjectionService | None = None,
+        memory_limit: int = 6,
+        memory_char_budget: int = 1600,
     ) -> None:
         self._npc_repository = npc_repository
         self._chat_repository = chat_repository
         self._prompt_loader = prompt_loader
         self._player_quest_context_reader = player_quest_context_reader
+        self._memory_retriever, self._cognition = memory_retriever, cognition
+        self._memory_limit, self._memory_char_budget = memory_limit, memory_char_budget
 
     def assemble(
         self,
@@ -142,6 +153,29 @@ class ChatContextAssembler:
             for message in stored_history
         )
 
+        quest_context = (None if self._player_quest_context_reader is None
+            else self._player_quest_context_reader.get_chat_context())
+        memories, retrieval_mode = (), "memory_unavailable"
+        if self._cognition is not None:
+            try:
+                self._cognition.catch_up_owner(records.world.id, records.profile.id)
+            except Exception:
+                logging.getLogger(__name__).warning("Chat cognition unavailable category=core_projection")
+        if self._memory_retriever is not None:
+            try:
+                result = self._memory_retriever.retrieve(RetrievalRequest(
+                    world_id=records.world.id, owner_npc_id=records.profile.id,
+                    current_world_version=records.world.world_version, current_clock_tick=records.world.clock_tick,
+                    query_text=player_message, scope=RetrievalScope.PLAYER_DIALOGUE,
+                    allowed_memory_types=frozenset(MemoryType), limit=self._memory_limit,
+                    char_budget=self._memory_char_budget,
+                    excluded_turn_ids=frozenset(message.turn_id for message in stored_history if message.turn_id)))
+                memories = tuple(ChatMemoryContext(item.memory_id, item.memory_type, item.source_label,
+                    item.content, item.occurred_clock_tick, item.source_turn_id) for item in result.memories)
+                retrieval_mode = result.mode
+            except Exception:
+                logging.getLogger(__name__).warning("Chat memory unavailable category=memory_unavailable")
+
         return ChatProviderRequest(
             npc_id=records.profile.id,
             npc_name=records.profile.name,
@@ -165,14 +199,12 @@ class ChatContextAssembler:
             mood=records.state.mood,
             social=records.state.social,
             recent_actions=actions,
-            player_quest_context=(
-                None
-                if self._player_quest_context_reader is None
-                else self._player_quest_context_reader.get_chat_context()
-            ),
+            player_quest_context=quest_context,
             conversation_history=history,
             player_message=player_message,
             player_profile=player_profile,
+            long_term_memories=memories,
+            memory_retrieval_mode=retrieval_mode,
         )
 
     @staticmethod
