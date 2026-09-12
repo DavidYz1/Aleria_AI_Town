@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../frontend/src/api/client'
 import { useNpcChatStore } from '../../frontend/src/stores/npcChat'
 import { useNpcDetailStore } from '../../frontend/src/stores/npcDetail'
+import { useNpcMemoryStore } from '../../frontend/src/stores/npcMemory'
 import { usePlayerProfileStore } from '../../frontend/src/stores/playerProfile'
 import { usePlayerQuestStore } from '../../frontend/src/stores/playerQuest'
 import { useWorldStore } from '../../frontend/src/stores/world'
@@ -16,6 +17,7 @@ import {
   acceptedPlayerQuestFixture,
   availablePlayerQuestFixture,
   npcDetailFixture,
+  npcMemoryExplanationsFixture,
   worldFixture,
 } from './fixtures'
 
@@ -74,6 +76,39 @@ function mountTownView(pinia: ReturnType<typeof createPinia>) {
       stubs: { TownGameHost: TownGameHostStub },
     },
   })
+}
+
+const MEMORY_URL = '/api/npcs/ryan/memory-explanations'
+
+function mockNpcGets(
+  memory: () => Promise<unknown> = () => Promise.resolve(npcMemoryExplanationsFixture),
+) {
+  return vi.spyOn(api, 'get').mockImplementation((url) => {
+    const envelope = (data: unknown) => ({
+      data: { success: true, data, message: 'ok' },
+    })
+    if (url.endsWith('/memory-explanations')) {
+      return memory().then(envelope) as ReturnType<typeof api.get>
+    }
+    if (url === '/api/player') {
+      return Promise.resolve(envelope(availablePlayerQuestFixture)) as ReturnType<typeof api.get>
+    }
+    if (url === '/api/world') {
+      return Promise.resolve(envelope(worldFixture)) as ReturnType<typeof api.get>
+    }
+    return Promise.resolve(envelope(npcDetailFixture)) as ReturnType<typeof api.get>
+  })
+}
+
+function callsTo(get: ReturnType<typeof mockNpcGets>, url: string): number {
+  return get.mock.calls.filter(([called]) => called === url).length
+}
+
+function openRyanDetail(wrapper: ReturnType<typeof mountTownView>) {
+  const detailButtons = wrapper.findAll('button').filter(
+    (button) => button.text() === '查看详情',
+  )
+  return detailButtons[0].trigger('click')
 }
 
 describe('TownView', () => {
@@ -872,10 +907,13 @@ describe('TownView', () => {
   it('clears frontend world caches and requests Scene 0 after reset succeeds', async () => {
     const { pinia, store, playerQuestStore } = createStore()
     const detailStore = useNpcDetailStore()
+    const memoryStore = useNpcMemoryStore()
     const chatStore = useNpcChatStore()
     store.data = worldFixture
     detailStore.selectedNpcId = 'ryan'
     detailStore.data = npcDetailFixture
+    memoryStore.selectedNpcId = 'ryan'
+    memoryStore.data = npcMemoryExplanationsFixture
     chatStore.sessionFor('ryan').messages.push(chatResponseFixture.turn.user)
     vi.spyOn(store, 'loadWorld').mockResolvedValue()
     vi.spyOn(window, 'confirm').mockReturnValue(true)
@@ -902,6 +940,8 @@ describe('TownView', () => {
     expect(store.data).toBeNull()
     expect(playerQuestStore.data).toBeNull()
     expect(detailStore.selectedNpcId).toBeNull()
+    expect(memoryStore.selectedNpcId).toBeNull()
+    expect(memoryStore.data).toBeNull()
     expect(Object.keys(chatStore.sessionsByNpc)).toEqual([])
   })
 
@@ -956,6 +996,142 @@ describe('TownView', () => {
       },
     } as Awaited<ReturnType<typeof api.post>>)
     await flushPromises()
+  })
+
+  it('opens the collapsed related memory section from one NPC selection', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const get = mockNpcGets()
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    await openRyanDetail(wrapper)
+    await flushPromises()
+
+    expect(get).toHaveBeenCalledWith('/api/npcs/ryan')
+    expect(get).toHaveBeenCalledWith(MEMORY_URL)
+    expect(useNpcMemoryStore().selectedNpcId).toBe('ryan')
+    expect(useNpcMemoryStore().data?.memories).toHaveLength(2)
+
+    const toggle = wrapper.get('.memory-explanations button[aria-controls]')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.text()).not.toContain('在中央公园完成了一次骑士日常训练。')
+
+    await toggle.trigger('click')
+
+    expect(wrapper.get('.npc-detail-panel').text()).toContain('亲历事件')
+    expect(wrapper.get('.npc-detail-panel').text()).toContain(
+      '在中央公园完成了一次骑士日常训练。',
+    )
+  })
+
+  it('keeps the NPC detail usable when only the memory read fails and retries just the memory', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    let memoryFailures = 0
+    const get = mockNpcGets(() => {
+      memoryFailures += 1
+      return memoryFailures === 1
+        ? Promise.reject(new Error('cognition dsn unavailable'))
+        : Promise.resolve(npcMemoryExplanationsFixture)
+    })
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    await openRyanDetail(wrapper)
+    await flushPromises()
+
+    expect(useNpcDetailStore().error).toBeNull()
+    expect(wrapper.get('.npc-detail-panel').text()).toContain('中央公园')
+    expect(useNpcMemoryStore().error).toBe('相关记忆暂时无法读取，请稍后重试。')
+    expect(wrapper.text()).not.toContain('cognition dsn unavailable')
+
+    await wrapper.get('.memory-explanations button[aria-controls]').trigger('click')
+    await wrapper.get('.memory-explanations [role="alert"] button').trigger('click')
+    await flushPromises()
+
+    expect(callsTo(get, MEMORY_URL)).toBe(2)
+    expect(callsTo(get, '/api/npcs/ryan')).toBe(1)
+    expect(useNpcMemoryStore().error).toBeNull()
+    expect(wrapper.get('.memory-explanations').text()).toContain('亲历事件')
+  })
+
+  it('refreshes the selected NPC memory when the authoritative world version changes', async () => {
+    const { pinia, store } = createStore()
+    const detailStore = useNpcDetailStore()
+    const memoryStore = useNpcMemoryStore()
+    store.data = worldFixture
+    detailStore.selectedNpcId = 'ryan'
+    detailStore.data = npcDetailFixture
+    memoryStore.selectedNpcId = 'ryan'
+    memoryStore.data = npcMemoryExplanationsFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    vi.spyOn(detailStore, 'refresh').mockResolvedValue()
+    const refreshMemory = vi.spyOn(memoryStore, 'refresh').mockResolvedValue()
+
+    mountTownView(pinia)
+    await flushPromises()
+
+    store.data = {
+      ...worldFixture,
+      world: { ...worldFixture.world, world_version: 1, clock_tick: 1 },
+    }
+    await flushPromises()
+    expect(refreshMemory).toHaveBeenCalledTimes(1)
+
+    detailStore.close()
+    memoryStore.close()
+    store.data = {
+      ...store.data,
+      world: { ...store.data.world, world_version: 2 },
+    }
+    await flushPromises()
+    expect(refreshMemory).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes the memory after a successful chat turn with the selected NPC', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const get = mockNpcGets()
+    vi.spyOn(api, 'post').mockResolvedValue({
+      data: { success: true, data: chatResponseFixture, message: 'ok' },
+    } as Awaited<ReturnType<typeof api.post>>)
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    await openRyanDetail(wrapper)
+    await flushPromises()
+    expect(callsTo(get, MEMORY_URL)).toBe(1)
+
+    await wrapper.get('.npc-chat-panel textarea').setValue('你害怕史莱姆吗？')
+    await wrapper.get('.npc-chat-panel form').trigger('submit')
+    await flushPromises()
+
+    expect(callsTo(get, MEMORY_URL)).toBe(2)
+    expect(callsTo(get, '/api/npcs/ryan')).toBe(1)
+  })
+
+  it('clears the memory store together with the detail when the panel is closed', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    mockNpcGets()
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    await openRyanDetail(wrapper)
+    await flushPromises()
+    expect(useNpcMemoryStore().data).not.toBeNull()
+
+    await wrapper.get('button[aria-label="关闭居民详情"]').trigger('click')
+
+    expect(useNpcDetailStore().selectedNpcId).toBeNull()
+    expect(useNpcMemoryStore().selectedNpcId).toBeNull()
+    expect(useNpcMemoryStore().data).toBeNull()
+    expect(wrapper.find('.memory-explanations').exists()).toBe(false)
   })
 
   it('stays in town and explains when Backend reset fails', async () => {

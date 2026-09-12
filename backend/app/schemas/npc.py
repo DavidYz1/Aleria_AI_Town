@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -43,3 +44,29 @@ class NpcDetailData(BaseModel):
     state: NpcStateDetail
     world_context: NpcWorldContext
     recent_actions: list[NpcRecentAction]
+
+
+class MemoryExplanationSource(BaseModel):
+    kind: Literal[
+        "world_event",
+        "conversation",
+        "authored_knowledge",
+        "reflection",
+    ]
+    label: str = Field(min_length=1, max_length=40)
+
+
+class MemoryExplanationItem(BaseModel):
+    id: UUID
+    type: Literal["episodic", "conversation", "reflection", "knowledge"]
+    summary: str = Field(min_length=1, max_length=240)
+    occurred_clock_tick: int = Field(ge=0)
+    source: MemoryExplanationSource
+    reason_text: str = Field(min_length=1, max_length=120)
+
+
+class NpcMemoryExplanationsData(BaseModel):
+    npc_id: str
+    retrieval_mode: Literal["hybrid", "lexical_fallback"]
+    fallback_used: bool
+    memories: list[MemoryExplanationItem] = Field(max_length=5)

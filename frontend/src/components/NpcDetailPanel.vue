@@ -1,17 +1,60 @@
 <script setup lang="ts">
-import type { NpcDetailData } from '../types/npc'
+import { computed, ref } from 'vue'
 
-defineProps<{
+import type { NpcDetailData, NpcMemoryExplanationsData } from '../types/npc'
+
+const props = withDefaults(defineProps<{
   selectedNpcId: string | null
   detail: NpcDetailData | null
   loading: boolean
   error: string | null
-}>()
+  memory?: NpcMemoryExplanationsData | null
+  memoryLoading?: boolean
+  memoryError?: string | null
+}>(), {
+  memory: null,
+  memoryLoading: false,
+  memoryError: null,
+})
 
 defineEmits<{
   close: []
   retry: []
+  'retry-memory': []
 }>()
+
+type MemoryState = 'loading' | 'failed' | 'unread' | 'empty' | 'ready'
+
+const MALFORMED_MEMORY_MESSAGE = '相关记忆暂时无法读取，请稍后重试。'
+
+const memoryExpanded = ref(false)
+// A response body is external data, not a compiler guarantee. A shape the API
+// contract forbids has to read as unavailable; rendering it as an empty list
+// would state "this resident recalls nothing" without knowing that.
+const memoryItems = computed(() => {
+  const memories = props.memory?.memories
+  return Array.isArray(memories) ? memories : []
+})
+const memoryFailure = computed(() => {
+  if (props.memoryError !== null) return props.memoryError
+  return props.memory !== null && !Array.isArray(props.memory.memories)
+    ? MALFORMED_MEMORY_MESSAGE
+    : null
+})
+const memoryState = computed<MemoryState>(() => {
+  if (props.memoryLoading) return 'loading'
+  if (memoryFailure.value !== null) return 'failed'
+  if (props.memory === null) return 'unread'
+  return memoryItems.value.length === 0 ? 'empty' : 'ready'
+})
+const memoryStatus = computed(() => {
+  if (memoryState.value === 'loading') return '正在读取…'
+  if (memoryState.value === 'failed') return '暂时无法读取'
+  if (memoryState.value === 'unread') return '尚未读取'
+  return memoryState.value === 'empty'
+    ? '暂无可公开的记忆'
+    : `共 ${memoryItems.value.length} 条`
+})
 
 const actionLabels = {
   move: '移动',
@@ -116,6 +159,72 @@ const needLabels = {
             <p>{{ action.reason_text }}</p>
           </li>
         </ol>
+      </section>
+
+      <section
+        class="memory-explanations"
+        aria-labelledby="memory-explanations-heading"
+      >
+        <p class="detail-label">Memory</p>
+        <h3 id="memory-explanations-heading">
+          <button
+            type="button"
+            class="memory-toggle"
+            :aria-expanded="memoryExpanded"
+            aria-controls="npc-memory-explanations"
+            @click="memoryExpanded = !memoryExpanded"
+          >
+            <span>相关记忆</span>
+            <span class="memory-status">{{ memoryStatus }}</span>
+          </button>
+        </h3>
+
+        <!-- The region stays mounted so the toggle's aria-controls always
+             resolves; collapsing removes the body, not the target. -->
+        <div id="npc-memory-explanations">
+          <template v-if="memoryExpanded">
+            <p
+              v-if="memoryState === 'loading'"
+              class="memory-note"
+              role="status"
+              aria-live="polite"
+            >
+              正在读取这位居民的相关记忆…
+            </p>
+
+            <div
+              v-else-if="memoryState === 'failed'"
+              class="detail-error"
+              role="alert"
+            >
+              <p>{{ memoryFailure }}</p>
+              <button type="button" @click="$emit('retry-memory')">重新读取</button>
+            </div>
+
+            <p v-else-if="memoryState === 'unread'" class="memory-note">
+              还没有读取这位居民的相关记忆。
+            </p>
+
+            <template v-else>
+              <p v-if="memory?.fallback_used" class="memory-note">
+                当前以关键词匹配作为降级方式检索，结果可能不如平时贴切。
+              </p>
+              <p v-if="memoryState === 'empty'" class="memory-note">
+                这位居民暂时没有可以公开说明的记忆。
+              </p>
+              <ol v-else class="memory-list" aria-label="相关记忆">
+                <li v-for="item in memoryItems" :key="item.id">
+                  <p class="memory-meta">
+                    <span class="memory-source">{{ item.source.label }}</span>
+                    · 第 {{ item.occurred_clock_tick }} 回合
+                  </p>
+                  <p class="memory-summary">{{ item.summary }}</p>
+                  <p class="memory-reason">{{ item.reason_text }}</p>
+                </li>
+              </ol>
+            </template>
+          </template>
+        </div>
       </section>
     </div>
   </aside>
@@ -283,7 +392,8 @@ const needLabels = {
   font-variant-numeric: tabular-nums;
 }
 
-.recent-history {
+.recent-history,
+.memory-explanations {
   grid-column: 1 / -1;
   padding-top: 1.25rem;
   border-top: 1px solid #c4cbc0;
@@ -328,6 +438,84 @@ const needLabels = {
   font-variant-numeric: tabular-nums;
 }
 
+.memory-explanations h3 {
+  margin: 0.3rem 0 0;
+  font-weight: inherit;
+}
+
+.memory-toggle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #9eaea0;
+  color: #1f3d2a;
+  background: #edf0e8;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.memory-toggle:hover {
+  color: #fff;
+  background: #315b45;
+}
+
+.memory-status {
+  color: inherit;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.memory-note {
+  margin: 0.75rem 0 0;
+  color: #59645c;
+}
+
+.memory-explanations .detail-error {
+  margin-top: 0.75rem;
+}
+
+.memory-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-list li {
+  padding: 0.9rem;
+  border: 1px solid #cbd1c6;
+  border-radius: 0.65rem;
+  background: #f4f5ef;
+}
+
+.memory-meta {
+  margin: 0;
+  color: #7a6348;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.memory-source {
+  font-weight: 700;
+}
+
+.memory-summary {
+  margin: 0.35rem 0 0.4rem;
+  color: #253027;
+  line-height: 1.55;
+}
+
+.memory-reason {
+  margin: 0;
+  color: #4b5b50;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 @media (max-width: 700px) {
   .npc-detail-panel {
     padding: 1.1rem;
@@ -339,7 +527,8 @@ const needLabels = {
     grid-template-columns: 1fr;
   }
 
-  .recent-history {
+  .recent-history,
+  .memory-explanations {
     grid-column: auto;
   }
 }

@@ -13,6 +13,7 @@ import TownGameHost from '../components/TownGameHost.vue'
 import { projectNpcs } from '../game/npcProjection'
 import { useNpcChatStore } from '../stores/npcChat'
 import { useNpcDetailStore } from '../stores/npcDetail'
+import { useNpcMemoryStore } from '../stores/npcMemory'
 import { usePlayerProfileStore } from '../stores/playerProfile'
 import { usePlayerQuestStore } from '../stores/playerQuest'
 import { useWorldStore } from '../stores/world'
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 
 const store = useWorldStore()
 const npcDetailStore = useNpcDetailStore()
+const npcMemoryStore = useNpcMemoryStore()
 const npcChatStore = useNpcChatStore()
 const playerProfileStore = usePlayerProfileStore()
 const playerQuestStore = usePlayerQuestStore()
@@ -178,7 +180,7 @@ async function restartAdventure(): Promise<void> {
   try {
     await resetDemo()
     pendingEnteredLocationId.value = null
-    npcDetailStore.close()
+    closeNpcDetail()
     npcChatStore.clearAll()
     store.reset()
     playerQuestStore.reset()
@@ -191,11 +193,26 @@ async function restartAdventure(): Promise<void> {
 }
 
 function selectNpc(npcId: string): void {
+  // Two independent reads: a failed memory explanation must not hide the detail.
   void npcDetailStore.selectNpc(npcId)
+  void npcMemoryStore.selectNpc(npcId)
+}
+
+function closeNpcDetail(): void {
+  npcDetailStore.close()
+  npcMemoryStore.close()
 }
 
 function retryNpcDetail(): void {
   void npcDetailStore.retry()
+}
+
+function retryNpcMemory(): void {
+  void npcMemoryStore.retry()
+}
+
+function refreshSelectedNpcMemory(npcId: string): void {
+  if (npcMemoryStore.selectedNpcId === npcId) void npcMemoryStore.refresh()
 }
 
 function updatePendingMessage(value: string): void {
@@ -203,16 +220,29 @@ function updatePendingMessage(value: string): void {
   if (npcId !== null) npcChatStore.setPendingMessage(npcId, value)
 }
 
-function sendChatMessage(): void {
+async function deliverChatTurn(
+  deliver: (npcId: string) => Promise<void>,
+): Promise<void> {
   if (resettingDemo.value) return
   const npcId = npcDetailStore.selectedNpcId
-  if (npcId !== null) void npcChatStore.send(npcId, playerProfileStore.profile)
+  if (npcId === null) return
+  const session = npcChatStore.sessionFor(npcId)
+  const delivered = session.messages.length
+  await deliver(npcId)
+  // Only a landed turn can change what this NPC recalls.
+  if (session.messages.length > delivered) refreshSelectedNpcMemory(npcId)
+}
+
+function sendChatMessage(): void {
+  void deliverChatTurn(
+    (npcId) => npcChatStore.send(npcId, playerProfileStore.profile),
+  )
 }
 
 function retryChatMessage(): void {
-  if (resettingDemo.value) return
-  const npcId = npcDetailStore.selectedNpcId
-  if (npcId !== null) void npcChatStore.retry(npcId, playerProfileStore.profile)
+  void deliverChatTurn(
+    (npcId) => npcChatStore.retry(npcId, playerProfileStore.profile),
+  )
 }
 
 watch(
@@ -224,15 +254,16 @@ watch(
 
 watch(
   () => store.data?.world.world_version,
-  (nextTick, previousTick) => {
+  (nextVersion, previousVersion) => {
     if (
-      nextTick !== undefined
-      && previousTick !== undefined
-      && nextTick !== previousTick
-      && npcDetailStore.selectedNpcId !== null
-    ) {
-      void npcDetailStore.refresh()
-    }
+      nextVersion === undefined
+      || previousVersion === undefined
+      || nextVersion === previousVersion
+    ) return
+    // Tick and Quest both move the authoritative version; each open panel makes
+    // its own best-effort read so neither can block the other.
+    if (npcDetailStore.selectedNpcId !== null) void npcDetailStore.refresh()
+    if (npcMemoryStore.selectedNpcId !== null) void npcMemoryStore.refresh()
   },
 )
 
@@ -321,8 +352,12 @@ onMounted(loadTown)
                 :detail="npcDetailStore.data"
                 :loading="npcDetailStore.loading"
                 :error="npcDetailStore.error"
-                @close="npcDetailStore.close"
+                :memory="npcMemoryStore.data"
+                :memory-loading="npcMemoryStore.loading"
+                :memory-error="npcMemoryStore.error"
+                @close="closeNpcDetail"
                 @retry="retryNpcDetail"
+                @retry-memory="retryNpcMemory"
               />
               <NpcChatPanel
                 :selected-npc-id="npcDetailStore.selectedNpcId"

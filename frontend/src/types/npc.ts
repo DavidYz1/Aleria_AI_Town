@@ -43,3 +43,36 @@ export interface NpcDetailData {
   world_context: NpcWorldContext
   recent_actions: NpcRecentAction[]
 }
+
+export type MemoryExplanationKind =
+  | 'world_event'
+  | 'conversation'
+  | 'authored_knowledge'
+  | 'reflection'
+
+export type MemoryExplanationType =
+  | 'episodic'
+  | 'conversation'
+  | 'reflection'
+  | 'knowledge'
+
+export interface MemoryExplanationSource {
+  kind: MemoryExplanationKind
+  label: string
+}
+
+export interface MemoryExplanationItem {
+  id: string
+  type: MemoryExplanationType
+  summary: string
+  occurred_clock_tick: number
+  source: MemoryExplanationSource
+  reason_text: string
+}
+
+export interface NpcMemoryExplanationsData {
+  npc_id: string
+  retrieval_mode: 'hybrid' | 'lexical_fallback'
+  fallback_used: boolean
+  memories: MemoryExplanationItem[]
+}

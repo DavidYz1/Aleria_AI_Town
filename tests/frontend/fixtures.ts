@@ -1,4 +1,7 @@
-import type { NpcDetailData } from '../../frontend/src/types/npc'
+import type {
+  NpcDetailData,
+  NpcMemoryExplanationsData,
+} from '../../frontend/src/types/npc'
 import type { NpcChatData } from '../../frontend/src/types/chat'
 import type { PlayerQuestData } from '../../frontend/src/types/playerQuest'
 import type { WorldData } from '../../frontend/src/types/world'
@@ -133,6 +136,30 @@ export const npcDetailFixture: NpcDetailData = {
       target_name: null,
       reason_code: 'knight_training',
       reason_text: '当前处于骑士训练时间，因此执行训练。',
+    },
+  ],
+}
+
+export const npcMemoryExplanationsFixture: NpcMemoryExplanationsData = {
+  npc_id: 'ryan',
+  retrieval_mode: 'hybrid',
+  fallback_used: false,
+  memories: [
+    {
+      id: 'a2f1c0d4-3b5e-4c77-9f1a-6d0b8e2c4517',
+      type: 'episodic',
+      summary: '在中央公园完成了一次骑士日常训练。',
+      occurred_clock_tick: 1,
+      source: { kind: 'world_event', label: '亲历事件' },
+      reason_text: '这件事刚刚发生不久，这位居民印象还很清晰。',
+    },
+    {
+      id: 'b7d3e910-8c42-4f6b-a05d-1e93f7c26840',
+      type: 'knowledge',
+      summary: 'Ryan 对自己的骑士职责有稳定认识。',
+      occurred_clock_tick: 0,
+      source: { kind: 'authored_knowledge', label: '稳定知识' },
+      reason_text: '这件事对这位居民本人格外重要。',
     },
   ],
 }
