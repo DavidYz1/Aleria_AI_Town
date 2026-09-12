@@ -39,6 +39,16 @@ class Settings(BaseSettings):
     cognition_enrichment_batch_size: int = Field(default=12, ge=1, le=50)
     memory_chat_limit: int = Field(default=6, ge=1, le=12)
     memory_chat_char_budget: int = Field(default=1600, ge=200, le=8000)
+    reflection_provider: Literal["fake", "openai_compatible"] = "fake"
+    reflection_base_url: str = ""
+    reflection_api_key: str = ""
+    reflection_model: str = ""
+    reflection_auth_mode: Literal["bearer", "none"] = "bearer"
+    reflection_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
+    reflection_importance_threshold: float = Field(default=2.0, ge=0, le=50)
+    reflection_min_new_memories: int = Field(default=3, ge=1, le=50)
+    reflection_memory_limit: int = Field(default=12, ge=1, le=20)
+    reflection_char_budget: int = Field(default=4000, ge=500, le=12000)
 
     model_config = SettingsConfigDict(
         env_file=REPO_ROOT / ".env",

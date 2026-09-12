@@ -13,6 +13,7 @@ from backend.app.core.config import Settings, get_settings
 from backend.app.database.cognition_repository import CognitionRepository, ProjectionResult
 from backend.app.database.models import Memory
 from backend.app.agents.memory_retrieval import memory_text
+from backend.app.agents.reflection import ReflectionEngine
 from backend.app.llm.embedding_provider import EmbeddingProvider, normalize, unit_vector
 
 logger = logging.getLogger(__name__)
@@ -103,12 +104,14 @@ class CognitionProjectionError(RuntimeError):
 class CognitionProjectionService:
     def __init__(self, repository: CognitionRepository, *, settings: Settings | None = None,
                  monotonic: Callable[[], float] | None = None,
-                 enrichment: EmbeddingEnrichmentService | None = None):
+                 enrichment: EmbeddingEnrichmentService | None = None,
+                 reflection: ReflectionEngine | None = None):
         self.repository = repository
         self.settings = settings or get_settings()
         self.monotonic = monotonic or time.monotonic
         self.registry = PerceptionPolicyRegistry()
         self.enrichment = enrichment
+        self.reflection = reflection
 
     def catch_up_owner(self, world_id: str, owner_npc_id: str) -> ProjectionResult:
         self._require_fresh_session()
@@ -179,6 +182,11 @@ class CognitionProjectionService:
                         deadline=deadline, monotonic=self.monotonic)
                 except Exception:
                     logger.warning("Embedding enrichment unavailable category=embedding_enrichment")
+            if self.reflection is not None and self.monotonic() < deadline:
+                try:
+                    self.reflection.enrich_if_due(world_id, owner_npc_id, deadline=deadline, monotonic=self.monotonic)
+                except Exception:
+                    logger.warning("Reflection enrichment unavailable category=reflection_enrichment")
             return result
         except Exception:
             self._rollback()

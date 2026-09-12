@@ -14,6 +14,96 @@ from backend.app.services.cognition_projection import CognitionProjectionError, 
 from tests.backend.test_cognition_repository import source_session
 
 
+@pytest.mark.parametrize("failure", [False, True])
+def test_reflection_runs_after_committed_core_and_embedding_without_breaking_projection(source_session, failure):
+    from backend.app.agents.reflection import ReflectionEngine
+    from backend.app.agents.memory_retrieval import MemoryRetriever
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    from backend.app.llm.reflection_provider import FakeReflectionProvider
+    from backend.app.services.cognition_projection import EmbeddingEnrichmentService
+    repo = CognitionRepository(source_session)
+    repo.get_or_create_state("aleria-town", "grey").reflection_pending_critical = 1
+    source_session.commit()
+    observed = []
+    class InspectProvider(FakeReflectionProvider):
+        def reflect(self, request):
+            assert not source_session.in_transaction()
+            with source_session.bind.connect() as connection:
+                assert connection.scalar(select(func.count()).select_from(Observation)) == 1
+                statuses = connection.scalars(select(Memory.embedding_status).where(Memory.owner_npc_id == "grey")).all()
+                assert statuses and set(statuses) == {"ready"}
+            observed.append(True)
+            if failure: raise TimeoutError("private timeout payload")
+            return super().reflect(request)
+    embedding = DeterministicEmbeddingProvider()
+    reflection = ReflectionEngine(repo, MemoryRetriever(repo, embedding), InspectProvider())
+    service = CognitionProjectionService(repo, enrichment=EmbeddingEnrichmentService(repo, embedding), reflection=reflection)
+    assert service.catch_up_owner("aleria-town", "grey").created_memories == 1
+    assert observed == [True] and not source_session.in_transaction()
+    state = source_session.get(AgentCognitionState, ("aleria-town", "grey"))
+    assert state.last_event_sequence == 3
+    assert state.reflection_attempt_status == ("failed" if failure else "succeeded")
+    assert source_session.get(WorldState, "aleria-town").world_version == 1
+
+
+def test_shared_deadline_stops_reflection_after_embedding_consumes_budget(source_session):
+    from backend.app.agents.reflection import ReflectionEngine
+    from backend.app.agents.memory_retrieval import MemoryRetriever
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    from backend.app.llm.reflection_provider import FakeReflectionProvider
+    from backend.app.services.cognition_projection import EmbeddingEnrichmentService
+    now, called = [0.0], []
+    class SlowEmbedding(DeterministicEmbeddingProvider):
+        def embed(self, text):
+            now[0] = 6
+            return super().embed(text)
+    class ObserveReflection(FakeReflectionProvider):
+        def reflect(self, request):
+            called.append(True)
+            return super().reflect(request)
+    repo = CognitionRepository(source_session)
+    repo.get_or_create_state("aleria-town", "grey").reflection_pending_critical = 1
+    source_session.commit()
+    embedding = SlowEmbedding()
+    service = CognitionProjectionService(repo, monotonic=lambda: now[0],
+        enrichment=EmbeddingEnrichmentService(repo, embedding),
+        reflection=ReflectionEngine(repo, MemoryRetriever(repo, embedding), ObserveReflection()))
+    assert service.catch_up_owner("aleria-town", "grey").created_memories == 1
+    assert called == []
+
+
+@pytest.mark.parametrize("surface", ["tick", "quest", "travel", "chat"])
+def test_production_routes_inject_reflection_and_contain_failure(database_url, seed_dir, surface):
+    from fastapi.testclient import TestClient
+    from backend.app.main import create_app
+    from backend.app.llm.reflection_provider import FakeReflectionProvider
+    from scripts.seed_world import seed_database
+    seed_database(database_url, seed_dir)
+    attempted = []
+    class Failure(FakeReflectionProvider):
+        def reflect(self, request):
+            attempted.append(request)
+            raise TimeoutError("PRIVATE reflection input")
+    app = create_app(database_url, settings=Settings(_env_file=None,
+        reflection_importance_threshold=0, reflection_min_new_memories=1), reflection_provider=Failure())
+    endpoints = {"tick": ("/api/world/tick", {"expected_world_version": 0}),
+        "quest": ("/api/quests/missing-child/interact", {"interaction": "accept_quest", "expected_version": 0, "expected_world_version": 0}),
+        "travel": ("/api/player/travel", {"target_location_id": "castle", "expected_world_version": 0}),
+        "chat": ("/api/npcs/grey/chat", {"message": "hello"})}
+    try:
+        with TestClient(app) as client:
+            path, body = endpoints[surface]
+            response = client.post(path, json=body)
+            assert response.status_code == 200, response.text
+            assert attempted
+            assert "PRIVATE" not in response.text
+        with app.state.session_factory() as session:
+            assert session.scalar(select(func.count()).select_from(Memory).where(Memory.memory_type == "reflection")) == 0
+            assert session.scalar(select(func.count()).select_from(Observation)) > 0
+    finally:
+        app.state.session_factory.kw["bind"].dispose()
+
+
 class FailingCoreRepository(CognitionRepository):
     """Fail after real core writes; verifies source hooks retain committed data."""
     def persist_core_projection(self, state, drafts):

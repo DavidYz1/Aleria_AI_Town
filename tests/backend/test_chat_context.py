@@ -22,6 +22,52 @@ from scripts.seed_world import seed_database
 CONVERSATION_ID = "5e547c21-a228-4e86-940d-a1bf5d65702f"
 
 
+@pytest.mark.anyio
+async def test_chat_provider_receives_only_disclosable_reflection_safe_content_and_no_beliefs(database_url, seed_dir):
+    from uuid import UUID
+    from backend.app.agents.reflection import evidence_fingerprint
+    from backend.app.agents.memory_retrieval import MemoryRetriever
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.models import Memory
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    from tests.backend.test_memory_retrieval import add_memory
+    from tests.backend.test_chat_service import _CapturingProvider
+    seed_database(database_url, seed_dir)
+    db_engine, factory = create_engine_and_session(database_url)
+    try:
+        with factory() as cognition:
+            repo = CognitionRepository(cognition)
+            for n, secrecy, scope, insight in [(801, "private", "player_dialogue", "PERMITTED reflection view"),
+                (802, "secret", "internal_only", "HIDDEN reflection content")]:
+                id = str(UUID(int=n))
+                add_memory(cognition, id, world_id="aleria-town", secrecy=secrecy, disclosure_scope=scope,
+                    occurred_world_version=0, created_world_version=0, occurred_clock_tick=0, created_clock_tick=0)
+                with cognition.begin():
+                    context = repo.reflection_context("aleria-town", "grey")
+                    repo.persist_reflection("aleria-town", "grey", dict(insight=insight, confidence=.7,
+                        evidence_memory_ids=[id], provider="fixture", model="fixture", prompt_version="reflection-v1",
+                        belief=dict(statement="BELIEF FULL TEXT must remain private", safe_summary="view", confidence=.5,
+                            supporting_memory_ids=[id])), candidate_ids={id}, current_belief_ids=(),
+                        fingerprint=evidence_fingerprint({id}), source_cursor=context.source_cursor)
+            with cognition.begin():
+                from sqlalchemy import select
+                for row in cognition.scalars(select(Memory).where(Memory.memory_type == "reflection")):
+                    row.content = "RAW reflection content never enters chat"
+        with factory() as session, factory() as cognition:
+            request = ChatContextAssembler(NpcRepository(session), ChatRepository(session), PromptLoader(),
+                memory_retriever=MemoryRetriever(CognitionRepository(cognition), DeterministicEmbeddingProvider())).assemble(
+                    npc_id="grey", conversation_id=None, player_message="reflection view", history_limit=10, prompt_version="v3")
+            provider = _CapturingProvider()
+            await provider.generate_reply(request)
+            serialized = repr(provider.requests)
+            assert "PERMITTED reflection view" in serialized
+            assert "HIDDEN reflection content" not in serialized
+            assert "BELIEF FULL TEXT" not in serialized and "RAW reflection content" not in serialized
+            assert any(m.source_label == "reflection" for m in request.long_term_memories)
+    finally:
+        db_engine.dispose()
+
+
 def test_failed_retrieval_keeps_short_history_and_closes_cognition_transaction(database_url, seed_dir):
     from backend.app.database.cognition_repository import CognitionRepository
     from backend.app.agents.memory_retrieval import MemoryRetriever

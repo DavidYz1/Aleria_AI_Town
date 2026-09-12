@@ -2,9 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from backend.app.api.dependencies import get_app_settings, get_cognition_session, get_session
-from backend.app.core.config import Settings
-from backend.app.database.cognition_repository import CognitionRepository
+from backend.app.api.dependencies import get_cognition_service, get_session
 from backend.app.services.cognition_projection import CognitionProjectionService
 from backend.app.database.player_quest_repository import (
     LocationNotFoundError,
@@ -29,14 +27,12 @@ router = APIRouter()
 
 def _service(
     session: Session,
-    settings: Settings | None = None,
-    cognition_session: Session | None = None,
+    cognition: CognitionProjectionService | None = None,
 ) -> PlayerQuestService:
     return PlayerQuestService(
         PlayerQuestRepository(session),
         MissingChildQuestPolicy(),
-        cognition=(None if cognition_session is None else
-                   CognitionProjectionService(CognitionRepository(cognition_session), settings=settings)),
+        cognition=cognition,
     )
 
 
@@ -81,11 +77,10 @@ def get_player(session: Session = Depends(get_session)):
 def travel_player(
     request: PlayerTravelRequest,
     session: Session = Depends(get_session),
-    settings: Settings = Depends(get_app_settings),
-    cognition_session: Session = Depends(get_cognition_session),
+    cognition: CognitionProjectionService = Depends(get_cognition_service),
 ):
     try:
-        data = _service(session, settings, cognition_session).travel(request)
+        data = _service(session, cognition).travel(request)
     except (
         PlayerNotFoundError,
         QuestNotFoundError,

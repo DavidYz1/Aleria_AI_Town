@@ -6,12 +6,11 @@ from backend.app.api.dependencies import (
     get_app_settings,
     get_chat_provider,
     get_embedding_provider,
-    get_cognition_session,
+    get_cognition_service,
     get_session,
 )
 from backend.app.core.config import Settings
-from backend.app.database.cognition_repository import CognitionRepository
-from backend.app.services.cognition_projection import CognitionProjectionService, EmbeddingEnrichmentService
+from backend.app.services.cognition_projection import CognitionProjectionService
 from backend.app.agents.memory_retrieval import MemoryRetriever
 from backend.app.llm.embedding_provider import EmbeddingProvider
 from backend.app.database.chat_repository import (
@@ -52,13 +51,11 @@ async def chat_with_npc(
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_app_settings),
     provider: ChatProvider = Depends(get_chat_provider),
-    cognition_session: Session = Depends(get_cognition_session),
+    cognition: CognitionProjectionService = Depends(get_cognition_service),
     embedding_provider: EmbeddingProvider = Depends(get_embedding_provider),
 ):
     chat_repository = ChatRepository(session)
-    cognition_repository = CognitionRepository(cognition_session)
-    cognition = CognitionProjectionService(cognition_repository, settings=settings,
-        enrichment=EmbeddingEnrichmentService(cognition_repository, embedding_provider))
+    cognition_repository = cognition.repository
     service = ChatService(
         repository=chat_repository,
         context_assembler=ChatContextAssembler(

@@ -118,6 +118,34 @@ class MemoryRetriever:
         self.repository, self.provider = repository, provider
         self.semantic_scorer = semantic_scorer or cosine
 
+    def retrieve_reflection(self, request: RetrievalRequest, *, source_cursor) -> RetrievalResult:
+        """Empty-query source selection performs no external embedding calls.
+
+        A fixed creation-order scan makes retry fingerprints independent of
+        model availability, telemetry and the current world's moving clock.
+        """
+        session = self.repository.session
+        if session.in_transaction() or request.scope != RetrievalScope.INTERNAL_REFLECTION or request.query_text:
+            raise MemoryRetrievalError("memory unavailable")
+        labels = {"knowledge": "authored_knowledge", "episodic": "observed_event", "conversation": "player_claim"}
+        chosen, used = [], 0
+        try:
+            with session.begin():
+                for memory in self.repository.reflection_candidate_rows(request, source_cursor):
+                    content = memory_text(memory, request.scope)
+                    if used + len(content) > request.char_budget:
+                        continue
+                    chosen.append(RetrievedMemory(memory.id, memory.memory_type, labels[memory.memory_type], content,
+                        memory.occurred_clock_tick, None, memory.source_observation_id, 0, 0, 0, 0,
+                        memory.importance, memory.confidence))
+                    used += len(content)
+                    if len(chosen) == request.limit:
+                        break
+            return RetrievalResult(tuple(chosen), "lexical_fallback", scoring_version="reflection-source-v1")
+        except Exception:
+            session.rollback()
+            raise MemoryRetrievalError("memory unavailable") from None
+
     def retrieve(self, request: RetrievalRequest) -> RetrievalResult:
         session = self.repository.session
         if session.in_transaction():
