@@ -44,7 +44,7 @@ class FailingEmbeddingProvider(DeterministicEmbeddingProvider):
         super().__init__()
         self.calls = 0
 
-    def embed(self, text):
+    def embed(self, text, *, timeout_seconds=None):
         self.calls += 1
         raise EmbeddingProviderError("PRIVATE embedding payload")
 
@@ -235,13 +235,19 @@ async def test_stage2_http_closure_survives_restart_and_cognition_failures(
             assert degraded_quest.json()["data"]["quest"]["status"] == "accepted"
             assert "PRIVATE" not in degraded_quest.text
 
-            fallback = await client.get("/api/npcs/grey/memory-explanations")
-            assert fallback.status_code == 200, fallback.text
-            fallback_data = fallback.json()["data"]
-            assert fallback_data["retrieval_mode"] == "lexical_fallback"
-            assert fallback_data["fallback_used"] is True
-            assert fallback_data["memories"]
-            assert CLUE not in fallback.text
+            # docs/05:105 — the anonymous endpoint owns a LOCAL deterministic
+            # query embedding instead of the configured live provider, so a
+            # failing configured provider must neither degrade this read nor
+            # be reached by it.
+            configured_calls_before = failed_embedding.calls
+            public_read = await client.get("/api/npcs/grey/memory-explanations")
+            assert public_read.status_code == 200, public_read.text
+            public_data = public_read.json()["data"]
+            assert public_data["retrieval_mode"] == "hybrid"
+            assert public_data["fallback_used"] is False
+            assert failed_embedding.calls == configured_calls_before
+            assert public_data["memories"]
+            assert CLUE not in public_read.text
 
             final_world = await client.get("/api/world")
             assert counters(final_world.json()["data"]) == (3, 2, 7)

@@ -52,11 +52,12 @@ def test_shared_deadline_stops_reflection_after_embedding_consumes_budget(source
     from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
     from backend.app.llm.reflection_provider import FakeReflectionProvider
     from backend.app.services.cognition_projection import EmbeddingEnrichmentService
-    now, called = [0.0], []
+    now, called, budgets = [0.0], [], []
     class SlowEmbedding(DeterministicEmbeddingProvider):
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
+            budgets.append(timeout_seconds)
             now[0] = 6
-            return super().embed(text)
+            return super().embed(text, timeout_seconds=timeout_seconds)
     class ObserveReflection(FakeReflectionProvider):
         def reflect(self, request):
             called.append(True)
@@ -70,6 +71,9 @@ def test_shared_deadline_stops_reflection_after_embedding_consumes_budget(source
         reflection=ReflectionEngine(repo, MemoryRetriever(repo, embedding), ObserveReflection()))
     assert service.catch_up_owner("aleria-town", "grey").created_memories == 1
     assert called == []
+    # The shared budget must actually reach the provider. Without this the
+    # case would also pass when enrichment never ran and consumed nothing.
+    assert budgets and all(b is not None and b > 0 for b in budgets)
 
 
 @pytest.mark.parametrize("surface", ["tick", "quest", "travel", "chat"])

@@ -1,6 +1,6 @@
 # Aleria AI Town AI Review Policy
 
-Version: v1.1 · Updated: 2026-09-13
+Version: v1.2 · Updated: 2026-09-13
 
 面向 AI coding agent（Claude Code、Codex 等）的**项目级 review 流程规范**。
 
@@ -241,6 +241,8 @@ repo_fingerprint:
 > **(b) 是增量 review 成立的唯一依据。** 范围内的内容被完整保存以便做增量；范围外的内容虽未复制，但哈希已记录——下一次 gate 重算一遍即可**机器证明**范围外一行未动。没有这一层，§3.1 第 4 条的反对意见成立，reviewer 有权拒绝增量包。
 >
 > 哈希使用 `git hash-object <path>`（**带** filter，不加 `--no-filters`），使其对 CRLF / LF 差异不敏感。
+
+> **fingerprint-only 的固有限制（v1.2，由 P0001 首次实战暴露）**：只记哈希的文件能**检出**漂移，却无法**查看**漂移了什么——baseline 时的内容没有被保留。因此以下两类文件必须复制进 `files/`，不得只留指纹：① **本次 review 的判据文档**（`docs/AI_REVIEW_POLICY.md`、`AGENTS.md`、相关 Spec 段落）——评分标尺在评审途中变化而旧版不可追溯，是无法事后澄清的；② **将与本次改动一并提交的文件**——它们属于交付物，reviewer 有权看到。另：未跟踪文件的 baseline 哈希由 `git hash-object`（不加 `-w`）计算，是正确的内容哈希但**不是仓库里的对象**，`git cat-file` 查不到；漂移报告对这类文件应标 `ADDED / 内容未保留`，不得标 `CHANGED`——后者暗示存在一个可比对的 before 状态。
 
 #### ④ Review 元数据（Review Metadata）
 
@@ -594,7 +596,7 @@ Part B 在 Windows 上头部显示为 `nul => AGENTS.md`（实测），属外观
 10. 复制当前 scope 文件到 scratchpad 镜像目录
 11. `git diff --no-index -U5 --ignore-cr-at-eol <baseline>/files <scratch>/head > <package>.diff`
 12. 在包头**手工补写** §4.4 的 `## Identity` 与 `## Integrity` 两段
-13. 包落到 `.superpowers/sdd/<plan>/packages/`，**文件名含基线区间**，生成后不再修改
+13. 包落到 `.superpowers/sdd/<plan-basename>/packages/`，**文件名含基线区间**，生成后不再修改。**包一旦生成，工作树即冻结**：此后任何改动都会让包描述的状态与真实状态不符。若必须继续改，先改完再重新生成包，绝不能让 reviewer 拿着一份过期的 `## Integrity` 段做判断（P0001 首轮实战即因此产生一条 Important）。
 
 **批准**
 
@@ -763,5 +765,6 @@ Part B 在 Windows 上头部显示为 `nul => AGENTS.md`（实测），属外观
 
 | 版本 | 日期 | 变更 |
 | --- | --- | --- |
+| v1.2 | 2026-09-13 | 由 P0001 首轮 review 的两条 Important 反推：补 §3.2 fingerprint-only 的固有限制与未跟踪文件的漂移标注规则、补 §6.6 第 13 步的包冻结纪律。 |
 | v1.1 | 2026-09-13 | 基线改为跨 plan 共享（§3.3 裁定）；新增 §5.2 硬规则与红线 13/14——增量 re-review 不得缩小验证矩阵（由 `85ce338` 上 7 个确定性失败反推得出）。 |
 | v1.0 | 2026-09-12 | 首次发布。定义 R0–R3 分级、baseline snapshot 概念、approved / before 区分、package 输入规则、incremental re-review 流程、不 commit 约束下的策略，并预留 `review_baseline.py` 设计方向。 |

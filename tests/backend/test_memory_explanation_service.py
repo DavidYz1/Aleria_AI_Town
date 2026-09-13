@@ -335,7 +335,8 @@ def test_failed_catch_up_degrades_and_still_reads_projected_memories(db, caplog)
         def __init__(self, repository):
             self.repository, self.calls = repository, 0
 
-        def catch_up_owner(self, world_id, owner_npc_id):
+        def catch_up_owner(self, world_id, owner_npc_id, *,
+                           message_upper_bound=None, include_enrichment=True):
             self.calls += 1
             # A failed catch-up may abandon an open read transaction, which the
             # retriever refuses; the service must release it before reading.
@@ -396,7 +397,7 @@ def test_degraded_embedding_provider_still_explains_public_memories(db):
     cognition.rollback()
 
     class FailingProvider(DeterministicEmbeddingProvider):
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
             raise EmbeddingProviderError("embedding unavailable")
 
     service = MemoryExplanationService(

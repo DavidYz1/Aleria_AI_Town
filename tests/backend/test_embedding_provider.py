@@ -87,10 +87,10 @@ def test_enrichment_commits_ready_metadata_skips_unchanged_and_rebuilds_space(me
     add_memory(memory_session, "pending", embedding=None, embedding_status="unavailable")
     class ObservedProvider(module().DeterministicEmbeddingProvider):
         calls = 0
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
             assert not memory_session.in_transaction()  # never hold locks over HTTP
             self.calls += 1
-            return super().embed(text)
+            return super().embed(text, timeout_seconds=timeout_seconds)
     provider = ObservedProvider()
     service = cognition_projection.EmbeddingEnrichmentService(CognitionRepository(memory_session), provider)
     assert service.enrich_pending("retrieval-test-world", "grey", 12) == 1
@@ -117,12 +117,19 @@ def test_failed_enrichment_preserves_core_checkpoint_and_later_sources(source_se
     from backend.app.services import cognition_projection
     from tests.backend.test_cognition_projection import add_turn
     class FailedProvider(module().DeterministicEmbeddingProvider):
-        def embed(self, text): raise RuntimeError("private original key")
+        calls = 0
+        def embed(self, text, *, timeout_seconds=None):
+            self.calls += 1
+            raise RuntimeError("private original key")
     repository = CognitionRepository(source_session)
+    provider = FailedProvider()
     service = cognition_projection.CognitionProjectionService(repository,
-        enrichment=cognition_projection.EmbeddingEnrichmentService(repository, FailedProvider()))
+        enrichment=cognition_projection.EmbeddingEnrichmentService(repository, provider))
     result = service.catch_up_owner("aleria-town", "grey")
     assert result.created_memories == 1
+    # This case claims to cover a provider that RAISES. If the double is never
+    # reached the assertions below hold for the wrong reason, so prove the call.
+    assert provider.calls > 0
     row = source_session.scalar(select(Memory).where(Memory.memory_type == "episodic"))
     assert row.embedding_status == "failed"
     assert source_session.get(AgentCognitionState, ("aleria-town", "grey")).last_event_sequence == 3
@@ -273,11 +280,11 @@ def test_failed_old_entries_do_not_starve_never_attempted_entries(memory_session
         add_memory(memory_session, id, text=content, embedding_status="unavailable", embedding=None)
     class SelectiveProvider(module().DeterministicEmbeddingProvider):
         calls = 0
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
             self.calls += 1
             if text.startswith("poison"):
                 raise module().EmbeddingProviderError("embedding unavailable")
-            return super().embed(text)
+            return super().embed(text, timeout_seconds=timeout_seconds)
     provider = SelectiveProvider()
     for _ in range(2):
         before = provider.calls
@@ -298,11 +305,11 @@ def test_failed_retry_rotation_reaches_later_recoverable_entries_across_services
         add_memory(memory_session, id, text=content, embedding_status="failed", embedding=None)
     class SelectiveProvider(module().DeterministicEmbeddingProvider):
         calls = 0
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
             self.calls += 1
             if text.startswith("poison"):
                 raise module().EmbeddingProviderError("embedding unavailable")
-            return super().embed(text)
+            return super().embed(text, timeout_seconds=timeout_seconds)
     provider = SelectiveProvider()
     for _ in range(3):
         before = provider.calls
@@ -321,7 +328,8 @@ def test_retry_progress_does_not_skip_first_entry_in_another_scope(memory_sessio
     add_memory(memory_session, "a", text="initial failure", embedding_status="failed")
     add_memory(memory_session, "z", text="later entry", embedding_status="failed")
     class FailedProvider(module().DeterministicEmbeddingProvider):
-        def embed(self, text): raise module().EmbeddingProviderError("embedding unavailable")
+        def embed(self, text, *, timeout_seconds=None):
+            raise module().EmbeddingProviderError("embedding unavailable")
     EmbeddingEnrichmentService(CognitionRepository(memory_session), FailedProvider()).enrich_pending("retrieval-test-world", "grey", 1)
     world, owner = "retrieval-test-world", "grey"
     if boundary == "space":

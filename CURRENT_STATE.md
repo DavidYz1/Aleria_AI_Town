@@ -17,13 +17,13 @@
 | 项 | 值 |
 | --- | --- |
 | 分支 | `main` |
-| HEAD | `85ce338dd6fbea4222c8af19078dfba55333bddb`（短 `85ce338`） |
-| HEAD 提交信息 | `feat: complete stage 2 perception memory and reflection` |
-| 提交者 / 时间 | David Yang · 2026-09-13 12:44:22 +0800 |
+| HEAD | `bba9c72`（`docs: add AI review policy and collaboration contract`） |
+| 上一提交 | `85ce338`（`feat: complete stage 2 perception memory and reflection`） |
 | 远程 | `origin` → `github.com/DavidYz1/Aleria_AI_Town` |
-| 与远程的关系 | **本地领先 15 个提交，尚未 push** |
-| tracked 工作树 | **clean**（`git diff HEAD` 为空，index 也为空） |
-| 未跟踪文件 | 4 份协作文档，**均未入 git**：`AGENTS.md`、`CURRENT_STATE.md`、`docs/ARCHITECTURE.md`、`docs/AI_REVIEW_POLICY.md` |
+| 与远程的关系 | **本地领先 16 个提交，尚未 push** |
+| tracked 工作树 | **未暂存、未提交** — 8 个后端测试文件的替身签名修复（+57 / −33） |
+| 未跟踪文件 | 无 |
+| 生产代码 | **零改动**（`git diff HEAD -- backend/ frontend/ docs/ README.md` 为空） |
 
 ### 提交历史（近期）
 
@@ -44,20 +44,20 @@ b1c9e10  feat: add deterministic agent orchestration runtime
 514d0d7  refactor: add schema migrations and separate world_version from clock_tick
 ```
 
-### 测试基线（在 `85ce338` 上的本机实测，2026-09-13）
-
-> ⚠️ **后端全量不绿。** 下表是在当前 HEAD 上实跑的真实结果，不是引用 Stage 2 执行期间的历史数字。
+### 测试基线（修复后的本机实测，2026-09-13）
 
 | 套件 | 结果 |
 | --- | --- |
-| Backend 全量 | **`7 failed, 713 passed, 5 skipped, 3 warnings in 265.45s`** |
-| Backend 四个失败文件（空载隔离重跑） | **`7 failed, 53 passed, 3 warnings in 58.76s`** — 同一组失败，**确定性复现，非 flaky** |
-| Frontend | `209 passed, 30 files` ✅ |
-| type-check | exit 0 ✅ |
+| Backend 全量 | **`720 passed, 5 skipped, 1 warning in 234.96s`**（exit 0） |
+| Frontend | **`209 passed, 30 files`** |
+| type-check | **exit 0** |
+| 真实 PostgreSQL / pgvector 四文件 opt-in | **`46 passed in 26.50s`，零 skip** |
 | build | 本会话未跑 |
-| PostgreSQL opt-in | 本会话未跑（Docker 未启动） |
+| 外部 live Embedding/Reflection Smoke | **未配置、未执行、未宣称通过** |
 
-5 个 skip 与历史基线一致（四个 `TEST_POSTGRES_URL` opt-in + PowerShell `PATH` 无 POSIX `sh`），**无新增 skip**。warning 从 1 升至 3，新增的 2 个是 `PytestUnhandledThreadExceptionWarning`，由下述失败的线程测试产生；修复后应复测确认它们随之消失。
+修复前是 `7 failed, 713 passed, 5 skipped, 3 warnings`；713 + 7 = 720，**没有丢失任何测试**。5 个 skip 与历史基线一致（四个 `TEST_POSTGRES_URL` opt-in + PowerShell `PATH` 无 POSIX `sh`），**无新增 skip**。warning 从 3 回落到 1，即既有的 Starlette/httpx 弃用提示——新增的两个 `PytestUnhandledThreadExceptionWarning` 随失败一并消失。
+
+PostgreSQL 验证使用独立 `aleria-postgres-test` Compose project；结束时用**不带 `-v`** 的 `down` 停止容器与网络，三个数据卷全部保留。
 
 Backend 从 709 增至 710，来自 Step 5 新增的 Stage 2 acceptance 用例（九步闭环写在单个测试内）。Step 6 对 `test_postgres_runtime.py` 的扩展位于 opt-in 用例中，未设置 URL 时仍计为 skip。
 
@@ -171,9 +171,9 @@ Stage 2 已由人类于 2026-09-13 提交为 `85ce338`。
 
 ## Current Risks
 
-### 高（阻塞 Stage 3）
+### 已解决（本轮：陈旧测试替身与生产接口不同步）
 
-**0. `85ce338` 上 7 个后端测试确定性失败。**
+**0. `85ce338` 上 7 个后端测试确定性失败 —— 已修复，全量回绿。** 原失败清单：
 
 失败清单：
 
@@ -187,15 +187,19 @@ tests/backend/test_memory_explanation_service.py::test_failed_catch_up_degrades_
 tests/backend/test_stage2_acceptance.py::test_stage2_http_closure_survives_restart_and_cognition_failures
 ```
 
-**根因（已定位，非推测）**：Stage 2 Task 5 Fix A–E 给 `EmbeddingProvider.embed` 加了 `timeout_seconds` 关键字参数（`backend/app/llm/embedding_provider.py:56`），`backend/app/services/cognition_projection.py:74` 在存在 deadline 时改为调用 `embed(content, timeout_seconds=remaining)`（`catch_up_owner` 总是设 deadline）。
+**根因（已定位并修复）**：Fix A–E 改了**两个**内部接口，测试替身只同步了一部分。① `EmbeddingProvider.embed` 加了 `timeout_seconds` 关键字参数（`backend/app/llm/embedding_provider.py:56`），`cognition_projection.py:74` 在存在 deadline 时改为 `embed(content, timeout_seconds=remaining)`（`catch_up_owner` 总是设 deadline）。② `CognitionProjectionService.catch_up_owner` 加了 `message_upper_bound` 与 `include_enrichment`（`cognition_projection.py:127`），`chat_context.py:167` 与 `memory_explanation.py:144` 分别传其中之一，而两个替身都是旧签名。
 
 仓库共 **19 个 `def embed` 测试替身**，只有 **5 个**被同步到新签名——而这 5 个恰好全部位于 Fix A–E 当时跑过的五个聚焦文件内（`test_embedding_provider.py` ×3、`test_memory_retrieval.py` ×1、`test_npc_api.py` ×1）。其余 14 个替身仍是旧签名 `def embed(self, text)`，被关键字调用时抛 `TypeError`。
 
 **一个比失败本身更严重的后果**：`test_shared_deadline_stops_reflection_after_embedding_consumes_budget` 现在**已不再测 deadline**。它的 `SlowEmbedding.embed` 本应把虚拟时钟推到 6 秒以耗尽预算，但因为签名不匹配，`embed` 根本未被执行（日志可见两条 `Embedding enrichment unavailable`），测试实际走的是“provider 抛异常”分支。
 
-**待验证的次生风险**：部分仍为绿的测试可能是**因错误原因而绿**——例如 `def embed(self, text): raise RuntimeError(...)` 这类“provider 失败”替身，现在可能在自身函数体执行前就抛了 `TypeError`，于是测的是 `TypeError` 处理而不是 provider 错误处理。**这一条尚未验证，不得当作结论；修复时必须逐个确认。**
+**次生风险已确认并修复**：`test_embedding_provider.py` 的 `test_failed_enrichment_preserves_core_checkpoint_and_later_sources` 此前确实**因错误原因而绿**——它的 `FailedProvider.embed` 声称抛 `RuntimeError("private original key")`，但签名不匹配使函数体从未执行，实际覆盖的是 `TypeError` 处理。修复前先加"替身必须真的被调用"守卫并实测 RED（`assert 0 > 0`），修复后 GREEN；该守卫永久保留。
 
-**修复边界**：这是测试替身与生产接口不同步，不是生产逻辑缺陷。先判定每个替身应该接受 `timeout_seconds` 还是应该断言它，**不要用 `**kwargs` 一括子吞掉**——那会把现在能发现问题的信号也屏蔽掉。
+**修复内容**：17 处改动全部在测试侧，生产代码零改动——14 处 `embed` 签名对齐、2 处 `catch_up_owner` 签名对齐、1 处陈旧断言更新。签名一律改成生产 Protocol 的具名参数并向 super 转发，**没有用 `**kwargs` 吞掉**（那会屏蔽掉现在能发现问题的信号）。修复后全部 19 个 `def embed` 替身 100% 匹配生产 Protocol（修复前 5/19）。
+
+**唯一一处"改测试去匹配代码"，请留意**：`test_stage2_acceptance.py` 原本断言注入失败 Embedding provider 后，公开解释接口降级为 `lexical_fallback`。但 Fix A–E 有意让该匿名端点改用**本地确定性 query embedding**、不碰配置的 live provider——`docs/05_Engineering_Architecture.md:105` 有明确记载，`api/npcs.py:76` 硬接 `DeterministicEmbeddingProvider`。旧断言是 Fix A–E 之前的陈旧预期。替换后的断言**更强**：不仅不降级（`hybrid` / `fallback_used is False`），还证明该端点**根本没有调用**被注入的失败 provider（调用计数前后相等）。若你认为该行为本身值得重新讨论，应回滚这一条并改为质疑生产实现，而不是接受新断言。
+
+**判别力验证**：deadline 用例修复后做了变异验证——把 `now[0] = 6` 临时改为 `0`（预算不被消耗），测试如期失败 `assert [True] == []`，随后还原，证明它真的重新测到了 deadline 而非碰巧变绿；并新增 `assert budgets and all(b is not None and b > 0 ...)`，证明共享预算确实传到了 provider。
 
 ### 已解决（本轮 Step 5–6）
 
@@ -252,19 +256,29 @@ tests/backend/test_stage2_acceptance.py::test_stage2_http_closure_survives_resta
 
 | 项 | 值 |
 | --- | --- |
-| 当前 approved 基线 | **无** — 尚未建立 |
-| 当前 before 基线 | `B0001-stage2-close-before` |
+| 当前 approved 基线 | **仍然没有** — 见下方"为什么" |
+| 最近的 before 基线 | `B0001-stage2-close-before`（对应 `85ce338`，scope 8 个后端测试文件） |
 | 基线路径 | `.superpowers/sdd/baselines/B0001-stage2-close-before/` |
-| 基线对应 HEAD | `85ce338` |
-| 基线 scope | 8 个含陈旧 `embed` 替身的后端测试文件 |
-| 未清零 findings | **Backend 全量 7 failed**（Current Risks 第 0 条） |
-| 下一个 gate | R1（仅测试改动，但改动了断言语义与 mock 边界） |
+| 本轮增量包 | `.superpowers/sdd/2026-09-09-stage-2-.../packages/P0001-B0001..WT-20260913T1348.diff`（**21,535 bytes**） |
+| 包的定级 | R1（仅测试改动，但改动了断言语义与 mock 边界） |
+| 漂移判定 | `OUT_OF_SCOPE_DRIFT — 1`，已裁定，见下 |
+| 待办 | 独立 R1 review → 人类提交 → 建 `B0002-stage2-close-approved` |
 
-**为什么现在没有 approved 基线**：`AI_REVIEW_POLICY` §3.4 规定 approved 基线的含义是“该状态已被判定为 Critical 0 / Important 0”。`85ce338` 上有 7 个确定性失败，不满足该定义，因此它只能作为 `before` 基线（供待做的修复轮算增量）。
+### 本轮实际发生的两件事，值得作为机制样例记录
 
-**什么时候会有 approved 基线**：7 个失败清零、完整验证矩阵全绿且无新增 warning 后，建立 `B0002-stage2-close-approved`，它才是 Stage 3 的增量起点。
+**① `HEAD_MOVED_CONTENT_SAME` 生效了。** 修复期间人类把 4 份协作文档提交为 `bba9c72`，HEAD 从 `85ce338` 移动。逐文件比对内容哈希：`AGENTS.md`、`CURRENT_STATE.md`、`docs/ARCHITECTURE.md` 三者 blob 完全未变，因此按 `AI_REVIEW_POLICY` §3.5（基线内容寻址、与 commit 无关）**基线依然有效**，没有退回全量 review。
 
-⚠️ **禁止把 `before` 基线当作下一个 gate 的增量起点**（policy 红线 10）。
+**② 漂移检测抓到了一处真实变化。** `docs/AI_REVIEW_POLICY.md` 的 blob 从 `54960760` 变为 `2defdc3a`。原因是建完 B0001 之后又更新了该文档 §7.1 / §7.2 的"待补充 → 已执行"状态标记。
+
+> `Ruling: 该漂移不阻塞本轮 R1 review — 漂移文件是流程文档，与本轮被审对象（8 个测试文件的替身签名）无任何代码耦合，且其内容已随 bba9c72 由人类 review 并提交 — 若判断错误，代价是把该文档纳入 scope 后重跑一次 R1。`
+
+### 为什么现在仍然没有 approved 基线
+
+`AI_REVIEW_POLICY` 红线 1：reviewer 必须独立。本轮修复由我（实现方）完成，**不能自己批准自己**。全量矩阵回绿只是通过了 gate 的必要条件，不是 gate 本身。
+
+`B0002-stage2-close-approved` 的前置条件：P0001 通过独立 R1 review（Critical 0 / Important 0）→ 人类提交 → 届时才建立，并作为 Stage 3 的增量起点。
+
+⚠️ **禁止把 `B0001`（before）当作下一个 gate 的增量起点**（红线 10）。
 
 ---
 
@@ -272,31 +286,31 @@ tests/backend/test_stage2_acceptance.py::test_stage2_http_closure_survives_resta
 
 ### 下一步应该做什么
 
-**修复 14 个陈旧的 `embed` 测试替身，让后端全量回绿。** 这是 Stage 3 的硬前置条件：在一个已知 7 失败的基线上开新 Stage，后续每一次回归都无法区分新旧问题。
+**对 `P0001` 做一次独立 R1 review，然后提交。**
 
-步骤：
+reviewer 只需读那一个 21,535 bytes 的包——它自带 `## Integrity` 段（scope 8/8 变更、范围外漂移 1 处且已裁定），不需要重建仓库上下文，也不需要重读 Stage 2 的任何已批准内容。
 
-1. 逐个判定 19 个 `def embed` 替身：该接受 `timeout_seconds` 还是该断言它。**不允许用 `**kwargs` 统一吞掉。**
-2. 对 `test_shared_deadline_stops_reflection_after_embedding_consumes_budget`，修复后必须确认它真的重新测到 deadline（用变异验证：临时拿掉 deadline 判断，确认测试会失败）。
-3. 审查仍为绿的 provider-失败类替身是否因 `TypeError` 而错误地绿。
-4. 跑**完整**验证矩阵（后端全量 + 前端全量 + type-check），确认 3 个 warning 降回 1 个。
-5. 建立 `B0002-stage2-close-approved`，写入本小节。
+review 时值得重点看的三点：
 
-### 由哪个 agent 做
+1. 那 14 处 `embed` 签名对齐是否**逐个判定过**，而不是机械套模板——特别是"provider 失败"类替身，它们的函数体现在才第一次真正执行。
+2. `test_stage2_acceptance.py` 那处**断言变更**是否成立（这是唯一一处改测试去匹配代码，依据是 `docs/05:105` 与 `api/npcs.py:76`）。
+3. `test_cognition_projection.py` 新增的 `budgets` 断言是否真的有判别力。
 
-这是有界的测试修复，不涉及生产逻辑，中档模型即可。但第 2、3 步需要判断“这个测试到底在测什么”，不能机械地改签名。
+### 之后
 
-按 `AI_REVIEW_POLICY` 定级：**R1**（仅测试改动，但改动了断言语义与 mock 边界）——一席独立 reviewer，输入为 `B0001 → 当前工作树` 的增量包。若修复过程中发现必须改生产代码，则升级定级并记 Ruling。
+- 提交（建议信息：`test: align stale test doubles with fix A-E signatures`）。
+- 建立 `B0002-stage2-close-approved`，写入本小节，作为 Stage 3 的增量起点。
+- 进 Stage 3 前，Plan 需按 `AI_REVIEW_POLICY` §7.3 预声明 Review Level 与 binding 条款锚点，并加一条全局约束：每个 Task ≤ 8 文件、只命中一类触发条款，超出就拆。依据是 roadmap §8 的 8 条技术交付几乎条条命中 R2/R3。
 
-### 后续（Stage 3 前）
+### 仍然开放的两项
 
-- 把 4 份协作文档纳入 git（目前全部未跟踪，换机器 clone 后全部丢失）。
-- 根 `.gitignore` 补 `/.superpowers/`（`AI_REVIEW_POLICY` §3.3 隐患，尚未执行）。
-- Stage 3 Plan 预声明 Review Level 与 binding 条款锚点（§7.3），并加一条全局约束：每个 Task ≤ 8 文件、只命中一类触发条款，超出就拆。
+- 根 `.gitignore` 尚未补 `/.superpowers/`（`AI_REVIEW_POLICY` §3.3 隐患）。目前那条忽略规则自己不在版本控制里，`git clean -fdx` 会连规则带全部基线一起删除。
+- 外部 live Embedding / Reflection Provider Smoke 从未配置、未执行、未宣称通过。
 
 ### 必须遵守的约束
 
 - **不执行任何 git 写命令**。产出保持未暂存、未提交，由人类 review 后手动提交。
 - 严格 TDD，每项行为先 RED 并确认失败原因正确。
 - 不得引入新的 skip 或新的 warning。
-- **修复完成后必须跑完整验证矩阵**，聚焦子集不得替代（`AI_REVIEW_POLICY` §5.2 硬规则、红线 13/14）。
+- **修复完成后必须跑完整验证矩阵**，聚焦子集不得替代（`AI_REVIEW_POLICY` §5.2 硬规则、红线 13/14）。这一条正是本轮事故的直接教训。
+- pytest 必须在沙箱外运行并显式指定 `--basetemp` 到有写权限的目录。

@@ -168,7 +168,7 @@ async def test_postgresql_pgvector_persists_one_complete_runtime(postgres_databa
                 assert [item.semantic for item in first.memories] == pytest.approx([1.0, 1.0])
 
                 class FailedProvider(DeterministicEmbeddingProvider):
-                    def embed(self, text):
+                    def embed(self, text, *, timeout_seconds=None):
                         raise EmbeddingProviderError("PRIVATE provider payload")
 
                 fallback = MemoryRetriever(

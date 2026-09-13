@@ -355,10 +355,10 @@ def test_candidate_selection_never_calls_embedding_and_stays_stable_across_embed
     embedding_calls = []
     class ChangingEmbedding(DeterministicEmbeddingProvider):
         available = True
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
             embedding_calls.append(text)
             if not self.available: raise TimeoutError("external embedding")
-            return super().embed(text)
+            return super().embed(text, timeout_seconds=timeout_seconds)
     provider = DraftProvider(lambda data, request: (_ for _ in ()).throw(TimeoutError("failed")))
     embedding = ChangingEmbedding()
     subject = api().ReflectionEngine(repo, MemoryRetriever(repo, embedding), provider)

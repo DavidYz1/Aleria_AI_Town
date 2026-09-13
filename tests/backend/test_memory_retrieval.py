@@ -158,7 +158,8 @@ def test_fallback_keeps_boundaries_and_id_ties(memory_session, failure):
     for id in ("b", "a", "secret"):
         add_memory(memory_session, id, secrecy="secret" if id == "secret" else "public", embedding_model="old" if failure == "space" else "sha256-features")
     class FailedProvider(DeterministicEmbeddingProvider):
-        def embed(self, text): raise RuntimeError("private-key private-content")
+        def embed(self, text, *, timeout_seconds=None):
+            raise RuntimeError("private-key private-content")
     class FailedVectorRepository(CognitionRepository):
         def semantic_scores(self, request, query, *, expected_hashes):
             # An actual database error must be contained by the retrieval savepoint.
@@ -319,7 +320,8 @@ def test_opt_in_postgres_vector_permissions_and_fallback(postgres_database_url, 
             assert result.memory_ids == ("allowed", "legacy", "unavailable")
             assert result.mode == "hybrid"
             class FailedProvider(DeterministicEmbeddingProvider):
-                def embed(self, text): raise RuntimeError("unavailable")
+                def embed(self, text, *, timeout_seconds=None):
+                    raise RuntimeError("unavailable")
             fallback = api().MemoryRetriever(CognitionRepository(session), FailedProvider()).retrieve(request())
             assert fallback.memory_ids == ("allowed", "legacy", "unavailable")
             assert fallback.mode == "lexical_fallback"

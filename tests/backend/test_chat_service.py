@@ -46,12 +46,12 @@ async def test_slow_embedding_allows_another_chat_to_advance(database_url, seed_
     fast_tasks, progress = [], []
     class BlockingEmbedding(DeterministicEmbeddingProvider):
         blocked = False
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
             if not self.blocked and (phase == "pre" or text == "slow claim"):
                 self.blocked = True
                 entered.set()
                 assert released.wait(10), "test failed to release blocked embedding"
-            return super().embed(text)
+            return super().embed(text, timeout_seconds=timeout_seconds)
     class FastProvider(_CapturingProvider):
         async def generate_reply(self, request):
             advanced.set()
@@ -111,11 +111,11 @@ async def test_cancelled_chat_waits_for_session_worker_before_request_cleanup(da
     loop = asyncio.get_running_loop()
     premature_cleanup = []
     class BlockingEmbedding(DeterministicEmbeddingProvider):
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
             if phase == "pre" or text == "cancelled claim":
                 entered.set()
                 assert released.wait(10)
-            return super().embed(text)
+            return super().embed(text, timeout_seconds=timeout_seconds)
     class ObservedAssembler(ChatContextAssembler):
         def assemble(self, **kwargs):
             try:
@@ -124,9 +124,12 @@ async def test_cancelled_chat_waits_for_session_worker_before_request_cleanup(da
                 if phase == "pre":
                     worker_finished.set()
     class ObservedCognition(CognitionProjectionService):
-        def catch_up_owner(self, world_id, owner_npc_id):
+        def catch_up_owner(self, world_id, owner_npc_id, *,
+                           message_upper_bound=None, include_enrichment=True):
             try:
-                return super().catch_up_owner(world_id, owner_npc_id)
+                return super().catch_up_owner(world_id, owner_npc_id,
+                    message_upper_bound=message_upper_bound,
+                    include_enrichment=include_enrichment)
             finally:
                 if phase == "post" and entered.is_set():
                     worker_finished.set()
