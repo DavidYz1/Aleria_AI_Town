@@ -276,14 +276,19 @@ verification       {backend, frontend, type_check, build, ...} 的实测字符�
 | 与既有实践一致 | ✅ 仓库已有 `task-*-fix-round-1-before/` 镜像目录，本规范只是给它补上元数据 |
 | 体量可接受 | ✅ 全 Stage 范围 1.0 MB；Task 级通常 150–200 KB |
 
-#### 已知隐患（待修）
+#### 已知隐患（**已修复**，v1.2）
 
-`.superpowers/sdd/.gitignore` 的内容是 `*`，因此**它把自己也忽略了**——`git ls-files .superpowers` 实测返回 0，这条忽略规则**不在版本控制里**。后果：
+原隐患：`.superpowers/sdd/.gitignore` 的内容是 `*`，因此**它把自己也忽略了**——这条忽略规则不在版本控制里。后果是 `git clean -fdx` 会连规则带基线一起删，且换机器 clone 后首次生成基线时全部文件会出现在 `git status` 中，极易被误提交（ledger 含大量绝对路径与内部报告）。
 
-- `git clean -fdx` 会同时删掉所有基线**和**这条忽略规则；
-- 换机器 clone 后该目录不存在，首次生成基线时全部文件会出现在 `git status` 中，极易被误提交（ledger 含大量绝对路径与内部报告）。
+**已执行**：根 `.gitignore`（已被跟踪）新增 `/.superpowers/`。验证记录：
 
-**修复方向**：在**根** `.gitignore`（已被跟踪）增加一行 `/.superpowers/`。该修改尚未执行，需人类批准。
+| 检查 | 结果 |
+| --- | --- |
+| RED（改动前） | `git check-ignore -v .superpowers/foo.txt` 未命中——嵌套规则只覆盖 `sdd/` 子目录 |
+| GREEN（改动后） | 同一路径由 `.gitignore:121` 命中；深层路径 `.superpowers/sdd/baselines/index.md` 也改由**根规则**命中 |
+| 有无误伤 | `git ls-files \| git check-ignore --stdin` 返回空——**无任何已跟踪文件被新规则忽略** |
+
+嵌套的 `.superpowers/sdd/.gitignore` 保留不动：根规则已在目录级短路，它现在是冗余的但无害。
 
 #### 保留策略
 

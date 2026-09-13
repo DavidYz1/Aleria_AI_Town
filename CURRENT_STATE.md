@@ -316,7 +316,7 @@ review 时值得重点看的三点：
 
 ### 仍然开放的两项
 
-- 根 `.gitignore` 尚未补 `/.superpowers/`（`AI_REVIEW_POLICY` §3.3 隐患）。目前那条忽略规则自己不在版本控制里，`git clean -fdx` 会连规则带全部基线一起删除。
+- ~~根 `.gitignore` 补 `/.superpowers/`~~ —— **已完成**。已验证：改动前 `.superpowers/foo.txt` 未被忽略（嵌套规则只覆盖 `sdd/`），改动后由 `.gitignore:121` 命中；且无任何已跟踪文件被误伤。
 - 外部 live Embedding / Reflection Provider Smoke 从未配置、未执行、未宣称通过。
 
 ### 必须遵守的约束

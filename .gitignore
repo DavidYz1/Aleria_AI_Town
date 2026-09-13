@@ -112,3 +112,10 @@ $RECYCLE.BIN/
 .netlify/
 docker-compose.override.yml
 
+# AI review workflow state
+# Baselines, SDD ledgers and review packages. Never commit: they contain
+# absolute local paths and full internal review reports.
+# The nested .superpowers/sdd/.gitignore is itself untracked and only covers
+# sdd/, so this tracked rule is what actually survives a fresh clone or a
+# `git clean -fdx`.
+/.superpowers/
