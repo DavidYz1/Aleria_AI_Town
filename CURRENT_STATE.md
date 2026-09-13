@@ -256,29 +256,41 @@ tests/backend/test_stage2_acceptance.py::test_stage2_http_closure_survives_resta
 
 | 项 | 值 |
 | --- | --- |
-| 当前 approved 基线 | **仍然没有** — 见下方"为什么" |
-| 最近的 before 基线 | `B0001-stage2-close-before`（对应 `85ce338`，scope 8 个后端测试文件） |
-| 基线路径 | `.superpowers/sdd/baselines/B0001-stage2-close-before/` |
-| 本轮增量包 | `.superpowers/sdd/2026-09-09-stage-2-.../packages/P0001-B0001..WT-20260913T1348.diff`（**21,535 bytes**） |
-| 包的定级 | R1（仅测试改动，但改动了断言语义与 mock 边界） |
-| 漂移判定 | `OUT_OF_SCOPE_DRIFT — 1`，已裁定，见下 |
-| 待办 | 独立 R1 review → 人类提交 → 建 `B0002-stage2-close-approved` |
+| **当前 approved 基线** | **`B0002-stage2-close-approved`** |
+| 基线路径 | `.superpowers/sdd/baselines/B0002-stage2-close-approved/` |
+| form | **C** — 全部内容由提交 `6a25028` 提供 |
+| 基线对应 HEAD | `6a25028`（`chore: finalize AI review workflow and stage2 contract alignment`） |
+| scope | 12 个文件（本轮交付物 + 评审判据文档） |
+| 通过的 gate | R1 — round 1 代码层面通过（Critical 0），round 2 scoped re-review 两条 Important 均 ADDRESSED |
+| 复核包 | `P0002-B0001..WT-20260913T1412.diff`（39,941 bytes） |
+| 未清零 findings | **无** |
+| deferred minors | 6 条，见 `.superpowers/sdd/baselines/index.md` |
+| 前一基线 | `B0001-stage2-close-before`（❌ 未批准，**禁止**作为任何 gate 的增量起点，红线 10） |
 
-### 本轮实际发生的两件事，值得作为机制样例记录
+### 这个基线授权什么
 
-**① `HEAD_MOVED_CONTENT_SAME` 生效了。** 修复期间人类把 4 份协作文档提交为 `bba9c72`，HEAD 从 `85ce338` 移动。逐文件比对内容哈希：`AGENTS.md`、`CURRENT_STATE.md`、`docs/ARCHITECTURE.md` 三者 blob 完全未变，因此按 `AI_REVIEW_POLICY` §3.5（基线内容寻址、与 commit 无关）**基线依然有效**，没有退回全量 review。
+**它是 Stage 3 的增量起点。** Stage 3 第一个 gate 的 delta 从 `6a25028` 起算。
 
-**② 漂移检测抓到了一处真实变化。** `docs/AI_REVIEW_POLICY.md` 的 blob 从 `54960760` 变为 `2defdc3a`。原因是建完 B0001 之后又更新了该文档 §7.1 / §7.2 的"待补充 → 已执行"状态标记。
+开始 Stage 3 前**必须先跑漂移检查**（`AI_REVIEW_POLICY` §3.6）：
 
-> `Ruling: 该漂移不阻塞本轮 R1 review — 漂移文件是流程文档，与本轮被审对象（8 个测试文件的替身签名）无任何代码耦合，且其内容已随 bba9c72 由人类 review 并提交 — 若判断错误，代价是把该文档纳入 scope 后重跑一次 R1。`
+```bash
+git diff 6a25028 --stat
+git status --porcelain -uall
+```
 
-### 为什么现在仍然没有 approved 基线
+范围外有差异即 `OUT_OF_SCOPE_DRIFT`，不得直接做增量 review（红线 11）；需先裁定或把漂移文件纳入 scope 后重建基线。
 
-`AI_REVIEW_POLICY` 红线 1：reviewer 必须独立。本轮修复由我（实现方）完成，**不能自己批准自己**。全量矩阵回绿只是通过了 gate 的必要条件，不是 gate 本身。
+> **已知的预期漂移**：本小节本身在 B0002 建立**之后**才能写（先有基线才能记录基线），因此 `CURRENT_STATE.md` 相对 `6a25028` 必然有一次改动。它是状态指针而非交付物，按 §2.3 属 R0。做漂移检查时把它视为预期移动项，不要当作违规。同类考虑见 `index.md` 的 DM-P0002-3。
 
-`B0002-stage2-close-approved` 的前置条件：P0001 通过独立 R1 review（Critical 0 / Important 0）→ 人类提交 → 届时才建立，并作为 Stage 3 的增量起点。
+### 本轮的机制实战记录
 
-⚠️ **禁止把 `B0001`（before）当作下一个 gate 的增量起点**（红线 10）。
+三件事第一次在真实 gate 上发生，全部按设计工作：
+
+1. **`HEAD_MOVED_CONTENT_SAME`（§3.5）生效两次。** 修复期间与建基线期间人类各提交一次（`bba9c72`、`6a25028`），HEAD 两次移动。逐文件比对内容哈希后判定基线仍然有效，**没有退回全量 review**。
+2. **全仓指纹（§3.2③b）抓到真实漂移。** 检出 `docs/AI_REVIEW_POLICY.md` 与 `CURRENT_STATE.md` 的内容变化——没有这一层，两者都会静默通过。
+3. **`approved` 的定义挡住了一个假批准。** `85ce338` 上有 7 个确定性失败，不满足 §3.4，因此只能建 `before` 基线；直到 gate 真正通过才有了 B0002。
+
+体量对照：本轮复核包 39,941 bytes；Stage 2 关闭时的全量包 740,903 bytes。
 
 ---
 
