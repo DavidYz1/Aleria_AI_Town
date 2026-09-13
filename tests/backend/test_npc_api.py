@@ -1,10 +1,10 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from backend.app.core.config import Settings
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import Memory, NpcState
+from backend.app.database.models import AgentCognitionState, Memory, NpcState, Observation
 from backend.app.main import create_app
 from scripts.seed_world import seed_database
 
@@ -305,3 +305,91 @@ async def test_get_npc_memory_explanations_returns_safe_503_when_cognition_is_un
         "data": None,
         "message": "NPC memory explanations are unavailable",
     }
+
+
+@pytest.mark.anyio
+async def test_public_explanation_route_runs_core_only_and_never_live_providers(
+    database_url, seed_dir
+):
+    from backend.app.database.world_clock_repository import WorldTickRepository
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    from backend.app.llm.reflection_provider import FakeReflectionProvider
+    from backend.app.world.tick_engine import run_tick
+
+    seed_database(database_url, seed_dir)
+    seed_engine, factory = create_engine_and_session(database_url)
+    with factory() as session:
+        repository = WorldTickRepository(session)
+        snapshot = repository.get_snapshot()
+        repository.persist_tick(snapshot.world_version, run_tick(snapshot))
+    seed_engine.dispose()
+
+    class EmbeddingSpy(DeterministicEmbeddingProvider):
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        def embed(self, text, *, timeout_seconds=None):
+            self.calls += 1
+            return super().embed(text)
+
+    class ReflectionSpy(FakeReflectionProvider):
+        def __init__(self):
+            self.calls = 0
+
+        def reflect(self, request):
+            self.calls += 1
+            return super().reflect(request)
+
+    def cognition_state():
+        engine, state_factory = create_engine_and_session(database_url)
+        try:
+            with state_factory() as session:
+                state = session.get(AgentCognitionState, ("aleria-town", "ryan"))
+                return (
+                    session.scalar(select(func.count(Observation.id))),
+                    session.scalar(select(func.count(Memory.id))),
+                    None if state is None else (
+                        state.last_event_sequence,
+                        state.last_conversation_message_id,
+                        state.reflection_memory_count,
+                        state.reflection_accumulated_importance,
+                        state.reflection_attempt_count,
+                    ),
+                    tuple(session.execute(select(
+                        Memory.id, Memory.embedding_status
+                    ).order_by(Memory.id)).all()),
+                )
+        finally:
+            engine.dispose()
+
+    embedding, reflection = EmbeddingSpy(), ReflectionSpy()
+    settings = Settings(
+        _env_file=None,
+        reflection_importance_threshold=0,
+        reflection_min_new_memories=1,
+    )
+    app = create_app(
+        database_url,
+        settings=settings,
+        embedding_provider=embedding,
+        reflection_provider=reflection,
+    )
+    before = cognition_state()
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            first = await client.get("/api/npcs/ryan/memory-explanations")
+            after_first = cognition_state()
+            second = await client.get("/api/npcs/ryan/memory-explanations")
+            after_second = cognition_state()
+    finally:
+        app.state.session_factory.kw["bind"].dispose()
+
+    assert first.status_code == second.status_code == 200
+    assert after_first[0] > before[0]
+    assert after_first[1] > before[1]
+    assert after_first[2][0] > 0
+    assert after_second == after_first
+    assert embedding.calls == 0
+    assert reflection.calls == 0

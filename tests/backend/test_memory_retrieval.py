@@ -195,6 +195,34 @@ def test_retrieval_rejects_caller_transaction_without_rolling_it_back(memory_ses
     assert memory_session.get(Memory, "a").importance == .8
 
 
+@pytest.mark.parametrize("changes", [
+    {"lifecycle_state": "archived"},
+    {"disclosure_scope": "internal_only"},
+])
+def test_query_embedding_has_no_transaction_and_freshly_revalidates_permissions(
+    memory_session, changes
+):
+    from sqlalchemy import update
+
+    add_memory(memory_session, "a")
+    transaction_states = []
+
+    class PermissionChangingProvider(DeterministicEmbeddingProvider):
+        def embed(self, text, *, timeout_seconds=None):
+            transaction_states.append(memory_session.in_transaction())
+            memory_session.execute(update(Memory).where(Memory.id == "a").values(**changes))
+            memory_session.commit()
+            return super().embed(text)
+
+    result = api().MemoryRetriever(
+        CognitionRepository(memory_session), PermissionChangingProvider()
+    ).retrieve(request())
+
+    assert transaction_states == [False]
+    assert result.memory_ids == ()
+    assert not memory_session.in_transaction()
+
+
 def test_failed_access_telemetry_rolls_back_only_telemetry_and_keeps_result(memory_session):
     add_memory(memory_session, "a")
     class FailedTelemetry(CognitionRepository):

@@ -2,7 +2,7 @@ import importlib
 from pathlib import Path
 
 import pytest
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from backend.app.database.chat_repository import ChatRepository
 from backend.app.database.connection import create_engine_and_session
@@ -89,6 +89,107 @@ def test_failed_retrieval_keeps_short_history_and_closes_cognition_transaction(d
             assert context.long_term_memories == ()
             assert context.memory_retrieval_mode == "memory_unavailable"
             assert not cognition.in_transaction()
+    finally:
+        engine.dispose()
+
+
+def test_request_start_bound_excludes_later_claim_and_reflection_from_provider_request(
+    database_url, seed_dir
+):
+    from backend.app.agents.memory_retrieval import MemoryRetriever
+    from backend.app.agents.reflection import ReflectionEngine
+    from backend.app.core.config import Settings
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.models import Memory
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    from backend.app.llm.reflection_provider import FakeReflectionProvider
+    from backend.app.services.cognition_projection import CognitionProjectionService
+
+    seed_database(database_url, seed_dir)
+    engine, factory = create_engine_and_session(database_url)
+    initial_claim = "A 已经知道的旧线索"
+    later_claim = "B 后提交的蓝色羽毛线索"
+    interleaved = []
+
+    try:
+        with factory() as setup:
+            ChatRepository(setup).persist_turn(
+                conversation_id=CONVERSATION_ID, create_conversation=True,
+                npc_id="grey", world_id="aleria-town", clock_tick=0,
+                turn_id=str(importlib.import_module("uuid").UUID(int=700)),
+                world_version=0, world_time="08:00", user_content=initial_claim,
+                assistant_content="我把它当作你的说法。", emotion="neutral",
+                provider="mock", fallback_used=False, prompt_version="v3",
+            )
+
+        class InterleavingChatRepository(ChatRepository):
+            def get_committed_message_upper(self, *, npc_id, world_id):
+                upper = super().get_committed_message_upper(
+                    npc_id=npc_id, world_id=world_id
+                )
+                # Release this controlled read before B writes on SQLite.
+                self._session.rollback()
+                with factory() as writer:
+                    ChatRepository(writer).persist_turn(
+                        conversation_id=CONVERSATION_ID, create_conversation=False,
+                        npc_id="grey", world_id="aleria-town", clock_tick=0,
+                        turn_id=str(importlib.import_module("uuid").UUID(int=701)),
+                        world_version=0, world_time="08:00", user_content=later_claim,
+                        assistant_content="B reply", emotion="neutral", provider="mock",
+                        fallback_used=False, prompt_version="v3",
+                    )
+                settings = Settings(
+                    _env_file=None,
+                    reflection_importance_threshold=0,
+                    reflection_min_new_memories=1,
+                )
+                with factory() as projection_session:
+                    repository = CognitionRepository(projection_session)
+                    CognitionProjectionService(
+                        repository,
+                        settings=settings,
+                        reflection=ReflectionEngine(
+                            repository,
+                            MemoryRetriever(repository, DeterministicEmbeddingProvider()),
+                            FakeReflectionProvider(),
+                            settings=settings,
+                        ),
+                    ).catch_up_owner("aleria-town", "grey")
+                    assert projection_session.scalar(
+                        select(Memory).where(Memory.memory_type == "reflection")
+                    ) is not None
+                    projection_session.rollback()
+                interleaved.append(upper)
+                return upper
+
+        with factory() as authoritative, factory() as cognition_session:
+            repository = CognitionRepository(cognition_session)
+            context = ChatContextAssembler(
+                NpcRepository(authoritative),
+                InterleavingChatRepository(authoritative),
+                PromptLoader(),
+                memory_retriever=MemoryRetriever(
+                    repository, DeterministicEmbeddingProvider()
+                ),
+                cognition=CognitionProjectionService(repository),
+            ).assemble(
+                npc_id="grey", conversation_id=CONVERSATION_ID,
+                player_message="请回忆蓝色羽毛", history_limit=10,
+                prompt_version="v3",
+            )
+
+        assert len(interleaved) == 1
+        assert initial_claim in [item.content for item in context.conversation_history]
+        serialized = repr(context)
+        assert later_claim not in serialized
+        assert "这些经历可能彼此相关" not in serialized
+        with factory() as verify:
+            later_rows = tuple(verify.scalars(select(Memory).where(
+                Memory.owner_npc_id == "grey",
+                Memory.memory_type.in_(("conversation", "reflection")),
+            )))
+            assert any(later_claim in row.content for row in later_rows)
+            assert any(row.memory_type == "reflection" for row in later_rows)
     finally:
         engine.dispose()
 

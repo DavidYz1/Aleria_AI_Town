@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import UTC, datetime
 import logging
 from typing import Protocol
 
@@ -111,8 +112,12 @@ class ChatContextAssembler:
         prompt_version: str,
         player_profile: PlayerProfileChatContext | None = None,
     ) -> ChatProviderRequest:
+        request_started_at = datetime.now(UTC)
         try:
             records = self._npc_repository.get_detail_records(npc_id)
+            conversation_message_upper = self._chat_repository.get_committed_message_upper(
+                npc_id=npc_id, world_id=records.world.id
+            )
             prompts = self._prompt_loader.load(
                 version=prompt_version,
                 npc_id=npc_id,
@@ -125,6 +130,7 @@ class ChatContextAssembler:
                     npc_id=npc_id,
                     world_id=records.world.id,
                     limit=history_limit,
+                    upper_message_id=conversation_message_upper,
                 )
             )
         except (NpcNotFoundError, ConversationNotFoundError):
@@ -158,7 +164,8 @@ class ChatContextAssembler:
         memories, retrieval_mode = (), "memory_unavailable"
         if self._cognition is not None:
             try:
-                self._cognition.catch_up_owner(records.world.id, records.profile.id)
+                self._cognition.catch_up_owner(records.world.id, records.profile.id,
+                    message_upper_bound=conversation_message_upper)
             except Exception:
                 logging.getLogger(__name__).warning("Chat cognition unavailable category=core_projection")
         if self._memory_retriever is not None:
@@ -169,7 +176,9 @@ class ChatContextAssembler:
                     query_text=player_message, scope=RetrievalScope.PLAYER_DIALOGUE,
                     allowed_memory_types=frozenset(MemoryType), limit=self._memory_limit,
                     char_budget=self._memory_char_budget,
-                    excluded_turn_ids=frozenset(message.turn_id for message in stored_history if message.turn_id)))
+                    excluded_turn_ids=frozenset(message.turn_id for message in stored_history if message.turn_id),
+                    conversation_message_upper=conversation_message_upper,
+                    created_before=request_started_at))
                 memories = tuple(ChatMemoryContext(item.memory_id, item.memory_type, item.source_label,
                     item.content, item.occurred_clock_tick, item.source_turn_id) for item in result.memories)
                 retrieval_mode = result.mode

@@ -1,5 +1,6 @@
 """Permission-first, deterministic hybrid retrieval with lexical degradation."""
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from hashlib import sha256
 import json
@@ -49,6 +50,8 @@ class RetrievalRequest:
     limit: int
     char_budget: int
     excluded_turn_ids: frozenset[str] = frozenset()
+    conversation_message_upper: int | None = None
+    created_before: datetime | None = None
 
     def __post_init__(self):
         if self.scope not in SCOPE_RULES or not 1 <= self.limit <= 50 or not 1 <= self.char_budget <= 8000:
@@ -151,26 +154,38 @@ class MemoryRetriever:
         if session.in_transaction():
             raise MemoryRetrievalError("memory unavailable")
         try:
-            rows = self.repository.allowed_memories(request)
             mode, error_code, scores = "hybrid", None, {}
-            try:
-                query = self.provider.embed(request.query_text)
-                expected_hashes = {memory.id: memory.embedding_input_hash for memory, _ in rows
-                    if compatible(memory, query, request.scope)}
-                # Savepoint lets failed pgvector SQL degrade without reusing an
-                # aborted PostgreSQL transaction or broadening the candidate set.
-                with session.begin_nested():
-                    pg_scores = self.repository.semantic_scores(request, query, expected_hashes=expected_hashes)
-                for memory, _ in rows:
-                    if memory.id in expected_hashes:
-                        if pg_scores is None:
-                            scores[memory.id] = self.semantic_scorer(memory, query)
-                        elif memory.id in pg_scores:
-                            scores[memory.id] = pg_scores[memory.id]
-                if not scores:
+            has_allowed_candidates = bool(self.repository.allowed_memories(request))
+            session.rollback()
+            query = None
+            if has_allowed_candidates:
+                try:
+                    query = self.provider.embed(request.query_text)
+                except Exception:
                     mode, error_code = "lexical_fallback", "embedding_unavailable"
-            except Exception:
+            else:
                 mode, error_code, scores = "lexical_fallback", "embedding_unavailable", {}
+            # Authorization and lifecycle are mutable internal state. Reapply
+            # the complete SQL hard filter after external provider work.
+            rows = self.repository.allowed_memories(request)
+            if query is not None:
+                try:
+                    expected_hashes = {memory.id: memory.embedding_input_hash for memory, _ in rows
+                        if compatible(memory, query, request.scope)}
+                    # Savepoint lets failed pgvector SQL degrade without reusing an
+                    # aborted PostgreSQL transaction or broadening the candidate set.
+                    with session.begin_nested():
+                        pg_scores = self.repository.semantic_scores(request, query, expected_hashes=expected_hashes)
+                    for memory, _ in rows:
+                        if memory.id in expected_hashes:
+                            if pg_scores is None:
+                                scores[memory.id] = self.semantic_scorer(memory, query)
+                            elif memory.id in pg_scores:
+                                scores[memory.id] = pg_scores[memory.id]
+                    if not scores:
+                        mode, error_code = "lexical_fallback", "embedding_unavailable"
+                except Exception:
+                    mode, error_code, scores = "lexical_fallback", "embedding_unavailable", {}
             query_tokens = set(features(request.query_text))
             ranked = []
             labels = {"knowledge": "authored_knowledge", "episodic": "observed_event", "conversation": "player_claim", "reflection": "reflection"}

@@ -13,6 +13,7 @@ import {
   availablePlayerQuestFixture,
   chatResponseFixture,
   npcDetailFixture,
+  npcMemoryExplanationsFixture,
   tickFixture,
   worldFixture,
 } from './fixtures'
@@ -63,6 +64,21 @@ const greyChatFixture = {
   },
 }
 
+const greyMemoryFixture = {
+  ...npcMemoryExplanationsFixture,
+  npc_id: 'grey',
+  memories: [
+    {
+      ...npcMemoryExplanationsFixture.memories[0],
+      summary: '在晨曦城堡完成了一次日常巡查。',
+    },
+    {
+      ...npcMemoryExplanationsFixture.memories[1],
+      summary: 'Grey 对自己的守护职责有稳定认识。',
+    },
+  ],
+}
+
 function mountPhase2App() {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -80,7 +96,14 @@ function mockInitialLoads() {
       ? worldFixture
       : url === '/api/player'
         ? availablePlayerQuestFixture
-        : greyDetailFixture
+        : url === '/api/npcs/grey'
+          ? greyDetailFixture
+          : url === '/api/npcs/grey/memory-explanations'
+            ? greyMemoryFixture
+            : null
+    if (data === null) {
+      return Promise.reject(new Error(`Unexpected GET ${url}`)) as ReturnType<typeof api.get>
+    }
     return Promise.resolve({
       data: { success: true, data, message: 'ok' },
     }) as ReturnType<typeof api.get>
@@ -150,6 +173,7 @@ describe('Phase 2 presentation acceptance', () => {
     await host.get('button').trigger('click')
     await flushPromises()
     expect(wrapper.get('.npc-detail-panel').text()).toContain('Grey')
+    expect(wrapper.get('.memory-explanations').text()).toContain('共 2 条')
     expect(wrapper.get('.npc-chat-panel').text()).toContain('与 Grey 对话')
     await wrapper.get('.npc-chat-panel textarea').setValue('你认识我吗？')
     await wrapper.get('.npc-chat-panel form').trigger('submit')

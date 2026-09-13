@@ -1,6 +1,8 @@
 import importlib
 import hashlib
 import math
+import asyncio
+import time
 
 import httpx
 import pytest
@@ -135,7 +137,7 @@ from tests.backend.test_memory_retrieval import memory_session
 from tests.backend.test_cognition_repository import source_session
 
 
-def test_enrichment_stops_starting_new_embeddings_after_deadline(memory_session):
+def test_enrichment_passes_remaining_budget_and_discards_late_result(memory_session):
     from tests.backend.test_memory_retrieval import add_memory
     from backend.app.database.cognition_repository import CognitionRepository
     from backend.app.database.models import Memory
@@ -143,15 +145,123 @@ def test_enrichment_stops_starting_new_embeddings_after_deadline(memory_session)
     add_memory(memory_session, "a", embedding_status="unavailable")
     add_memory(memory_session, "b", embedding_status="unavailable")
     clock = [0.0]
+    budgets = []
     class SlowProvider(module().DeterministicEmbeddingProvider):
-        def embed(self, text):
+        def embed(self, text, *, timeout_seconds=None):
+            budgets.append(timeout_seconds)
             clock[0] = 10.0
             return super().embed(text)
     service = EmbeddingEnrichmentService(CognitionRepository(memory_session), SlowProvider())
-    assert service.enrich_pending("retrieval-test-world", "grey", 12, deadline=5, monotonic=lambda: clock[0]) == 1
+    assert service.enrich_pending("retrieval-test-world", "grey", 12, deadline=5, monotonic=lambda: clock[0]) == 0
     assert not memory_session.in_transaction()
-    assert memory_session.get(Memory, "a").embedding_status == "ready"
+    assert budgets == pytest.approx([5.0])
+    assert memory_session.get(Memory, "a").embedding_status == "unavailable"
     assert memory_session.get(Memory, "b").embedding_status == "unavailable"
+
+
+def test_enrichment_does_not_persist_failure_after_budget_expires(memory_session):
+    from tests.backend.test_memory_retrieval import add_memory
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.models import Memory
+    from backend.app.services.cognition_projection import EmbeddingEnrichmentService
+
+    add_memory(memory_session, "a", embedding_status="unavailable")
+    clock = [0.0]
+
+    class TimedOutProvider(module().DeterministicEmbeddingProvider):
+        def embed(self, text, *, timeout_seconds=None):
+            clock[0] = 10.0
+            raise module().EmbeddingProviderError("embedding unavailable")
+
+    service = EmbeddingEnrichmentService(
+        CognitionRepository(memory_session), TimedOutProvider()
+    )
+
+    assert service.enrich_pending(
+        "retrieval-test-world", "grey", 12,
+        deadline=5.0, monotonic=lambda: clock[0],
+    ) == 0
+    assert memory_session.get(Memory, "a").embedding_status == "unavailable"
+
+
+def test_second_enrichment_receives_only_budget_remaining_after_first(memory_session):
+    from tests.backend.test_memory_retrieval import add_memory
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.models import Memory
+    from backend.app.services.cognition_projection import EmbeddingEnrichmentService
+    add_memory(memory_session, "a", embedding_status="unavailable")
+    add_memory(memory_session, "b", embedding_status="unavailable")
+    clock = [0.0]
+    budgets = []
+
+    class TimedProvider(module().DeterministicEmbeddingProvider):
+        def embed(self, text, *, timeout_seconds=None):
+            budgets.append(timeout_seconds)
+            clock[0] += 2.0
+            return super().embed(text)
+
+    service = EmbeddingEnrichmentService(CognitionRepository(memory_session), TimedProvider())
+    assert service.enrich_pending(
+        "retrieval-test-world", "grey", 12, deadline=5.0, monotonic=lambda: clock[0]
+    ) == 2
+    assert budgets == pytest.approx([5.0, 3.0])
+    assert memory_session.get(Memory, "a").embedding_status == "ready"
+    assert memory_session.get(Memory, "b").embedding_status == "ready"
+
+
+def test_live_slow_trickle_obeys_total_timeout_and_closes_stream():
+    class SlowStream(httpx.AsyncByteStream):
+        def __init__(self):
+            self.closed = False
+
+        async def __aiter__(self):
+            while True:
+                await asyncio.sleep(0.03)
+                yield b" "
+
+        async def aclose(self):
+            self.closed = True
+
+    stream = SlowStream()
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, stream=stream))
+    provider = module().OpenAICompatibleEmbeddingProvider(
+        base_url="https://example.test/v1", api_key="test-key", model="embed-test",
+        auth_mode="bearer", dimensions=32, timeout_seconds=1.0, transport=transport,
+    )
+
+    started = time.perf_counter()
+    with pytest.raises(module().EmbeddingProviderError, match="^embedding unavailable$"):
+        provider.embed("private original text", timeout_seconds=0.05)
+    elapsed = time.perf_counter() - started
+
+    assert 0.03 <= elapsed < 0.25
+    assert stream.closed is True
+
+
+def test_live_oversized_response_is_safely_rejected_and_closed(caplog):
+    class OversizedStream(httpx.AsyncByteStream):
+        def __init__(self):
+            self.closed = False
+
+        async def __aiter__(self):
+            yield b"x" * (module().MAX_EMBEDDING_RESPONSE_BYTES + 1)
+
+        async def aclose(self):
+            self.closed = True
+
+    stream = OversizedStream()
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, stream=stream))
+    provider = module().OpenAICompatibleEmbeddingProvider(
+        base_url="https://example.test/v1", api_key="test-key", model="embed-test",
+        auth_mode="bearer", dimensions=32, timeout_seconds=1.0, transport=transport,
+    )
+
+    with pytest.raises(module().EmbeddingProviderError, match="^embedding unavailable$"):
+        provider.embed("private original text")
+
+    assert stream.closed is True
+    assert "private original text" not in caplog.text
+    assert "test-key" not in caplog.text
 
 
 def test_failed_old_entries_do_not_starve_never_attempted_entries(memory_session):

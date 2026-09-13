@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import logging
 from typing import Literal, cast
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -47,6 +47,7 @@ class ChatRepository:
         npc_id: str,
         world_id: str,
         limit: int,
+        upper_message_id: int | None = None,
     ) -> tuple[ChatMessageRecord, ...]:
         if limit < 1:
             raise ValueError("history limit must be positive")
@@ -57,13 +58,13 @@ class ChatRepository:
                 npc_id=npc_id,
                 world_id=world_id,
             )
+            filters = [ConversationMessage.conversation_id == conversation_id]
+            if upper_message_id is not None:
+                filters.append(ConversationMessage.id <= upper_message_id)
             newest_first = tuple(
                 self._session.scalars(
                     select(ConversationMessage)
-                    .where(
-                        ConversationMessage.conversation_id
-                        == conversation_id
-                    )
+                    .where(*filters)
                     .order_by(ConversationMessage.id.desc())
                     .limit(limit)
                 )
@@ -79,6 +80,14 @@ class ChatRepository:
         return tuple(
             self._to_record(message) for message in reversed(newest_first)
         )
+
+    def get_committed_message_upper(self, *, npc_id: str, world_id: str) -> int:
+        upper = self._session.scalar(
+            select(func.max(ConversationMessage.id))
+            .join(Conversation, Conversation.id == ConversationMessage.conversation_id)
+            .where(Conversation.npc_id == npc_id, Conversation.world_id == world_id)
+        )
+        return int(upper or 0)
 
     def persist_turn(
         self,

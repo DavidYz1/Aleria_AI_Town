@@ -58,20 +58,31 @@ class EmbeddingEnrichmentService:
             pending = (pending + retry)[:limit]
             session.rollback()  # release read transaction before calling the provider
             for id, content, digest in pending:
-                if deadline is not None and monotonic() >= deadline:
-                    break
+                remaining = None
+                if deadline is not None:
+                    remaining = deadline - monotonic()
+                    if remaining <= 0:
+                        break
                 if id in retry_ids:
                     with self._retry_lock:
                         self._retry_cursors.setdefault(bind, {})[retry_key] = id
                 result = None
                 try:
-                    result = self.provider.embed(content)
+                    result = (
+                        self.provider.embed(content)
+                        if remaining is None
+                        else self.provider.embed(content, timeout_seconds=remaining)
+                    )
                     unit_vector(list(result.vector), space[3])
                     if (result.provider, result.model, result.version, result.dimensions) != space or result.input_hash != digest:
                         raise ValueError("embedding metadata unavailable")
                 except Exception:
                     result = None
                     logger.warning("Embedding enrichment unavailable category=embedding_enrichment")
+                if deadline is not None and monotonic() >= deadline:
+                    # Once the shared budget is exhausted, enrichment performs
+                    # no success or failure persistence for this candidate.
+                    continue
                 try:
                     row = session.scalar(select(Memory).where(Memory.id == id, Memory.world_id == world_id,
                         Memory.owner_npc_id == owner_npc_id).with_for_update().execution_options(populate_existing=True))
@@ -113,10 +124,13 @@ class CognitionProjectionService:
         self.enrichment = enrichment
         self.reflection = reflection
 
-    def catch_up_owner(self, world_id: str, owner_npc_id: str) -> ProjectionResult:
+    def catch_up_owner(self, world_id: str, owner_npc_id: str, *,
+                       message_upper_bound: int | None = None,
+                       include_enrichment: bool = True) -> ProjectionResult:
         self._require_fresh_session()
         deadline = self.monotonic() + self.settings.cognition_post_commit_budget_seconds
-        return self._catch_up_owner(world_id, owner_npc_id, deadline)
+        return self._catch_up_owner(world_id, owner_npc_id, deadline,
+            message_upper_bound=message_upper_bound, include_enrichment=include_enrichment)
 
     def catch_up_world(self, world_id: str) -> ProjectionResult:
         self._require_fresh_session()
@@ -160,7 +174,9 @@ class CognitionProjectionService:
         except Exception:
             raise CognitionProjectionError("cognition projection unavailable") from None
 
-    def _catch_up_owner(self, world_id: str, owner_npc_id: str, deadline: float) -> ProjectionResult:
+    def _catch_up_owner(self, world_id: str, owner_npc_id: str, deadline: float, *,
+                        message_upper_bound: int | None = None,
+                        include_enrichment: bool = True) -> ProjectionResult:
         if self.monotonic() >= deadline:
             return ProjectionResult()
         session = self.repository.session
@@ -171,18 +187,19 @@ class CognitionProjectionService:
                 return ProjectionResult()
             batch = self.repository.load_source_batch(state,
                 event_limit=self.settings.cognition_source_batch_size,
-                turn_limit=self.settings.cognition_source_batch_size)
+                turn_limit=self.settings.cognition_source_batch_size,
+                message_upper_bound=message_upper_bound)
             drafts = self.registry.project_batch(batch.events, batch.turns, batch.npc_profiles,
                 attention_budget=self.settings.cognition_attention_budget)
             result = self.repository.persist_core_projection(state, drafts)
             session.commit()
-            if self.enrichment is not None:
+            if include_enrichment and self.enrichment is not None:
                 try:
                     self.enrichment.enrich_pending(world_id, owner_npc_id, self.settings.cognition_enrichment_batch_size,
                         deadline=deadline, monotonic=self.monotonic)
                 except Exception:
                     logger.warning("Embedding enrichment unavailable category=embedding_enrichment")
-            if self.reflection is not None and self.monotonic() < deadline:
+            if include_enrichment and self.reflection is not None and self.monotonic() < deadline:
                 try:
                     self.reflection.enrich_if_due(world_id, owner_npc_id, deadline=deadline, monotonic=self.monotonic)
                 except Exception:

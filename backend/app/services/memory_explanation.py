@@ -136,12 +136,16 @@ class MemoryExplanationService:
             raise MemoryExplanationUnavailableError(UNAVAILABLE_MESSAGE) from None
 
     def _catch_up(self, records: NpcDetailRecords) -> None:
-        """Enrichment, never a precondition: a failure still explains what exists."""
+        """Bounded core compensation; public reads never run provider enrichment."""
         if self._cognition is None:
             return
         session = self._cognition.repository.session
         try:
-            self._cognition.catch_up_owner(records.world.id, records.profile.id)
+            self._cognition.catch_up_owner(
+                records.world.id,
+                records.profile.id,
+                include_enrichment=False,
+            )
         except Exception:
             logger.warning("Memory explanation cognition unavailable category=core_projection")
         finally:

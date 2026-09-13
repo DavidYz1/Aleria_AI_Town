@@ -1,8 +1,8 @@
 # Aleria AI Town API Contract
 
-Version: v2.0
+Version: v3.0
 
-Last Updated: 2026-09-07
+Last Updated: 2026-09-12
 
 # 1. API Design Overview
 
@@ -327,9 +327,89 @@ Backend flow：
     ↓
     Load versioned Prompt + bounded conversation history
     ↓
+    Retrieve permission-filtered long-term Memory (player_dialogue scope)
+    ↓
     Generate and strictly validate reply + emotion
     ↓
     Atomically save complete User + Assistant turn
+    ↓
+    Project the committed turn into cognition (post-commit, best-effort)
+
+Stage 2 在此链路中新增了两步，但**请求体、响应体和状态码完全不变**。检索在 `player_dialogue` scope 下执行，排除来源 Turn 仍在活跃 history 窗口内的记忆；当前这条消息只影响**下一轮**，它自己的 Turn 在事务提交后才被投影。检索或投影失败只降级上下文，不会让 Chat 失败。
+
+## 4.3 Get NPC Memory Explanations
+
+Method:
+
+    GET /api/npcs/{npc_id}/memory-explanations
+
+只读接口。返回该 NPC **已被允许公开**的记忆的安全摘要，用于 RPG 页面的"相关记忆"区域。
+
+Request：无请求体。**不接受任何 query 参数** —— 没有 query、owner、scope、limit 或 secrecy。查询情境由 Backend 用当前公开的 World/Quest 上下文自行构造。
+
+Success response：
+
+```json
+{
+  "success": true,
+  "data": {
+    "npc_id": "grey",
+    "retrieval_mode": "hybrid",
+    "fallback_used": false,
+    "memories": [
+      {
+        "id": "0f5f1f4c-5a7a-4a9c-9d0e-9a1b2c3d4e5f",
+        "type": "episodic",
+        "summary": "Grey 记得在低语森林附近发生过一件与当前线索有关的事。",
+        "occurred_clock_tick": 2,
+        "source": {
+          "kind": "world_event",
+          "label": "亲历事件"
+        },
+        "reason_text": "这段记忆和你此刻关心的事情在含义上最接近。"
+      }
+    ]
+  },
+  "message": "ok"
+}
+```
+
+字段约束（与 `backend/app/schemas/npc.py` 逐字段一致）：
+
+| 字段 | 类型 | 约束 |
+| --- | --- | --- |
+| `npc_id` | string | — |
+| `retrieval_mode` | enum | `hybrid` 或 `lexical_fallback` |
+| `fallback_used` | bool | `retrieval_mode == "lexical_fallback"` 时为 true |
+| `memories` | array | **最多 5 条** |
+| `memories[].id` | UUID | 记忆的不透明标识 |
+| `memories[].type` | enum | `episodic`、`conversation`、`reflection`、`knowledge` |
+| `memories[].summary` | string | 1–240 字符 |
+| `memories[].occurred_clock_tick` | int | >= 0 |
+| `memories[].source.kind` | enum | `world_event`、`conversation`、`authored_knowledge`、`reflection` |
+| `memories[].source.label` | string | 1–40 字符，取值 `亲历事件`、`听到的说法`、`稳定知识`、`形成的看法` |
+| `memories[].reason_text` | string | 1–120 字符，固定模板集 |
+
+`reason_text` 由已选中记忆的公开评分分量确定性映射到固定模板，**不返回任何数字分数**。模板按检索模式选取：降级为 `lexical_fallback` 时语义分量结构性为 0，因此不会输出语义相关的理由。
+
+隐私边界：
+
+- 只返回 `secrecy=public` **且** `disclosure_scope=public` 的记忆。过滤发生在 SQL 层、在任何相似度排序之前。
+- 不返回玩家聊天原文、秘密 Memory、隐藏 reflection、Belief 全文、Embedding、完整分数、Prompt 或 Provider 错误。
+- 不可见内容不通过总数、占位符、ID 或不同的错误形态泄露 —— 不满足条件的记忆直接不出现。
+- `conversation` 出现在两个枚举中是**面向未来的扩展位**。当前实现里，玩家对话产生的 Observation 固定为 `secrecy=private` / `disclosure_scope=player_dialogue`，因此被硬过滤排除，该分支实际不可达。若未来出现 `public/public` 的对话记忆，其 summary 固定为非原文说明「这位居民记得与你有过一次相关交谈。」，永不使用原始 `content`。
+- 跨会话的真实召回通过 Chat 行为体现，不通过这个匿名 GET 暴露聊天历史。
+
+Error responses：
+
+| 状态码 | 场景 | 响应 |
+| --- | --- | --- |
+| 404 | NPC 不存在 | 沿用现有风格：`{"success": false, "data": null, "message": "NPC not found"}` |
+| 503 | 认知读取不可用 | `{"success": false, "data": null, "message": "NPC memory explanations are unavailable"}` |
+
+503 只在**记忆读取本身失败**时返回。读取前的有界 `catch_up_owner` 若失败，接口降级为读取已投影的既有记忆并记录安全日志，不返回 503 —— 投影新鲜度不是正确性前提。
+
+本阶段不新增 Memory 写接口、Reflection 触发接口、任意向量搜索接口或调试参数。
 
 # 5. Player APIs
 
@@ -419,7 +499,7 @@ Request:
 
 `POST /api/demo/reset` resets the target demo world and its quest/chat/runtime history in one transaction. It is an explicit demo reset, not an incremental migration.
 
-There is no independent `GET /api/events` endpoint yet. Events are returned by advancement and persisted-run detail. Async submission, SSE, Agent Lab, memory and LLM action-cognition APIs are not implemented.
+There is no independent `GET /api/events` endpoint yet. Events are returned by advancement and persisted-run detail. The bounded `GET /api/npcs/{npc_id}/memory-explanations` contract is implemented as documented above; arbitrary memory search/write APIs, async submission, SSE, Agent Lab and LLM action-cognition APIs are not implemented.
 
 # 7. Internal Agent Contracts
 

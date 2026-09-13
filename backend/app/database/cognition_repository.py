@@ -308,6 +308,12 @@ class CognitionRepository:
             Memory.disclosure_scope.in_(rule.disclosure), Memory.lifecycle_state.in_(rule.lifecycle)]
         if request.excluded_turn_ids:
             filters.append(or_(Observation.source_turn_id.is_(None), Observation.source_turn_id.not_in(request.excluded_turn_ids)))
+        if request.conversation_message_upper is not None:
+            filters.append(or_(Memory.source_observation_id.is_(None),
+                Observation.source_kind != "conversation_turn",
+                Observation.source_assistant_message_id <= request.conversation_message_upper))
+        if request.created_before is not None:
+            filters.append(or_(Memory.memory_type != "reflection", Memory.created_at <= request.created_before))
         return filters
 
     def allowed_memories(self, request):
@@ -349,7 +355,8 @@ class CognitionRepository:
             self.session.flush()
         return state
 
-    def load_source_batch(self, state: AgentCognitionState, *, event_limit: int, turn_limit: int) -> SourceBatch:
+    def load_source_batch(self, state: AgentCognitionState, *, event_limit: int, turn_limit: int,
+                          message_upper_bound: int | None = None) -> SourceBatch:
         if not 1 <= event_limit <= 100 or not 1 <= turn_limit <= 100:
             raise ValueError("invalid cognition batch size")
         events = tuple(self.session.scalars(select(Event).where(
@@ -359,12 +366,15 @@ class CognitionRepository:
         # Each legacy NULL turn is its own scanned source, keeping legacy scans bounded.
         legacy_key = case((ConversationMessage.turn_id.is_(None), ConversationMessage.id), else_=0)
         upper = func.max(ConversationMessage.id)
+        having = [upper > state.last_conversation_message_id]
+        if message_upper_bound is not None:
+            having.append(upper <= message_upper_bound)
         groups = self.session.execute(select(
             ConversationMessage.conversation_id, ConversationMessage.turn_id, upper.label("upper")
         ).join(Conversation, Conversation.id == ConversationMessage.conversation_id).where(
             Conversation.world_id == state.world_id, Conversation.npc_id == state.owner_npc_id
         ).group_by(ConversationMessage.conversation_id, ConversationMessage.turn_id, legacy_key)
-         .having(upper > state.last_conversation_message_id).order_by(upper).limit(turn_limit)).all()
+         .having(*having).order_by(upper).limit(turn_limit)).all()
         turns = []
         for conversation_id, turn_id, message_upper in groups:
             query = select(ConversationMessage).where(ConversationMessage.conversation_id == conversation_id)
