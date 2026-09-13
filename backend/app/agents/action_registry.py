@@ -1,9 +1,9 @@
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Literal, Mapping
 
-from backend.app.agents.contracts import ActionProposal, ActionValidation
+from backend.app.agents.contracts import ActionProposal, ActionValidation, JsonValue
 from backend.app.world.role_routines import WORK_LOCATION_BY_ROLE
 from backend.app.world.types import NpcSnapshot, WorldSnapshot
 
@@ -30,6 +30,8 @@ class ActionDefinition:
     execution_handler: ExecutionHandler
     event_type: str
     public_label: str
+    description: str = ""
+    input_schema: Mapping[str, JsonValue] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -54,6 +56,23 @@ class ActionRegistry:
     @property
     def action_types(self) -> tuple[str, ...]:
         return tuple(sorted(self._definitions))
+
+    def to_tool_manifest(self) -> list[dict]:
+        """输出 MCP tools/list 兼容格式。空 description 直接报错，不静默通过。"""
+        manifest: list[dict] = []
+        for definition in self._definitions.values():
+            if not definition.description:
+                raise ValueError(
+                    f"action '{definition.action_type}' 缺少 description，模型无法理解该工具"
+                )
+            manifest.append(
+                {
+                    "name": definition.action_type,
+                    "description": definition.description,
+                    "inputSchema": dict(definition.input_schema),
+                }
+            )
+        return manifest
 
     def validate(
         self,
@@ -283,6 +302,20 @@ def _execute_wait(
     return actor
 
 
+def _schema(*, needs_target: bool, target_desc: str) -> dict:
+    properties: dict = {
+        "reason_code": {
+            "type": "string",
+            "description": "本次动作的简短原因编码，小写下划线，如 low_energy",
+        }
+    }
+    required = ["reason_code"]
+    if needs_target:
+        properties["target_id"] = {"type": "string", "description": target_desc}
+        required.append("target_id")
+    return {"type": "object", "properties": properties, "required": required}
+
+
 def build_default_action_registry() -> ActionRegistry:
     return ActionRegistry(
         (
@@ -293,6 +326,8 @@ def build_default_action_registry() -> ActionRegistry:
                 _execute_move,
                 "npc_action",
                 "前往",
+                "移动到镇上的另一个地点。目标必须是当前世界中存在的地点 id。",
+                _schema(needs_target=True, target_desc="目标地点 id，如 tavern / park / castle / forest"),
             ),
             ActionDefinition(
                 "rest",
@@ -301,6 +336,8 @@ def build_default_action_registry() -> ActionRegistry:
                 _execute_rest,
                 "npc_action",
                 "休息",
+                "原地休息以恢复体力。不需要目标。",
+                _schema(needs_target=False, target_desc=""),
             ),
             ActionDefinition(
                 "work",
@@ -309,6 +346,8 @@ def build_default_action_registry() -> ActionRegistry:
                 _execute_work,
                 "npc_action",
                 "工作",
+                "从事本职工作，消耗体力并提升心情。不需要目标。",
+                _schema(needs_target=False, target_desc=""),
             ),
             ActionDefinition(
                 "eat",
@@ -317,6 +356,8 @@ def build_default_action_registry() -> ActionRegistry:
                 _execute_eat,
                 "npc_action",
                 "用餐",
+                "进食以恢复体力。不需要目标。",
+                _schema(needs_target=False, target_desc=""),
             ),
             ActionDefinition(
                 "talk",
@@ -325,6 +366,8 @@ def build_default_action_registry() -> ActionRegistry:
                 _execute_talk,
                 "npc_action",
                 "交谈",
+                "与同一地点的另一个 NPC 交谈。目标必须是当前与你处于同一地点的 NPC id。",
+                _schema(needs_target=True, target_desc="目标 NPC 的 id"),
             ),
             ActionDefinition(
                 "wait",
@@ -333,6 +376,8 @@ def build_default_action_registry() -> ActionRegistry:
                 _execute_wait,
                 "npc_action",
                 "等待",
+                "原地等待一个时间单位，不产生显著状态变化。不需要目标。",
+                _schema(needs_target=False, target_desc=""),
             ),
         )
     )
