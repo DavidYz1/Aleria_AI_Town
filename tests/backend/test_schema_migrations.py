@@ -36,6 +36,10 @@ COGNITION_TABLES = {
     "belief_evidence",
 }
 
+STAGE3M_TABLES = {
+    "agent_plans",
+}
+
 
 def test_empty_sqlite_database_upgrades_to_head_with_model_tables(
     tmp_path: Path,
@@ -45,11 +49,11 @@ def test_empty_sqlite_database_upgrades_to_head_with_model_tables(
     upgrade_schema(database_url)
 
     engine = create_engine(database_url)
-    assert set(inspect(engine).get_table_names()) == MODEL_TABLES | COGNITION_TABLES | {
+    assert set(inspect(engine).get_table_names()) == MODEL_TABLES | COGNITION_TABLES | STAGE3M_TABLES | {
         "alembic_version"
     }
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
 
 
 def test_sqlite_url_with_percent_character_upgrades_to_head(tmp_path: Path) -> None:
@@ -89,7 +93,7 @@ def test_exact_unversioned_legacy_schema_is_adopted(tmp_path: Path) -> None:
     upgrade_schema(database_url)
 
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
 
 
 def test_partial_unversioned_schema_is_rejected(tmp_path: Path) -> None:
@@ -125,7 +129,7 @@ def test_real_orm_legacy_sqlite_upgrades_without_data_loss(
         column["name"] for column in inspector.get_columns("world_state")
     )
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
         assert connection.execute(
             text(
                 "SELECT day, time, clock_tick, world_version, event_sequence "
@@ -425,7 +429,7 @@ def test_0003_foundation_data_upgrades_to_cognition_head_without_fabricated_sour
 
     assert COGNITION_TABLES.issubset(inspect(engine).get_table_names())
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
         assert connection.execute(text(
             "SELECT location_id, perception_scope, participant_npc_ids_json, "
             "witness_npc_ids_json FROM events WHERE id=:id"
@@ -444,10 +448,50 @@ def test_postgresql_empty_database_upgrades_to_runtime_head(postgres_database_ur
         assert engine.dialect.name == "postgresql"
         assert inspect(engine).get_table_names() == []
         upgrade_schema(url)
-        assert set(inspect(engine).get_table_names()) == MODEL_TABLES | COGNITION_TABLES | {"alembic_version"}
+        assert set(inspect(engine).get_table_names()) == MODEL_TABLES | COGNITION_TABLES | STAGE3M_TABLES | {"alembic_version"}
         with engine.connect() as conn:
-            assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0004"
+            assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
         checks = inspect(engine).get_check_constraints("actions")
         assert not any("action_type" in check["sqltext"] for check in checks)
     finally:
         engine.dispose()
+
+
+def test_0005_agent_plans_upgrade_is_idempotent_and_preserves_rows(tmp_path: Path) -> None:
+    """AGENTS.md 要求每次结构变更覆盖「重复运行幂等」。
+
+    空库升级到 head 与已有库原地升级保留数据已由本文件其他测试泛化覆盖，
+    重复运行此前无覆盖。这里连同 agent_plans 的真实行一起验证。
+    """
+    database_url = f"sqlite:///{(tmp_path / 'idempotent.db').as_posix()}"
+    upgrade_schema(database_url)
+
+    engine = create_engine(database_url)
+    with engine.begin() as connection:
+        connection.execute(text(
+            "INSERT INTO world_state (id, name, day, time, clock_tick, world_version, event_sequence)"
+            " VALUES ('aleria-town', 'w', 1, '08:00', 0, 0, 0)"
+        ))
+        connection.execute(text(
+            "INSERT INTO npc_profiles (id, name, role, personality_json, sort_order)"
+            " VALUES ('elena', 'Elena', 'Knight', '[]', 1)"
+        ))
+        connection.execute(text(
+            "INSERT INTO agent_plans (id, world_id, owner_npc_id, thought, goal, goal_reason,"
+            " steps_json, current_step_index, status, created_clock_tick, updated_clock_tick,"
+            " provider, model, prompt_version)"
+            " VALUES ('plan-1', 'aleria-town', 'elena', 't', 'g', 'r', '[]', 0, 'active', 1, 1,"
+            " 'fake', 'fake-1', 'planning-v1')"
+        ))
+
+    tables_before = set(inspect(engine).get_table_names())
+
+    upgrade_schema(database_url)
+
+    assert set(inspect(engine).get_table_names()) == tables_before
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
+        assert connection.scalar(text("SELECT count(*) FROM agent_plans")) == 1, (
+            "非空前提：重复升级后计划行必须仍在"
+        )
+        assert connection.scalar(text("SELECT status FROM agent_plans WHERE id = 'plan-1'")) == "active"

@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, synonym
@@ -567,3 +568,41 @@ class BeliefEvidence(Base):
     memory_id: Mapped[str] = mapped_column(ForeignKey("memories.id", name="fk_belief_evidence_memory_id_memories"), primary_key=True)
     evidence_role: Mapped[str] = mapped_column(String, primary_key=True)
     ordinal: Mapped[int] = mapped_column(Integer)
+
+
+class AgentPlan(Base):
+    __tablename__ = "agent_plans"
+    __table_args__ = (
+        PrimaryKeyConstraint("id", name="pk_agent_plans"),
+        CheckConstraint("status IN ('active', 'completed', 'abandoned')", name="ck_agent_plans_status"),
+        CheckConstraint("current_step_index >= 0", name="ck_agent_plans_current_step_index"),
+        Index("ix_agent_plans_owner_status", "world_id", "owner_npc_id", "status", "created_clock_tick"),
+        Index(
+            "uq_agent_plans_active",
+            "world_id",
+            "owner_npc_id",
+            unique=True,
+            sqlite_where=text("status = 'active'"),
+            postgresql_where=text("status = 'active'"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    world_id: Mapped[str] = mapped_column(ForeignKey("world_state.id", name="fk_agent_plans_world_id_world_state"))
+    owner_npc_id: Mapped[str] = mapped_column(ForeignKey("npc_profiles.id", name="fk_agent_plans_owner_npc_id_npc_profiles"))
+    source_run_id: Mapped[str | None] = mapped_column(ForeignKey("agent_runs.id", name="fk_agent_plans_source_run_id_agent_runs"), nullable=True)
+
+    thought: Mapped[str] = mapped_column(String(800))
+    goal: Mapped[str] = mapped_column(String(200))
+    goal_reason: Mapped[str] = mapped_column(String(500))
+    steps_json: Mapped[list] = mapped_column(JSON)
+    current_step_index: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(16), default="active")
+
+    created_clock_tick: Mapped[int] = mapped_column(Integer)
+    updated_clock_tick: Mapped[int] = mapped_column(Integer)
+    provider: Mapped[str] = mapped_column(String(100))
+    model: Mapped[str] = mapped_column(String(200))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tokens_used: Mapped[int | None] = mapped_column(Integer, nullable=True)

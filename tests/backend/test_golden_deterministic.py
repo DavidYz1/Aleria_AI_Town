@@ -55,26 +55,30 @@ def _npc(npc_id, role, location_id, sort_order, energy, mood, social):
 def build_golden_world() -> WorldSnapshot:
     """固定初始世界，纯内存，不依赖数据库。
 
-    NPC id 必须与 Task 2 的测试种子一致（elena / grey / mira），
-    否则 Task 3 写 agent_plans 时外键失败。
+    NPC id 必须与真实种子数据（data/npcs.json）一致：ryan / shir / grey。
+    Task 3 起 agent_plans.owner_npc_id 要对这些 id 建外键，用种子里不存在的
+    id 会让测试 fixture 不得不补建合成 NPC。
+
+    id 与 role 的对应取自种子：ryan=Knight、shir=Assassin、grey=Guardian。
 
     role 必须是 decide_action 真正分派的三个角色（Knight / Assassin /
     Guardian，见 decision.py:78-131）。用计划原写的 baker / guard / scholar
     会让三个 NPC 全部落入 unknown_role_rest 兜底分支，闸门将测不到任何
-    role routine —— 实测覆盖的 reason_code 从 14 个掉到 4 个。
+    role routine —— 实测覆盖的 reason_code 从 15 个掉到 4 个。
 
-    grey 的 mood 取 20（低于 decide_action 的 35 阈值）是为了覆盖
-    low_mood_* 分支。取 45 时覆盖 14 个 reason_code，取 20 时覆盖 15 个
-    且是前者的严格超集。这些数值只为拉满分支覆盖，不代表世界设定。
+    location 与 energy / mood / social **不取种子值**，而是为拉满分支覆盖
+    调过的：grey 的 mood 取 20（低于 decide_action 的 35 阈值）才能覆盖
+    low_mood_* 分支。照搬种子数值只覆盖 12 个 reason_code，当前配置覆盖
+    15 个。这些数值只服务于闸门覆盖度，不代表世界设定。
     """
     return WorldSnapshot(
         id="aleria-town", name="曦谷", day=1, time="08:00",
         clock_tick=0, world_version=1, event_sequence=0,
         locations=LOCATIONS,
         npcs=(
-            _npc("elena", "Knight", "tavern", 1, 80, 70, 60),
+            _npc("ryan", "Knight", "tavern", 1, 80, 70, 60),
             _npc("grey", "Guardian", "castle", 2, 55, 20, 30),
-            _npc("mira", "Assassin", "park", 3, 40, 85, 75),
+            _npc("shir", "Assassin", "park", 3, 40, 85, 75),
         ),
     )
 

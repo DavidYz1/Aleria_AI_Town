@@ -2,9 +2,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 前往 park",
+        "description": "Ryan 前往 park",
         "event_type": "npc_action",
         "payload": {
           "action_type": "move",
@@ -34,9 +34,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 前往 tavern",
+        "description": "Shir 前往 tavern",
         "event_type": "npc_action",
         "payload": {
           "action_type": "move",
@@ -53,7 +53,7 @@
     "proposals": [
       {
         "action_type": "move",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_training_travel",
         "source": "deterministic",
@@ -71,7 +71,7 @@
       },
       {
         "action_type": "move",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal_travel",
         "source": "deterministic",
@@ -93,7 +93,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "move",
           "proposal_ordinal": 0,
@@ -106,7 +106,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed move",
+        "summary": "ryan proposed move",
         "visibility": "private"
       },
       {
@@ -127,7 +127,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "move",
           "proposal_ordinal": 2,
@@ -140,11 +140,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed move",
+        "summary": "shir proposed move",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -168,7 +168,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -180,7 +180,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "move",
           "after": {
@@ -205,14 +205,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 前往 park",
+        "summary": "Ryan 前往 park",
         "visibility": "private"
       },
       {
@@ -252,7 +252,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "move",
           "after": {
@@ -277,14 +277,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 前往 tavern",
+        "summary": "Shir 前往 tavern",
         "visibility": "private"
       },
       {
@@ -339,10 +339,10 @@
         {
           "current_action": "move",
           "energy": 73,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 69,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -367,10 +367,10 @@
         {
           "current_action": "move",
           "energy": 33,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 84,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -386,9 +386,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 工作",
+        "description": "Ryan 工作",
         "event_type": "npc_action",
         "payload": {
           "action_type": "work",
@@ -401,23 +401,23 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 交谈 mira",
+        "description": "Grey 交谈 shir",
         "event_type": "npc_action",
         "payload": {
           "action_type": "talk",
           "proposal_ordinal": 1,
           "reason_code": "low_social_with_companion",
           "target": {
-            "id": "mira",
+            "id": "shir",
             "kind": "npc"
           }
         },
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 用餐",
+        "description": "Shir 用餐",
         "event_type": "npc_action",
         "payload": {
           "action_type": "eat",
@@ -431,7 +431,7 @@
     "proposals": [
       {
         "action_type": "work",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_training",
         "source": "deterministic",
@@ -444,12 +444,12 @@
         "payload": {},
         "reason_code": "low_social_with_companion",
         "source": "deterministic",
-        "target_id": "mira",
+        "target_id": "shir",
         "target_kind": "npc"
       },
       {
         "action_type": "eat",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal",
         "source": "deterministic",
@@ -471,7 +471,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "proposal_ordinal": 0,
@@ -481,7 +481,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed work",
+        "summary": "ryan proposed work",
         "visibility": "private"
       },
       {
@@ -492,7 +492,7 @@
           "reason_code": "low_social_with_companion",
           "source": "deterministic",
           "target": {
-            "id": "mira",
+            "id": "shir",
             "kind": "npc"
           }
         },
@@ -502,7 +502,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "proposal_ordinal": 2,
@@ -512,11 +512,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed eat",
+        "summary": "shir proposed eat",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -540,7 +540,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -552,7 +552,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "after": {
@@ -577,14 +577,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 工作",
+        "summary": "Ryan 工作",
         "visibility": "private"
       },
       {
@@ -620,11 +620,11 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 交谈 mira",
+        "summary": "Grey 交谈 shir",
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "after": {
@@ -649,14 +649,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 用餐",
+        "summary": "Shir 用餐",
         "visibility": "private"
       },
       {
@@ -711,10 +711,10 @@
         {
           "current_action": "work",
           "energy": 63,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 66,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -739,10 +739,10 @@
         {
           "current_action": "eat",
           "energy": 36,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 91,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -758,9 +758,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 工作",
+        "description": "Ryan 工作",
         "event_type": "npc_action",
         "payload": {
           "action_type": "work",
@@ -773,23 +773,23 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 交谈 mira",
+        "description": "Grey 交谈 shir",
         "event_type": "npc_action",
         "payload": {
           "action_type": "talk",
           "proposal_ordinal": 1,
           "reason_code": "low_social_with_companion",
           "target": {
-            "id": "mira",
+            "id": "shir",
             "kind": "npc"
           }
         },
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 用餐",
+        "description": "Shir 用餐",
         "event_type": "npc_action",
         "payload": {
           "action_type": "eat",
@@ -803,7 +803,7 @@
     "proposals": [
       {
         "action_type": "work",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_training",
         "source": "deterministic",
@@ -816,12 +816,12 @@
         "payload": {},
         "reason_code": "low_social_with_companion",
         "source": "deterministic",
-        "target_id": "mira",
+        "target_id": "shir",
         "target_kind": "npc"
       },
       {
         "action_type": "eat",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal",
         "source": "deterministic",
@@ -843,7 +843,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "proposal_ordinal": 0,
@@ -853,7 +853,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed work",
+        "summary": "ryan proposed work",
         "visibility": "private"
       },
       {
@@ -864,7 +864,7 @@
           "reason_code": "low_social_with_companion",
           "source": "deterministic",
           "target": {
-            "id": "mira",
+            "id": "shir",
             "kind": "npc"
           }
         },
@@ -874,7 +874,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "proposal_ordinal": 2,
@@ -884,11 +884,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed eat",
+        "summary": "shir proposed eat",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -912,7 +912,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -924,7 +924,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "after": {
@@ -949,14 +949,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 工作",
+        "summary": "Ryan 工作",
         "visibility": "private"
       },
       {
@@ -992,11 +992,11 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 交谈 mira",
+        "summary": "Grey 交谈 shir",
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "after": {
@@ -1021,14 +1021,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 用餐",
+        "summary": "Shir 用餐",
         "visibility": "private"
       },
       {
@@ -1083,10 +1083,10 @@
         {
           "current_action": "work",
           "energy": 53,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 63,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -1111,10 +1111,10 @@
         {
           "current_action": "eat",
           "energy": 39,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 98,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -1130,9 +1130,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 工作",
+        "description": "Ryan 工作",
         "event_type": "npc_action",
         "payload": {
           "action_type": "work",
@@ -1156,9 +1156,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 用餐",
+        "description": "Shir 用餐",
         "event_type": "npc_action",
         "payload": {
           "action_type": "eat",
@@ -1172,7 +1172,7 @@
     "proposals": [
       {
         "action_type": "work",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_training",
         "source": "deterministic",
@@ -1190,7 +1190,7 @@
       },
       {
         "action_type": "eat",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal",
         "source": "deterministic",
@@ -1212,7 +1212,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "proposal_ordinal": 0,
@@ -1222,7 +1222,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed work",
+        "summary": "ryan proposed work",
         "visibility": "private"
       },
       {
@@ -1240,7 +1240,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "proposal_ordinal": 2,
@@ -1250,11 +1250,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed eat",
+        "summary": "shir proposed eat",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -1278,7 +1278,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -1290,7 +1290,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "after": {
@@ -1315,14 +1315,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 工作",
+        "summary": "Ryan 工作",
         "visibility": "private"
       },
       {
@@ -1362,7 +1362,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "after": {
@@ -1387,14 +1387,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 用餐",
+        "summary": "Shir 用餐",
         "visibility": "private"
       },
       {
@@ -1449,10 +1449,10 @@
         {
           "current_action": "work",
           "energy": 43,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 60,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -1477,10 +1477,10 @@
         {
           "current_action": "eat",
           "energy": 42,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -1496,9 +1496,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 工作",
+        "description": "Ryan 工作",
         "event_type": "npc_action",
         "payload": {
           "action_type": "work",
@@ -1522,9 +1522,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 用餐",
+        "description": "Shir 用餐",
         "event_type": "npc_action",
         "payload": {
           "action_type": "eat",
@@ -1538,7 +1538,7 @@
     "proposals": [
       {
         "action_type": "work",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_training",
         "source": "deterministic",
@@ -1556,7 +1556,7 @@
       },
       {
         "action_type": "eat",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal",
         "source": "deterministic",
@@ -1578,7 +1578,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "proposal_ordinal": 0,
@@ -1588,7 +1588,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed work",
+        "summary": "ryan proposed work",
         "visibility": "private"
       },
       {
@@ -1606,7 +1606,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "proposal_ordinal": 2,
@@ -1616,11 +1616,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed eat",
+        "summary": "shir proposed eat",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -1644,7 +1644,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -1656,7 +1656,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "after": {
@@ -1681,14 +1681,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 工作",
+        "summary": "Ryan 工作",
         "visibility": "private"
       },
       {
@@ -1728,7 +1728,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "after": {
@@ -1753,14 +1753,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 用餐",
+        "summary": "Shir 用餐",
         "visibility": "private"
       },
       {
@@ -1815,10 +1815,10 @@
         {
           "current_action": "work",
           "energy": 33,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 57,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -1843,10 +1843,10 @@
         {
           "current_action": "eat",
           "energy": 45,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -1862,9 +1862,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 工作",
+        "description": "Ryan 工作",
         "event_type": "npc_action",
         "payload": {
           "action_type": "work",
@@ -1891,9 +1891,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 用餐",
+        "description": "Shir 用餐",
         "event_type": "npc_action",
         "payload": {
           "action_type": "eat",
@@ -1907,7 +1907,7 @@
     "proposals": [
       {
         "action_type": "work",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_training",
         "source": "deterministic",
@@ -1925,7 +1925,7 @@
       },
       {
         "action_type": "eat",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal",
         "source": "deterministic",
@@ -1947,7 +1947,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "proposal_ordinal": 0,
@@ -1957,7 +1957,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed work",
+        "summary": "ryan proposed work",
         "visibility": "private"
       },
       {
@@ -1978,7 +1978,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "proposal_ordinal": 2,
@@ -1988,11 +1988,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed eat",
+        "summary": "shir proposed eat",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -2016,7 +2016,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -2028,7 +2028,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "work",
           "after": {
@@ -2053,14 +2053,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 工作",
+        "summary": "Ryan 工作",
         "visibility": "private"
       },
       {
@@ -2100,7 +2100,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "after": {
@@ -2125,14 +2125,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 用餐",
+        "summary": "Shir 用餐",
         "visibility": "private"
       },
       {
@@ -2187,10 +2187,10 @@
         {
           "current_action": "work",
           "energy": 23,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 54,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -2215,10 +2215,10 @@
         {
           "current_action": "eat",
           "energy": 48,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -2234,9 +2234,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -2263,9 +2263,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 用餐",
+        "description": "Shir 用餐",
         "event_type": "npc_action",
         "payload": {
           "action_type": "eat",
@@ -2279,7 +2279,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "low_energy",
         "source": "deterministic",
@@ -2297,7 +2297,7 @@
       },
       {
         "action_type": "eat",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal",
         "source": "deterministic",
@@ -2319,7 +2319,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -2329,7 +2329,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -2350,7 +2350,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "proposal_ordinal": 2,
@@ -2360,11 +2360,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed eat",
+        "summary": "shir proposed eat",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -2388,7 +2388,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -2400,7 +2400,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -2425,14 +2425,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -2472,7 +2472,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "after": {
@@ -2497,14 +2497,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 用餐",
+        "summary": "Shir 用餐",
         "visibility": "private"
       },
       {
@@ -2559,10 +2559,10 @@
         {
           "current_action": "rest",
           "energy": 36,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 55,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -2587,10 +2587,10 @@
         {
           "current_action": "eat",
           "energy": 51,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -2606,9 +2606,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 交谈 grey",
+        "description": "Ryan 交谈 grey",
         "event_type": "npc_action",
         "payload": {
           "action_type": "talk",
@@ -2635,9 +2635,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 用餐",
+        "description": "Shir 用餐",
         "event_type": "npc_action",
         "payload": {
           "action_type": "eat",
@@ -2651,7 +2651,7 @@
     "proposals": [
       {
         "action_type": "talk",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "low_social_with_companion",
         "source": "deterministic",
@@ -2669,7 +2669,7 @@
       },
       {
         "action_type": "eat",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal",
         "source": "deterministic",
@@ -2691,7 +2691,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "talk",
           "proposal_ordinal": 0,
@@ -2704,7 +2704,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed talk",
+        "summary": "ryan proposed talk",
         "visibility": "private"
       },
       {
@@ -2722,7 +2722,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "proposal_ordinal": 2,
@@ -2732,11 +2732,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed eat",
+        "summary": "shir proposed eat",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -2760,7 +2760,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -2772,7 +2772,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "talk",
           "after": {
@@ -2797,14 +2797,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 交谈 grey",
+        "summary": "Ryan 交谈 grey",
         "visibility": "private"
       },
       {
@@ -2844,7 +2844,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "after": {
@@ -2869,14 +2869,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 用餐",
+        "summary": "Shir 用餐",
         "visibility": "private"
       },
       {
@@ -2931,10 +2931,10 @@
         {
           "current_action": "talk",
           "energy": 32,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 59,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -2959,10 +2959,10 @@
         {
           "current_action": "eat",
           "energy": 54,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -2978,9 +2978,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -2993,23 +2993,23 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 交谈 elena",
+        "description": "Grey 交谈 ryan",
         "event_type": "npc_action",
         "payload": {
           "action_type": "talk",
           "proposal_ordinal": 1,
           "reason_code": "low_social_with_companion",
           "target": {
-            "id": "elena",
+            "id": "ryan",
             "kind": "npc"
           }
         },
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 用餐",
+        "description": "Shir 用餐",
         "event_type": "npc_action",
         "payload": {
           "action_type": "eat",
@@ -3023,7 +3023,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "low_energy",
         "source": "deterministic",
@@ -3036,12 +3036,12 @@
         "payload": {},
         "reason_code": "low_social_with_companion",
         "source": "deterministic",
-        "target_id": "elena",
+        "target_id": "ryan",
         "target_kind": "npc"
       },
       {
         "action_type": "eat",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_meal",
         "source": "deterministic",
@@ -3063,7 +3063,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -3073,7 +3073,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -3084,7 +3084,7 @@
           "reason_code": "low_social_with_companion",
           "source": "deterministic",
           "target": {
-            "id": "elena",
+            "id": "ryan",
             "kind": "npc"
           }
         },
@@ -3094,7 +3094,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "proposal_ordinal": 2,
@@ -3104,11 +3104,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed eat",
+        "summary": "shir proposed eat",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -3132,7 +3132,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -3144,7 +3144,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -3169,14 +3169,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -3212,11 +3212,11 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 交谈 elena",
+        "summary": "Grey 交谈 ryan",
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "eat",
           "after": {
@@ -3241,14 +3241,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 用餐",
+        "summary": "Shir 用餐",
         "visibility": "private"
       },
       {
@@ -3303,10 +3303,10 @@
         {
           "current_action": "rest",
           "energy": 45,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 60,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -3331,10 +3331,10 @@
         {
           "current_action": "eat",
           "energy": 57,
-          "id": "mira",
+          "id": "shir",
           "location_id": "tavern",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -3350,9 +3350,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 交谈 grey",
+        "description": "Ryan 交谈 grey",
         "event_type": "npc_action",
         "payload": {
           "action_type": "talk",
@@ -3382,9 +3382,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 前往 forest",
+        "description": "Shir 前往 forest",
         "event_type": "npc_action",
         "payload": {
           "action_type": "move",
@@ -3401,7 +3401,7 @@
     "proposals": [
       {
         "action_type": "talk",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_evening_social",
         "source": "deterministic",
@@ -3419,7 +3419,7 @@
       },
       {
         "action_type": "move",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_scout_travel",
         "source": "deterministic",
@@ -3441,7 +3441,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "talk",
           "proposal_ordinal": 0,
@@ -3454,7 +3454,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed talk",
+        "summary": "ryan proposed talk",
         "visibility": "private"
       },
       {
@@ -3475,7 +3475,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "move",
           "proposal_ordinal": 2,
@@ -3488,11 +3488,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed move",
+        "summary": "shir proposed move",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -3516,7 +3516,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -3528,7 +3528,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "talk",
           "after": {
@@ -3553,14 +3553,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 交谈 grey",
+        "summary": "Ryan 交谈 grey",
         "visibility": "private"
       },
       {
@@ -3600,7 +3600,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "move",
           "after": {
@@ -3625,14 +3625,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 前往 forest",
+        "summary": "Shir 前往 forest",
         "visibility": "private"
       },
       {
@@ -3687,10 +3687,10 @@
         {
           "current_action": "talk",
           "energy": 41,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 64,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -3715,10 +3715,10 @@
         {
           "current_action": "move",
           "energy": 50,
-          "id": "mira",
+          "id": "shir",
           "location_id": "forest",
           "mood": 99,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -3734,9 +3734,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -3760,9 +3760,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 工作",
+        "description": "Shir 工作",
         "event_type": "npc_action",
         "payload": {
           "action_type": "work",
@@ -3776,7 +3776,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_evening_rest",
         "source": "deterministic",
@@ -3794,7 +3794,7 @@
       },
       {
         "action_type": "work",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "assassin_scout",
         "source": "deterministic",
@@ -3816,7 +3816,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -3826,7 +3826,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -3844,7 +3844,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "work",
           "proposal_ordinal": 2,
@@ -3854,11 +3854,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed work",
+        "summary": "shir proposed work",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -3882,7 +3882,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -3894,7 +3894,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -3919,14 +3919,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -3966,7 +3966,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "work",
           "after": {
@@ -3991,14 +3991,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 工作",
+        "summary": "Shir 工作",
         "visibility": "private"
       },
       {
@@ -4053,10 +4053,10 @@
         {
           "current_action": "rest",
           "energy": 54,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 65,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -4081,10 +4081,10 @@
         {
           "current_action": "work",
           "energy": 40,
-          "id": "mira",
+          "id": "shir",
           "location_id": "forest",
           "mood": 96,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -4100,9 +4100,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -4126,9 +4126,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 前往 park",
+        "description": "Shir 前往 park",
         "event_type": "npc_action",
         "payload": {
           "action_type": "move",
@@ -4145,7 +4145,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_evening_rest",
         "source": "deterministic",
@@ -4163,7 +4163,7 @@
       },
       {
         "action_type": "move",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "low_social_find_companion",
         "source": "deterministic",
@@ -4185,7 +4185,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -4195,7 +4195,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -4213,7 +4213,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "move",
           "proposal_ordinal": 2,
@@ -4226,11 +4226,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed move",
+        "summary": "shir proposed move",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -4254,7 +4254,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -4266,7 +4266,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -4291,14 +4291,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -4338,7 +4338,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "move",
           "after": {
@@ -4363,14 +4363,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 前往 park",
+        "summary": "Shir 前往 park",
         "visibility": "private"
       },
       {
@@ -4425,10 +4425,10 @@
         {
           "current_action": "rest",
           "energy": 67,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 66,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -4453,10 +4453,10 @@
         {
           "current_action": "move",
           "energy": 33,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 95,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -4472,16 +4472,16 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 交谈 mira",
+        "description": "Ryan 交谈 shir",
         "event_type": "npc_action",
         "payload": {
           "action_type": "talk",
           "proposal_ordinal": 0,
           "reason_code": "knight_evening_social",
           "target": {
-            "id": "mira",
+            "id": "shir",
             "kind": "npc"
           }
         },
@@ -4504,16 +4504,16 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 交谈 elena",
+        "description": "Shir 交谈 ryan",
         "event_type": "npc_action",
         "payload": {
           "action_type": "talk",
           "proposal_ordinal": 2,
           "reason_code": "low_social_with_companion",
           "target": {
-            "id": "elena",
+            "id": "ryan",
             "kind": "npc"
           }
         },
@@ -4523,11 +4523,11 @@
     "proposals": [
       {
         "action_type": "talk",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "knight_evening_social",
         "source": "deterministic",
-        "target_id": "mira",
+        "target_id": "shir",
         "target_kind": "npc"
       },
       {
@@ -4541,11 +4541,11 @@
       },
       {
         "action_type": "talk",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "low_social_with_companion",
         "source": "deterministic",
-        "target_id": "elena",
+        "target_id": "ryan",
         "target_kind": "npc"
       }
     ],
@@ -4563,20 +4563,20 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "talk",
           "proposal_ordinal": 0,
           "reason_code": "knight_evening_social",
           "source": "deterministic",
           "target": {
-            "id": "mira",
+            "id": "shir",
             "kind": "npc"
           }
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed talk",
+        "summary": "ryan proposed talk",
         "visibility": "private"
       },
       {
@@ -4597,24 +4597,24 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "talk",
           "proposal_ordinal": 2,
           "reason_code": "low_social_with_companion",
           "source": "deterministic",
           "target": {
-            "id": "elena",
+            "id": "ryan",
             "kind": "npc"
           }
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed talk",
+        "summary": "shir proposed talk",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -4638,7 +4638,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -4650,7 +4650,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "talk",
           "after": {
@@ -4675,14 +4675,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 交谈 mira",
+        "summary": "Ryan 交谈 shir",
         "visibility": "private"
       },
       {
@@ -4722,7 +4722,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "talk",
           "after": {
@@ -4747,14 +4747,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 交谈 elena",
+        "summary": "Shir 交谈 ryan",
         "visibility": "private"
       },
       {
@@ -4809,10 +4809,10 @@
         {
           "current_action": "talk",
           "energy": 63,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 70,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -4837,10 +4837,10 @@
         {
           "current_action": "talk",
           "energy": 29,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 99,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -4856,9 +4856,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -4882,9 +4882,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 休息",
+        "description": "Shir 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -4898,7 +4898,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -4916,7 +4916,7 @@
       },
       {
         "action_type": "rest",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -4938,7 +4938,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -4948,7 +4948,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -4966,7 +4966,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 2,
@@ -4976,11 +4976,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed rest",
+        "summary": "shir proposed rest",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -5004,7 +5004,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -5016,7 +5016,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -5041,14 +5041,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -5088,7 +5088,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "after": {
@@ -5113,14 +5113,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 休息",
+        "summary": "Shir 休息",
         "visibility": "private"
       },
       {
@@ -5175,10 +5175,10 @@
         {
           "current_action": "rest",
           "energy": 76,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 71,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -5203,10 +5203,10 @@
         {
           "current_action": "rest",
           "energy": 42,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -5222,9 +5222,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -5248,9 +5248,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 休息",
+        "description": "Shir 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -5264,7 +5264,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -5282,7 +5282,7 @@
       },
       {
         "action_type": "rest",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -5304,7 +5304,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -5314,7 +5314,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -5332,7 +5332,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 2,
@@ -5342,11 +5342,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed rest",
+        "summary": "shir proposed rest",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -5370,7 +5370,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -5382,7 +5382,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -5407,14 +5407,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -5454,7 +5454,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "after": {
@@ -5479,14 +5479,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 休息",
+        "summary": "Shir 休息",
         "visibility": "private"
       },
       {
@@ -5541,10 +5541,10 @@
         {
           "current_action": "rest",
           "energy": 89,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 72,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -5569,10 +5569,10 @@
         {
           "current_action": "rest",
           "energy": 55,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -5588,9 +5588,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -5614,9 +5614,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 休息",
+        "description": "Shir 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -5630,7 +5630,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -5648,7 +5648,7 @@
       },
       {
         "action_type": "rest",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -5670,7 +5670,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -5680,7 +5680,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -5698,7 +5698,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 2,
@@ -5708,11 +5708,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed rest",
+        "summary": "shir proposed rest",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -5736,7 +5736,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -5748,7 +5748,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -5773,14 +5773,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -5820,7 +5820,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "after": {
@@ -5845,14 +5845,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 休息",
+        "summary": "Shir 休息",
         "visibility": "private"
       },
       {
@@ -5907,10 +5907,10 @@
         {
           "current_action": "rest",
           "energy": 100,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 73,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -5935,10 +5935,10 @@
         {
           "current_action": "rest",
           "energy": 68,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -5954,9 +5954,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -5980,9 +5980,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 休息",
+        "description": "Shir 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -5996,7 +5996,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -6014,7 +6014,7 @@
       },
       {
         "action_type": "rest",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -6036,7 +6036,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -6046,7 +6046,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -6064,7 +6064,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 2,
@@ -6074,11 +6074,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed rest",
+        "summary": "shir proposed rest",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -6102,7 +6102,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -6114,7 +6114,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -6139,14 +6139,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -6186,7 +6186,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "after": {
@@ -6211,14 +6211,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 休息",
+        "summary": "Shir 休息",
         "visibility": "private"
       },
       {
@@ -6273,10 +6273,10 @@
         {
           "current_action": "rest",
           "energy": 100,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 74,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -6301,10 +6301,10 @@
         {
           "current_action": "rest",
           "energy": 81,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -6320,9 +6320,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -6346,9 +6346,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 休息",
+        "description": "Shir 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -6362,7 +6362,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -6380,7 +6380,7 @@
       },
       {
         "action_type": "rest",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -6402,7 +6402,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -6412,7 +6412,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -6430,7 +6430,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 2,
@@ -6440,11 +6440,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed rest",
+        "summary": "shir proposed rest",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -6468,7 +6468,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -6480,7 +6480,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -6505,14 +6505,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -6552,7 +6552,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "after": {
@@ -6577,14 +6577,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 休息",
+        "summary": "Shir 休息",
         "visibility": "private"
       },
       {
@@ -6639,10 +6639,10 @@
         {
           "current_action": "rest",
           "energy": 100,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 75,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -6667,10 +6667,10 @@
         {
           "current_action": "rest",
           "energy": 94,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -6686,9 +6686,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -6712,9 +6712,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 休息",
+        "description": "Shir 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -6728,7 +6728,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -6746,7 +6746,7 @@
       },
       {
         "action_type": "rest",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -6768,7 +6768,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -6778,7 +6778,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -6796,7 +6796,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 2,
@@ -6806,11 +6806,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed rest",
+        "summary": "shir proposed rest",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -6834,7 +6834,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -6846,7 +6846,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -6871,14 +6871,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -6918,7 +6918,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "after": {
@@ -6943,14 +6943,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 休息",
+        "summary": "Shir 休息",
         "visibility": "private"
       },
       {
@@ -7005,10 +7005,10 @@
         {
           "current_action": "rest",
           "energy": 100,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 76,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -7033,10 +7033,10 @@
         {
           "current_action": "rest",
           "energy": 100,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
@@ -7052,9 +7052,9 @@
   {
     "events": [
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "causation_id": null,
-        "description": "Elena 休息",
+        "description": "Ryan 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -7078,9 +7078,9 @@
         "visibility": "public"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "causation_id": null,
-        "description": "Mira 休息",
+        "description": "Shir 休息",
         "event_type": "npc_action",
         "payload": {
           "action_type": "rest",
@@ -7094,7 +7094,7 @@
     "proposals": [
       {
         "action_type": "rest",
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -7112,7 +7112,7 @@
       },
       {
         "action_type": "rest",
-        "actor_id": "mira",
+        "actor_id": "shir",
         "payload": {},
         "reason_code": "night_rest",
         "source": "deterministic",
@@ -7134,7 +7134,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 0,
@@ -7144,7 +7144,7 @@
         },
         "sequence": 2,
         "stage": "proposal",
-        "summary": "elena proposed rest",
+        "summary": "ryan proposed rest",
         "visibility": "private"
       },
       {
@@ -7162,7 +7162,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "proposal_ordinal": 2,
@@ -7172,11 +7172,11 @@
         },
         "sequence": 4,
         "stage": "proposal",
-        "summary": "mira proposed rest",
+        "summary": "shir proposed rest",
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -7200,7 +7200,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "accepted": true,
           "code": "accepted",
@@ -7212,7 +7212,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "action_type": "rest",
           "after": {
@@ -7237,14 +7237,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "elena",
+        "actor_id": "ryan",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 0
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 休息",
+        "summary": "Ryan 休息",
         "visibility": "private"
       },
       {
@@ -7284,7 +7284,7 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "action_type": "rest",
           "after": {
@@ -7309,14 +7309,14 @@
         "visibility": "private"
       },
       {
-        "actor_id": "mira",
+        "actor_id": "shir",
         "data": {
           "event_type": "npc_action",
           "proposal_ordinal": 2
         },
         "sequence": 13,
         "stage": "event",
-        "summary": "Mira 休息",
+        "summary": "Shir 休息",
         "visibility": "private"
       },
       {
@@ -7371,10 +7371,10 @@
         {
           "current_action": "rest",
           "energy": 100,
-          "id": "elena",
+          "id": "ryan",
           "location_id": "park",
           "mood": 77,
-          "name": "Elena",
+          "name": "Ryan",
           "personality": [
             "steady"
           ],
@@ -7399,10 +7399,10 @@
         {
           "current_action": "rest",
           "energy": 100,
-          "id": "mira",
+          "id": "shir",
           "location_id": "park",
           "mood": 100,
-          "name": "Mira",
+          "name": "Shir",
           "personality": [
             "steady"
           ],
