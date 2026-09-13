@@ -223,14 +223,14 @@
             "current_action": "move",
             "energy": 48,
             "location_id": "tavern",
-            "mood": 44,
+            "mood": 19,
             "social": 27
           },
           "before": {
             "current_action": "rest",
             "energy": 53,
             "location_id": "castle",
-            "mood": 44,
+            "mood": 19,
             "social": 27
           },
           "proposal_ordinal": 1
@@ -355,7 +355,7 @@
           "energy": 48,
           "id": "grey",
           "location_id": "tavern",
-          "mood": 44,
+          "mood": 19,
           "name": "Grey",
           "personality": [
             "steady"
@@ -595,14 +595,14 @@
             "current_action": "talk",
             "energy": 44,
             "location_id": "tavern",
-            "mood": 48,
+            "mood": 23,
             "social": 39
           },
           "before": {
             "current_action": "move",
             "energy": 46,
             "location_id": "tavern",
-            "mood": 43,
+            "mood": 18,
             "social": 24
           },
           "proposal_ordinal": 1
@@ -727,7 +727,7 @@
           "energy": 44,
           "id": "grey",
           "location_id": "tavern",
-          "mood": 48,
+          "mood": 23,
           "name": "Grey",
           "personality": [
             "steady"
@@ -967,14 +967,14 @@
             "current_action": "talk",
             "energy": 40,
             "location_id": "tavern",
-            "mood": 52,
+            "mood": 27,
             "social": 51
           },
           "before": {
             "current_action": "talk",
             "energy": 42,
             "location_id": "tavern",
-            "mood": 47,
+            "mood": 22,
             "social": 36
           },
           "proposal_ordinal": 1
@@ -1099,7 +1099,7 @@
           "energy": 40,
           "id": "grey",
           "location_id": "tavern",
-          "mood": 52,
+          "mood": 27,
           "name": "Grey",
           "personality": [
             "steady"
@@ -1145,16 +1145,13 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 前往 castle",
+        "description": "Grey 用餐",
         "event_type": "npc_action",
         "payload": {
-          "action_type": "move",
+          "action_type": "eat",
           "proposal_ordinal": 1,
-          "reason_code": "guardian_patrol_travel",
-          "target": {
-            "id": "castle",
-            "kind": "location"
-          }
+          "reason_code": "low_mood_eat",
+          "target": null
         },
         "visibility": "public"
       },
@@ -1183,13 +1180,13 @@
         "target_kind": null
       },
       {
-        "action_type": "move",
+        "action_type": "eat",
         "actor_id": "grey",
         "payload": {},
-        "reason_code": "guardian_patrol_travel",
+        "reason_code": "low_mood_eat",
         "source": "deterministic",
-        "target_id": "castle",
-        "target_kind": "location"
+        "target_id": null,
+        "target_kind": null
       },
       {
         "action_type": "eat",
@@ -1231,18 +1228,15 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "move",
+          "action_type": "eat",
           "proposal_ordinal": 1,
-          "reason_code": "guardian_patrol_travel",
+          "reason_code": "low_mood_eat",
           "source": "deterministic",
-          "target": {
-            "id": "castle",
-            "kind": "location"
-          }
+          "target": null
         },
         "sequence": 3,
         "stage": "proposal",
-        "summary": "grey proposed move",
+        "summary": "grey proposed eat",
         "visibility": "private"
       },
       {
@@ -1334,26 +1328,26 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "move",
+          "action_type": "eat",
           "after": {
-            "current_action": "move",
-            "energy": 33,
-            "location_id": "castle",
-            "mood": 51,
+            "current_action": "eat",
+            "energy": 43,
+            "location_id": "tavern",
+            "mood": 34,
             "social": 48
           },
           "before": {
             "current_action": "talk",
             "energy": 38,
             "location_id": "tavern",
-            "mood": 51,
+            "mood": 26,
             "social": 48
           },
           "proposal_ordinal": 1
         },
         "sequence": 10,
         "stage": "execution",
-        "summary": "Executed move",
+        "summary": "Executed eat",
         "visibility": "private"
       },
       {
@@ -1364,7 +1358,7 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 前往 castle",
+        "summary": "Grey 用餐",
         "visibility": "private"
       },
       {
@@ -1467,11 +1461,11 @@
           "sort_order": 1
         },
         {
-          "current_action": "move",
-          "energy": 33,
+          "current_action": "eat",
+          "energy": 43,
           "id": "grey",
-          "location_id": "castle",
-          "mood": 51,
+          "location_id": "tavern",
+          "mood": 34,
           "name": "Grey",
           "personality": [
             "steady"
@@ -1517,12 +1511,12 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 工作",
+        "description": "Grey 用餐",
         "event_type": "npc_action",
         "payload": {
-          "action_type": "work",
+          "action_type": "eat",
           "proposal_ordinal": 1,
-          "reason_code": "guardian_patrol",
+          "reason_code": "low_mood_eat",
           "target": null
         },
         "visibility": "public"
@@ -1552,10 +1546,10 @@
         "target_kind": null
       },
       {
-        "action_type": "work",
+        "action_type": "eat",
         "actor_id": "grey",
         "payload": {},
-        "reason_code": "guardian_patrol",
+        "reason_code": "low_mood_eat",
         "source": "deterministic",
         "target_id": null,
         "target_kind": null
@@ -1600,15 +1594,15 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "work",
+          "action_type": "eat",
           "proposal_ordinal": 1,
-          "reason_code": "guardian_patrol",
+          "reason_code": "low_mood_eat",
           "source": "deterministic",
           "target": null
         },
         "sequence": 3,
         "stage": "proposal",
-        "summary": "grey proposed work",
+        "summary": "grey proposed eat",
         "visibility": "private"
       },
       {
@@ -1700,26 +1694,26 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "work",
+          "action_type": "eat",
           "after": {
-            "current_action": "work",
-            "energy": 23,
-            "location_id": "castle",
-            "mood": 48,
+            "current_action": "eat",
+            "energy": 46,
+            "location_id": "tavern",
+            "mood": 41,
             "social": 45
           },
           "before": {
-            "current_action": "move",
-            "energy": 31,
-            "location_id": "castle",
-            "mood": 50,
+            "current_action": "eat",
+            "energy": 41,
+            "location_id": "tavern",
+            "mood": 33,
             "social": 45
           },
           "proposal_ordinal": 1
         },
         "sequence": 10,
         "stage": "execution",
-        "summary": "Executed work",
+        "summary": "Executed eat",
         "visibility": "private"
       },
       {
@@ -1730,7 +1724,7 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 工作",
+        "summary": "Grey 用餐",
         "visibility": "private"
       },
       {
@@ -1833,11 +1827,11 @@
           "sort_order": 1
         },
         {
-          "current_action": "work",
-          "energy": 23,
+          "current_action": "eat",
+          "energy": 46,
           "id": "grey",
-          "location_id": "castle",
-          "mood": 48,
+          "location_id": "tavern",
+          "mood": 41,
           "name": "Grey",
           "personality": [
             "steady"
@@ -1883,13 +1877,16 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 休息",
+        "description": "Grey 前往 castle",
         "event_type": "npc_action",
         "payload": {
-          "action_type": "rest",
+          "action_type": "move",
           "proposal_ordinal": 1,
-          "reason_code": "low_energy",
-          "target": null
+          "reason_code": "guardian_patrol_travel",
+          "target": {
+            "id": "castle",
+            "kind": "location"
+          }
         },
         "visibility": "public"
       },
@@ -1918,13 +1915,13 @@
         "target_kind": null
       },
       {
-        "action_type": "rest",
+        "action_type": "move",
         "actor_id": "grey",
         "payload": {},
-        "reason_code": "low_energy",
+        "reason_code": "guardian_patrol_travel",
         "source": "deterministic",
-        "target_id": null,
-        "target_kind": null
+        "target_id": "castle",
+        "target_kind": "location"
       },
       {
         "action_type": "eat",
@@ -1966,15 +1963,18 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "rest",
+          "action_type": "move",
           "proposal_ordinal": 1,
-          "reason_code": "low_energy",
+          "reason_code": "guardian_patrol_travel",
           "source": "deterministic",
-          "target": null
+          "target": {
+            "id": "castle",
+            "kind": "location"
+          }
         },
         "sequence": 3,
         "stage": "proposal",
-        "summary": "grey proposed rest",
+        "summary": "grey proposed move",
         "visibility": "private"
       },
       {
@@ -2066,26 +2066,26 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "rest",
+          "action_type": "move",
           "after": {
-            "current_action": "rest",
-            "energy": 36,
+            "current_action": "move",
+            "energy": 39,
             "location_id": "castle",
-            "mood": 49,
+            "mood": 40,
             "social": 42
           },
           "before": {
-            "current_action": "work",
-            "energy": 21,
-            "location_id": "castle",
-            "mood": 47,
+            "current_action": "eat",
+            "energy": 44,
+            "location_id": "tavern",
+            "mood": 40,
             "social": 42
           },
           "proposal_ordinal": 1
         },
         "sequence": 10,
         "stage": "execution",
-        "summary": "Executed rest",
+        "summary": "Executed move",
         "visibility": "private"
       },
       {
@@ -2096,7 +2096,7 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 休息",
+        "summary": "Grey 前往 castle",
         "visibility": "private"
       },
       {
@@ -2199,11 +2199,11 @@
           "sort_order": 1
         },
         {
-          "current_action": "rest",
-          "energy": 36,
+          "current_action": "move",
+          "energy": 39,
           "id": "grey",
           "location_id": "castle",
-          "mood": 49,
+          "mood": 40,
           "name": "Grey",
           "personality": [
             "steady"
@@ -2441,16 +2441,16 @@
           "action_type": "move",
           "after": {
             "current_action": "move",
-            "energy": 29,
+            "energy": 32,
             "location_id": "park",
-            "mood": 48,
+            "mood": 39,
             "social": 39
           },
           "before": {
-            "current_action": "rest",
-            "energy": 34,
+            "current_action": "move",
+            "energy": 37,
             "location_id": "castle",
-            "mood": 48,
+            "mood": 39,
             "social": 39
           },
           "proposal_ordinal": 1
@@ -2572,10 +2572,10 @@
         },
         {
           "current_action": "move",
-          "energy": 29,
+          "energy": 32,
           "id": "grey",
           "location_id": "park",
-          "mood": 48,
+          "mood": 39,
           "name": "Grey",
           "personality": [
             "steady"
@@ -2813,16 +2813,16 @@
           "action_type": "rest",
           "after": {
             "current_action": "rest",
-            "energy": 42,
+            "energy": 45,
             "location_id": "park",
-            "mood": 49,
+            "mood": 40,
             "social": 36
           },
           "before": {
             "current_action": "move",
-            "energy": 27,
+            "energy": 30,
             "location_id": "park",
-            "mood": 47,
+            "mood": 38,
             "social": 36
           },
           "proposal_ordinal": 1
@@ -2944,10 +2944,10 @@
         },
         {
           "current_action": "rest",
-          "energy": 42,
+          "energy": 45,
           "id": "grey",
           "location_id": "park",
-          "mood": 49,
+          "mood": 40,
           "name": "Grey",
           "personality": [
             "steady"
@@ -3185,16 +3185,16 @@
           "action_type": "talk",
           "after": {
             "current_action": "talk",
-            "energy": 38,
+            "energy": 41,
             "location_id": "park",
-            "mood": 53,
+            "mood": 44,
             "social": 48
           },
           "before": {
             "current_action": "rest",
-            "energy": 40,
+            "energy": 43,
             "location_id": "park",
-            "mood": 48,
+            "mood": 39,
             "social": 33
           },
           "proposal_ordinal": 1
@@ -3316,10 +3316,10 @@
         },
         {
           "current_action": "talk",
-          "energy": 38,
+          "energy": 41,
           "id": "grey",
           "location_id": "park",
-          "mood": 53,
+          "mood": 44,
           "name": "Grey",
           "personality": [
             "steady"
@@ -3569,16 +3569,16 @@
           "action_type": "move",
           "after": {
             "current_action": "move",
-            "energy": 31,
+            "energy": 34,
             "location_id": "castle",
-            "mood": 52,
+            "mood": 43,
             "social": 45
           },
           "before": {
             "current_action": "talk",
-            "energy": 36,
+            "energy": 39,
             "location_id": "park",
-            "mood": 52,
+            "mood": 43,
             "social": 45
           },
           "proposal_ordinal": 1
@@ -3700,10 +3700,10 @@
         },
         {
           "current_action": "move",
-          "energy": 31,
+          "energy": 34,
           "id": "grey",
           "location_id": "castle",
-          "mood": 52,
+          "mood": 43,
           "name": "Grey",
           "personality": [
             "steady"
@@ -3749,12 +3749,12 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 休息",
+        "description": "Grey 工作",
         "event_type": "npc_action",
         "payload": {
-          "action_type": "rest",
+          "action_type": "work",
           "proposal_ordinal": 1,
-          "reason_code": "low_energy",
+          "reason_code": "guardian_patrol",
           "target": null
         },
         "visibility": "public"
@@ -3784,10 +3784,10 @@
         "target_kind": null
       },
       {
-        "action_type": "rest",
+        "action_type": "work",
         "actor_id": "grey",
         "payload": {},
-        "reason_code": "low_energy",
+        "reason_code": "guardian_patrol",
         "source": "deterministic",
         "target_id": null,
         "target_kind": null
@@ -3832,15 +3832,15 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "rest",
+          "action_type": "work",
           "proposal_ordinal": 1,
-          "reason_code": "low_energy",
+          "reason_code": "guardian_patrol",
           "source": "deterministic",
           "target": null
         },
         "sequence": 3,
         "stage": "proposal",
-        "summary": "grey proposed rest",
+        "summary": "grey proposed work",
         "visibility": "private"
       },
       {
@@ -3932,26 +3932,26 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "rest",
+          "action_type": "work",
           "after": {
-            "current_action": "rest",
-            "energy": 44,
+            "current_action": "work",
+            "energy": 24,
             "location_id": "castle",
-            "mood": 53,
+            "mood": 40,
             "social": 42
           },
           "before": {
             "current_action": "move",
-            "energy": 29,
+            "energy": 32,
             "location_id": "castle",
-            "mood": 51,
+            "mood": 42,
             "social": 42
           },
           "proposal_ordinal": 1
         },
         "sequence": 10,
         "stage": "execution",
-        "summary": "Executed rest",
+        "summary": "Executed work",
         "visibility": "private"
       },
       {
@@ -3962,7 +3962,7 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 休息",
+        "summary": "Grey 工作",
         "visibility": "private"
       },
       {
@@ -4065,11 +4065,11 @@
           "sort_order": 1
         },
         {
-          "current_action": "rest",
-          "energy": 44,
+          "current_action": "work",
+          "energy": 24,
           "id": "grey",
           "location_id": "castle",
-          "mood": 53,
+          "mood": 40,
           "name": "Grey",
           "personality": [
             "steady"
@@ -4115,16 +4115,13 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 前往 park",
+        "description": "Grey 休息",
         "event_type": "npc_action",
         "payload": {
-          "action_type": "move",
+          "action_type": "rest",
           "proposal_ordinal": 1,
-          "reason_code": "low_social_find_companion",
-          "target": {
-            "id": "park",
-            "kind": "location"
-          }
+          "reason_code": "low_energy",
+          "target": null
         },
         "visibility": "public"
       },
@@ -4156,13 +4153,13 @@
         "target_kind": null
       },
       {
-        "action_type": "move",
+        "action_type": "rest",
         "actor_id": "grey",
         "payload": {},
-        "reason_code": "low_social_find_companion",
+        "reason_code": "low_energy",
         "source": "deterministic",
-        "target_id": "park",
-        "target_kind": "location"
+        "target_id": null,
+        "target_kind": null
       },
       {
         "action_type": "move",
@@ -4204,18 +4201,15 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "move",
+          "action_type": "rest",
           "proposal_ordinal": 1,
-          "reason_code": "low_social_find_companion",
+          "reason_code": "low_energy",
           "source": "deterministic",
-          "target": {
-            "id": "park",
-            "kind": "location"
-          }
+          "target": null
         },
         "sequence": 3,
         "stage": "proposal",
-        "summary": "grey proposed move",
+        "summary": "grey proposed rest",
         "visibility": "private"
       },
       {
@@ -4310,26 +4304,26 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "move",
+          "action_type": "rest",
           "after": {
-            "current_action": "move",
+            "current_action": "rest",
             "energy": 37,
-            "location_id": "park",
-            "mood": 52,
+            "location_id": "castle",
+            "mood": 41,
             "social": 39
           },
           "before": {
-            "current_action": "rest",
-            "energy": 42,
+            "current_action": "work",
+            "energy": 22,
             "location_id": "castle",
-            "mood": 52,
+            "mood": 39,
             "social": 39
           },
           "proposal_ordinal": 1
         },
         "sequence": 10,
         "stage": "execution",
-        "summary": "Executed move",
+        "summary": "Executed rest",
         "visibility": "private"
       },
       {
@@ -4340,7 +4334,7 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 前往 park",
+        "summary": "Grey 休息",
         "visibility": "private"
       },
       {
@@ -4443,11 +4437,11 @@
           "sort_order": 1
         },
         {
-          "current_action": "move",
+          "current_action": "rest",
           "energy": 37,
           "id": "grey",
-          "location_id": "park",
-          "mood": 52,
+          "location_id": "castle",
+          "mood": 41,
           "name": "Grey",
           "personality": [
             "steady"
@@ -4480,14 +4474,14 @@
       {
         "actor_id": "elena",
         "causation_id": null,
-        "description": "Elena 交谈 grey",
+        "description": "Elena 交谈 mira",
         "event_type": "npc_action",
         "payload": {
           "action_type": "talk",
           "proposal_ordinal": 0,
           "reason_code": "knight_evening_social",
           "target": {
-            "id": "grey",
+            "id": "mira",
             "kind": "npc"
           }
         },
@@ -4496,15 +4490,15 @@
       {
         "actor_id": "grey",
         "causation_id": null,
-        "description": "Grey 交谈 elena",
+        "description": "Grey 前往 park",
         "event_type": "npc_action",
         "payload": {
-          "action_type": "talk",
+          "action_type": "move",
           "proposal_ordinal": 1,
-          "reason_code": "low_social_with_companion",
+          "reason_code": "low_social_find_companion",
           "target": {
-            "id": "elena",
-            "kind": "npc"
+            "id": "park",
+            "kind": "location"
           }
         },
         "visibility": "public"
@@ -4533,17 +4527,17 @@
         "payload": {},
         "reason_code": "knight_evening_social",
         "source": "deterministic",
-        "target_id": "grey",
+        "target_id": "mira",
         "target_kind": "npc"
       },
       {
-        "action_type": "talk",
+        "action_type": "move",
         "actor_id": "grey",
         "payload": {},
-        "reason_code": "low_social_with_companion",
+        "reason_code": "low_social_find_companion",
         "source": "deterministic",
-        "target_id": "elena",
-        "target_kind": "npc"
+        "target_id": "park",
+        "target_kind": "location"
       },
       {
         "action_type": "talk",
@@ -4576,7 +4570,7 @@
           "reason_code": "knight_evening_social",
           "source": "deterministic",
           "target": {
-            "id": "grey",
+            "id": "mira",
             "kind": "npc"
           }
         },
@@ -4588,18 +4582,18 @@
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "talk",
+          "action_type": "move",
           "proposal_ordinal": 1,
-          "reason_code": "low_social_with_companion",
+          "reason_code": "low_social_find_companion",
           "source": "deterministic",
           "target": {
-            "id": "elena",
-            "kind": "npc"
+            "id": "park",
+            "kind": "location"
           }
         },
         "sequence": 3,
         "stage": "proposal",
-        "summary": "grey proposed talk",
+        "summary": "grey proposed move",
         "visibility": "private"
       },
       {
@@ -4688,32 +4682,32 @@
         },
         "sequence": 9,
         "stage": "event",
-        "summary": "Elena 交谈 grey",
+        "summary": "Elena 交谈 mira",
         "visibility": "private"
       },
       {
         "actor_id": "grey",
         "data": {
-          "action_type": "talk",
+          "action_type": "move",
           "after": {
-            "current_action": "talk",
-            "energy": 33,
+            "current_action": "move",
+            "energy": 30,
             "location_id": "park",
-            "mood": 56,
-            "social": 51
+            "mood": 40,
+            "social": 36
           },
           "before": {
-            "current_action": "move",
+            "current_action": "rest",
             "energy": 35,
-            "location_id": "park",
-            "mood": 51,
+            "location_id": "castle",
+            "mood": 40,
             "social": 36
           },
           "proposal_ordinal": 1
         },
         "sequence": 10,
         "stage": "execution",
-        "summary": "Executed talk",
+        "summary": "Executed move",
         "visibility": "private"
       },
       {
@@ -4724,7 +4718,7 @@
         },
         "sequence": 11,
         "stage": "event",
-        "summary": "Grey 交谈 elena",
+        "summary": "Grey 前往 park",
         "visibility": "private"
       },
       {
@@ -4827,17 +4821,17 @@
           "sort_order": 1
         },
         {
-          "current_action": "talk",
-          "energy": 33,
+          "current_action": "move",
+          "energy": 30,
           "id": "grey",
           "location_id": "park",
-          "mood": 56,
+          "mood": 40,
           "name": "Grey",
           "personality": [
             "steady"
           ],
           "role": "Guardian",
-          "social": 51,
+          "social": 36,
           "sort_order": 2
         },
         {
@@ -5063,17 +5057,17 @@
           "action_type": "rest",
           "after": {
             "current_action": "rest",
-            "energy": 46,
+            "energy": 43,
             "location_id": "park",
-            "mood": 57,
-            "social": 48
+            "mood": 41,
+            "social": 33
           },
           "before": {
-            "current_action": "talk",
-            "energy": 31,
+            "current_action": "move",
+            "energy": 28,
             "location_id": "park",
-            "mood": 55,
-            "social": 48
+            "mood": 39,
+            "social": 33
           },
           "proposal_ordinal": 1
         },
@@ -5194,16 +5188,16 @@
         },
         {
           "current_action": "rest",
-          "energy": 46,
+          "energy": 43,
           "id": "grey",
           "location_id": "park",
-          "mood": 57,
+          "mood": 41,
           "name": "Grey",
           "personality": [
             "steady"
           ],
           "role": "Guardian",
-          "social": 48,
+          "social": 33,
           "sort_order": 2
         },
         {
@@ -5429,17 +5423,17 @@
           "action_type": "rest",
           "after": {
             "current_action": "rest",
-            "energy": 59,
+            "energy": 56,
             "location_id": "park",
-            "mood": 58,
-            "social": 45
+            "mood": 42,
+            "social": 30
           },
           "before": {
             "current_action": "rest",
-            "energy": 44,
+            "energy": 41,
             "location_id": "park",
-            "mood": 56,
-            "social": 45
+            "mood": 40,
+            "social": 30
           },
           "proposal_ordinal": 1
         },
@@ -5560,16 +5554,16 @@
         },
         {
           "current_action": "rest",
-          "energy": 59,
+          "energy": 56,
           "id": "grey",
           "location_id": "park",
-          "mood": 58,
+          "mood": 42,
           "name": "Grey",
           "personality": [
             "steady"
           ],
           "role": "Guardian",
-          "social": 45,
+          "social": 30,
           "sort_order": 2
         },
         {
@@ -5795,17 +5789,17 @@
           "action_type": "rest",
           "after": {
             "current_action": "rest",
-            "energy": 72,
+            "energy": 69,
             "location_id": "park",
-            "mood": 59,
-            "social": 42
+            "mood": 43,
+            "social": 27
           },
           "before": {
             "current_action": "rest",
-            "energy": 57,
+            "energy": 54,
             "location_id": "park",
-            "mood": 57,
-            "social": 42
+            "mood": 41,
+            "social": 27
           },
           "proposal_ordinal": 1
         },
@@ -5926,16 +5920,16 @@
         },
         {
           "current_action": "rest",
-          "energy": 72,
+          "energy": 69,
           "id": "grey",
           "location_id": "park",
-          "mood": 59,
+          "mood": 43,
           "name": "Grey",
           "personality": [
             "steady"
           ],
           "role": "Guardian",
-          "social": 42,
+          "social": 27,
           "sort_order": 2
         },
         {
@@ -6161,17 +6155,17 @@
           "action_type": "rest",
           "after": {
             "current_action": "rest",
-            "energy": 85,
+            "energy": 82,
             "location_id": "park",
-            "mood": 60,
-            "social": 39
+            "mood": 44,
+            "social": 24
           },
           "before": {
             "current_action": "rest",
-            "energy": 70,
+            "energy": 67,
             "location_id": "park",
-            "mood": 58,
-            "social": 39
+            "mood": 42,
+            "social": 24
           },
           "proposal_ordinal": 1
         },
@@ -6292,16 +6286,16 @@
         },
         {
           "current_action": "rest",
-          "energy": 85,
+          "energy": 82,
           "id": "grey",
           "location_id": "park",
-          "mood": 60,
+          "mood": 44,
           "name": "Grey",
           "personality": [
             "steady"
           ],
           "role": "Guardian",
-          "social": 39,
+          "social": 24,
           "sort_order": 2
         },
         {
@@ -6527,17 +6521,17 @@
           "action_type": "rest",
           "after": {
             "current_action": "rest",
-            "energy": 98,
+            "energy": 95,
             "location_id": "park",
-            "mood": 61,
-            "social": 36
+            "mood": 45,
+            "social": 21
           },
           "before": {
             "current_action": "rest",
-            "energy": 83,
+            "energy": 80,
             "location_id": "park",
-            "mood": 59,
-            "social": 36
+            "mood": 43,
+            "social": 21
           },
           "proposal_ordinal": 1
         },
@@ -6658,16 +6652,16 @@
         },
         {
           "current_action": "rest",
-          "energy": 98,
+          "energy": 95,
           "id": "grey",
           "location_id": "park",
-          "mood": 61,
+          "mood": 45,
           "name": "Grey",
           "personality": [
             "steady"
           ],
           "role": "Guardian",
-          "social": 36,
+          "social": 21,
           "sort_order": 2
         },
         {
@@ -6895,15 +6889,15 @@
             "current_action": "rest",
             "energy": 100,
             "location_id": "park",
-            "mood": 62,
-            "social": 33
+            "mood": 46,
+            "social": 18
           },
           "before": {
             "current_action": "rest",
-            "energy": 96,
+            "energy": 93,
             "location_id": "park",
-            "mood": 60,
-            "social": 33
+            "mood": 44,
+            "social": 18
           },
           "proposal_ordinal": 1
         },
@@ -7027,13 +7021,13 @@
           "energy": 100,
           "id": "grey",
           "location_id": "park",
-          "mood": 62,
+          "mood": 46,
           "name": "Grey",
           "personality": [
             "steady"
           ],
           "role": "Guardian",
-          "social": 33,
+          "social": 18,
           "sort_order": 2
         },
         {
@@ -7261,15 +7255,15 @@
             "current_action": "rest",
             "energy": 100,
             "location_id": "park",
-            "mood": 63,
-            "social": 30
+            "mood": 47,
+            "social": 15
           },
           "before": {
             "current_action": "rest",
             "energy": 98,
             "location_id": "park",
-            "mood": 61,
-            "social": 30
+            "mood": 45,
+            "social": 15
           },
           "proposal_ordinal": 1
         },
@@ -7393,13 +7387,13 @@
           "energy": 100,
           "id": "grey",
           "location_id": "park",
-          "mood": 63,
+          "mood": 47,
           "name": "Grey",
           "personality": [
             "steady"
           ],
           "role": "Guardian",
-          "social": 30,
+          "social": 15,
           "sort_order": 2
         },
         {

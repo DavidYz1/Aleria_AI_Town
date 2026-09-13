@@ -62,6 +62,10 @@ def build_golden_world() -> WorldSnapshot:
     Guardian，见 decision.py:78-131）。用计划原写的 baker / guard / scholar
     会让三个 NPC 全部落入 unknown_role_rest 兜底分支，闸门将测不到任何
     role routine —— 实测覆盖的 reason_code 从 14 个掉到 4 个。
+
+    grey 的 mood 取 20（低于 decide_action 的 35 阈值）是为了覆盖
+    low_mood_* 分支。取 45 时覆盖 14 个 reason_code，取 20 时覆盖 15 个
+    且是前者的严格超集。这些数值只为拉满分支覆盖，不代表世界设定。
     """
     return WorldSnapshot(
         id="aleria-town", name="曦谷", day=1, time="08:00",
@@ -69,7 +73,7 @@ def build_golden_world() -> WorldSnapshot:
         locations=LOCATIONS,
         npcs=(
             _npc("elena", "Knight", "tavern", 1, 80, 70, 60),
-            _npc("grey", "Guardian", "castle", 2, 55, 45, 30),
+            _npc("grey", "Guardian", "castle", 2, 55, 20, 30),
             _npc("mira", "Assassin", "park", 3, 40, 85, 75),
         ),
     )
