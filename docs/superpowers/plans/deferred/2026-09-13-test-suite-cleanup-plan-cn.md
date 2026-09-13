@@ -1,3 +1,15 @@
+> **状态：已延期（DEFERRED）— 2026-09-13**
+>
+> 测试套件清理属于工程治理线，与当前交付窗口内的功能主线并行会分散精力。
+> 决定：**在 `stage-3m Agent Loop MVP` 交付完成后再执行**。
+>
+> 当前执行的主线：`stage-3m Agent Loop MVP`
+> - Spec: `docs/superpowers/specs/2026-09-13-stage-3m-agent-loop-mvp-design-cn.md`
+>
+> 本文档的分析与决策依然有效，仅调整执行时序。
+
+---
+
 # Test Suite Cleanup Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` for inline execution, or `superpowers:subagent-driven-development` only when the user explicitly requests sub-agents. Steps use checkbox (`- [ ]`) syntax for tracking. 每个 Task 结束即停机，等待独立 Review、用户 Review 与人类手动提交；不得连续执行两个 Task。

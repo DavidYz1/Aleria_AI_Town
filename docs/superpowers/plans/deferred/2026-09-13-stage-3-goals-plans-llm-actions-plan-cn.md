@@ -1,3 +1,19 @@
+> **状态：已延期（DEFERRED）— 2026-09-13**
+>
+> 本文档描述生产级 Stage 3 方案（Goal Type Registry、Goal Arbitration、
+> Rolling Plan 与防循环、Schema repair、四表持久化、失败降级矩阵）。
+> 经评估，交付成本约 10-15 天，超出当前交付窗口，暂缓执行。
+>
+> **当前执行的是支线方案**：`stage-3m Agent Loop MVP`
+> - Spec: `docs/superpowers/specs/2026-09-13-stage-3m-agent-loop-mvp-design-cn.md`
+> - Plan: `docs/superpowers/plans/2026-09-13-stage-3m-agent-loop-mvp-plan-cn.md`
+>
+> 本文档**保留为 Stage 4 演进参考**，不作废。其中 Goal Registry、
+> Goal Arbitration、Rolling Plan 防循环、失败降级矩阵在世界长期运行
+> （数百 tick 以上）场景下仍然必要，届时应基于本文档继续设计。
+
+---
+
 # Stage 3 Goals, Plans and Constrained LLM Actions Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. 每个 Task 结束即停机，等待独立 Review、用户 Review 与人类手动提交；不得连续执行两个 Task。

@@ -65,6 +65,42 @@ Step 8 完整验证矩阵已执行；外部 live Embedding/Reflection Provider S
 
 ---
 
+## Active Track：Stage 3m Agent Loop MVP（支线）
+
+**2026-09-13 决策**：原 Stage 3 生产级方案（10-15 天）超出交付窗口，改为执行 4-5 天的 MVP 支线。
+
+### 文档落位变更（重要 — 文件已移动）
+
+| 文档 | 新位置 | 状态 |
+| --- | --- | --- |
+| Stage 3 生产级 design | `docs/superpowers/specs/deferred/2026-09-13-stage-3-goals-plans-llm-actions-design-cn.md` | **DEFERRED**，保留为 Stage 4 参考 |
+| Stage 3 生产级 plan | `docs/superpowers/plans/deferred/2026-09-13-stage-3-goals-plans-llm-actions-plan-cn.md` | **DEFERRED** |
+| test-suite-cleanup 决策记录 | `docs/superpowers/specs/deferred/2026-09-13-test-suite-cleanup-decision-record-cn.md` | **DEFERRED**，MVP 交付后执行 |
+| test-suite-cleanup plan | `docs/superpowers/plans/deferred/2026-09-13-test-suite-cleanup-plan-cn.md` | **DEFERRED** |
+| **Stage 3m MVP design** | `docs/superpowers/specs/2026-09-13-stage-3m-agent-loop-mvp-design-cn.md` | **ACTIVE**，待 review |
+| Stage 3m MVP plan | `docs/superpowers/plans/2026-09-13-stage-3m-agent-loop-mvp-plan-cn.md` | 未创建（spec 通过后产出） |
+
+四个 deferred 文档顶部均已插入延期状态横幅。四份文档在移动前均为 git 未跟踪状态，无历史丢失。
+
+### 支线范围
+
+**定位**：可展示的 Agent MVP，不是精简版生产 Runtime。冲突时选「更快看到效果」。
+
+P0（T0-T6，约 2.85d）：golden 闸门、PlanningProvider（structured output）、`agent_plans` 单表、planner 八段 Context、orchestrator `proposal_override` 注入、Service 接线、Live provider 原生 tool calling。
+P1（T7-T8，约 1.1d）：NpcDetailPanel「思考」Tab、`eval_agent.py` 四项指标、演示种子与 README 叙事。
+
+**合计 3.95d**，5 天窗口内留约 1 天缓冲。
+
+**测试范围裁决**：全阶段共 **10 个自动化测试**（golden 1 + schema 边界 3 + Plan 状态机 3 + 降级链路 2 + partial unique index 1），另有 8 处手动验证。TDD 仍为强制流程 —— 收缩的是「测什么」，不放松「怎么测」。判据：错了会静默通过的用自动化测试，错了会立刻炸或肉眼可见的用手动验证。
+
+关键约束：`run_deterministic_advance` 保持纯函数与向后兼容（现有 11 处调用零改动）；唯一不变量是「LLM 任何失败，世界仍能推进」；动作空间锁定 6 个动词。
+
+### 与 deferred Stage 3 的边界
+
+暂缓项：Goal Type Registry、Goal Arbitration、Rolling Plan 防循环、Schema repair 与预算、Deliberation Context 独立隔离、四表持久化、失败降级矩阵、五类测试策略。这些在世界长期运行（数百 tick）场景下仍然必要，Stage 4 基于 deferred 文档继续。
+
+---
+
 ## Completed Work
 
 ### 命名说明

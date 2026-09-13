@@ -1,3 +1,15 @@
+> **状态：已延期（DEFERRED）— 2026-09-13**
+>
+> 测试套件清理属于工程治理线，与当前交付窗口内的功能主线并行会分散精力。
+> 决定：**在 `stage-3m Agent Loop MVP` 交付完成后再执行**。
+>
+> 当前执行的主线：`stage-3m Agent Loop MVP`
+> - Spec: `docs/superpowers/specs/2026-09-13-stage-3m-agent-loop-mvp-design-cn.md`
+>
+> 本文档的分析与决策依然有效，仅调整执行时序。
+
+---
+
 # Test Suite Cleanup Decision Record
 
 **状态：** 已批准的清理决策记录；不是产品 Spec，不授权 Stage 3 功能实现。
