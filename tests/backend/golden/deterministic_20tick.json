@@ -1,0 +1,7424 @@
+[
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 前往 park",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training_travel",
+          "target": {
+            "id": "park",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 前往 tavern",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_find_companion",
+          "target": {
+            "id": "tavern",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 前往 tavern",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal_travel",
+          "target": {
+            "id": "tavern",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "move",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_training_travel",
+        "source": "deterministic",
+        "target_id": "park",
+        "target_kind": "location"
+      },
+      {
+        "action_type": "move",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_social_find_companion",
+        "source": "deterministic",
+        "target_id": "tavern",
+        "target_kind": "location"
+      },
+      {
+        "action_type": "move",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal_travel",
+        "source": "deterministic",
+        "target_id": "tavern",
+        "target_kind": "location"
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 0,
+          "world_id": "aleria-town",
+          "world_version": 1
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training_travel",
+          "source": "deterministic",
+          "target": {
+            "id": "park",
+            "kind": "location"
+          }
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_find_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "tavern",
+            "kind": "location"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal_travel",
+          "source": "deterministic",
+          "target": {
+            "id": "tavern",
+            "kind": "location"
+          }
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 73,
+            "location_id": "park",
+            "mood": 69,
+            "social": 57
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 78,
+            "location_id": "tavern",
+            "mood": 69,
+            "social": 57
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 前往 park",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 48,
+            "location_id": "tavern",
+            "mood": 44,
+            "social": 27
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 53,
+            "location_id": "castle",
+            "mood": 44,
+            "social": 27
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 前往 tavern",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 33,
+            "location_id": "tavern",
+            "mood": 84,
+            "social": 72
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 38,
+            "location_id": "park",
+            "mood": 84,
+            "social": 72
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 前往 tavern",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 1,
+          "event_sequence": 3,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 2
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 1,
+      "day": 1,
+      "event_sequence": 3,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "move",
+          "energy": 73,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 69,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 57,
+          "sort_order": 1
+        },
+        {
+          "current_action": "move",
+          "energy": 48,
+          "id": "grey",
+          "location_id": "tavern",
+          "mood": 44,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 27,
+          "sort_order": 2
+        },
+        {
+          "current_action": "move",
+          "energy": 33,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 84,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 72,
+          "sort_order": 3
+        }
+      ],
+      "time": "09:00",
+      "world_version": 2
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 工作",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 交谈 mira",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "talk",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_with_companion",
+          "target": {
+            "id": "mira",
+            "kind": "npc"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 用餐",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "work",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_training",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "talk",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_social_with_companion",
+        "source": "deterministic",
+        "target_id": "mira",
+        "target_kind": "npc"
+      },
+      {
+        "action_type": "eat",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 1,
+          "world_id": "aleria-town",
+          "world_version": 2
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "talk",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_with_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "mira",
+            "kind": "npc"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "after": {
+            "current_action": "work",
+            "energy": 63,
+            "location_id": "park",
+            "mood": 66,
+            "social": 54
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 71,
+            "location_id": "park",
+            "mood": 68,
+            "social": 54
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 工作",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "talk",
+          "after": {
+            "current_action": "talk",
+            "energy": 44,
+            "location_id": "tavern",
+            "mood": 48,
+            "social": 39
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 46,
+            "location_id": "tavern",
+            "mood": 43,
+            "social": 24
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 交谈 mira",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "after": {
+            "current_action": "eat",
+            "energy": 36,
+            "location_id": "tavern",
+            "mood": 91,
+            "social": 69
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 31,
+            "location_id": "tavern",
+            "mood": 83,
+            "social": 69
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 用餐",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 2,
+          "event_sequence": 6,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 3
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 2,
+      "day": 1,
+      "event_sequence": 6,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "work",
+          "energy": 63,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 66,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 54,
+          "sort_order": 1
+        },
+        {
+          "current_action": "talk",
+          "energy": 44,
+          "id": "grey",
+          "location_id": "tavern",
+          "mood": 48,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 39,
+          "sort_order": 2
+        },
+        {
+          "current_action": "eat",
+          "energy": 36,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 91,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 69,
+          "sort_order": 3
+        }
+      ],
+      "time": "10:00",
+      "world_version": 3
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 工作",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 交谈 mira",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "talk",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_with_companion",
+          "target": {
+            "id": "mira",
+            "kind": "npc"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 用餐",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "work",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_training",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "talk",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_social_with_companion",
+        "source": "deterministic",
+        "target_id": "mira",
+        "target_kind": "npc"
+      },
+      {
+        "action_type": "eat",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 2,
+          "world_id": "aleria-town",
+          "world_version": 3
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "talk",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_with_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "mira",
+            "kind": "npc"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "after": {
+            "current_action": "work",
+            "energy": 53,
+            "location_id": "park",
+            "mood": 63,
+            "social": 51
+          },
+          "before": {
+            "current_action": "work",
+            "energy": 61,
+            "location_id": "park",
+            "mood": 65,
+            "social": 51
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 工作",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "talk",
+          "after": {
+            "current_action": "talk",
+            "energy": 40,
+            "location_id": "tavern",
+            "mood": 52,
+            "social": 51
+          },
+          "before": {
+            "current_action": "talk",
+            "energy": 42,
+            "location_id": "tavern",
+            "mood": 47,
+            "social": 36
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 交谈 mira",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "after": {
+            "current_action": "eat",
+            "energy": 39,
+            "location_id": "tavern",
+            "mood": 98,
+            "social": 66
+          },
+          "before": {
+            "current_action": "eat",
+            "energy": 34,
+            "location_id": "tavern",
+            "mood": 90,
+            "social": 66
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 用餐",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 3,
+          "event_sequence": 9,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 4
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 3,
+      "day": 1,
+      "event_sequence": 9,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "work",
+          "energy": 53,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 63,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 51,
+          "sort_order": 1
+        },
+        {
+          "current_action": "talk",
+          "energy": 40,
+          "id": "grey",
+          "location_id": "tavern",
+          "mood": 52,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 51,
+          "sort_order": 2
+        },
+        {
+          "current_action": "eat",
+          "energy": 39,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 98,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 66,
+          "sort_order": 3
+        }
+      ],
+      "time": "11:00",
+      "world_version": 4
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 工作",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 前往 castle",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "guardian_patrol_travel",
+          "target": {
+            "id": "castle",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 用餐",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "work",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_training",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "move",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "guardian_patrol_travel",
+        "source": "deterministic",
+        "target_id": "castle",
+        "target_kind": "location"
+      },
+      {
+        "action_type": "eat",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 3,
+          "world_id": "aleria-town",
+          "world_version": 4
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "guardian_patrol_travel",
+          "source": "deterministic",
+          "target": {
+            "id": "castle",
+            "kind": "location"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "after": {
+            "current_action": "work",
+            "energy": 43,
+            "location_id": "park",
+            "mood": 60,
+            "social": 48
+          },
+          "before": {
+            "current_action": "work",
+            "energy": 51,
+            "location_id": "park",
+            "mood": 62,
+            "social": 48
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 工作",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 33,
+            "location_id": "castle",
+            "mood": 51,
+            "social": 48
+          },
+          "before": {
+            "current_action": "talk",
+            "energy": 38,
+            "location_id": "tavern",
+            "mood": 51,
+            "social": 48
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 前往 castle",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "after": {
+            "current_action": "eat",
+            "energy": 42,
+            "location_id": "tavern",
+            "mood": 100,
+            "social": 63
+          },
+          "before": {
+            "current_action": "eat",
+            "energy": 37,
+            "location_id": "tavern",
+            "mood": 97,
+            "social": 63
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 用餐",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 4,
+          "event_sequence": 12,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 5
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 4,
+      "day": 1,
+      "event_sequence": 12,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "work",
+          "energy": 43,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 60,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 48,
+          "sort_order": 1
+        },
+        {
+          "current_action": "move",
+          "energy": 33,
+          "id": "grey",
+          "location_id": "castle",
+          "mood": 51,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 48,
+          "sort_order": 2
+        },
+        {
+          "current_action": "eat",
+          "energy": 42,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 63,
+          "sort_order": 3
+        }
+      ],
+      "time": "12:00",
+      "world_version": 5
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 工作",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 工作",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "work",
+          "proposal_ordinal": 1,
+          "reason_code": "guardian_patrol",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 用餐",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "work",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_training",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "work",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "guardian_patrol",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "eat",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 4,
+          "world_id": "aleria-town",
+          "world_version": 5
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "work",
+          "proposal_ordinal": 1,
+          "reason_code": "guardian_patrol",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "after": {
+            "current_action": "work",
+            "energy": 33,
+            "location_id": "park",
+            "mood": 57,
+            "social": 45
+          },
+          "before": {
+            "current_action": "work",
+            "energy": 41,
+            "location_id": "park",
+            "mood": 59,
+            "social": 45
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 工作",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "work",
+          "after": {
+            "current_action": "work",
+            "energy": 23,
+            "location_id": "castle",
+            "mood": 48,
+            "social": 45
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 31,
+            "location_id": "castle",
+            "mood": 50,
+            "social": 45
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 工作",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "after": {
+            "current_action": "eat",
+            "energy": 45,
+            "location_id": "tavern",
+            "mood": 100,
+            "social": 60
+          },
+          "before": {
+            "current_action": "eat",
+            "energy": 40,
+            "location_id": "tavern",
+            "mood": 99,
+            "social": 60
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 用餐",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 5,
+          "event_sequence": 15,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 6
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 5,
+      "day": 1,
+      "event_sequence": 15,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "work",
+          "energy": 33,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 57,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 45,
+          "sort_order": 1
+        },
+        {
+          "current_action": "work",
+          "energy": 23,
+          "id": "grey",
+          "location_id": "castle",
+          "mood": 48,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 45,
+          "sort_order": 2
+        },
+        {
+          "current_action": "eat",
+          "energy": 45,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 60,
+          "sort_order": 3
+        }
+      ],
+      "time": "13:00",
+      "world_version": 6
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 工作",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "low_energy",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 用餐",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "work",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_training",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_energy",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "eat",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 5,
+          "world_id": "aleria-town",
+          "world_version": 6
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_training",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "low_energy",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "work",
+          "after": {
+            "current_action": "work",
+            "energy": 23,
+            "location_id": "park",
+            "mood": 54,
+            "social": 42
+          },
+          "before": {
+            "current_action": "work",
+            "energy": 31,
+            "location_id": "park",
+            "mood": 56,
+            "social": 42
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 工作",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 36,
+            "location_id": "castle",
+            "mood": 49,
+            "social": 42
+          },
+          "before": {
+            "current_action": "work",
+            "energy": 21,
+            "location_id": "castle",
+            "mood": 47,
+            "social": 42
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "after": {
+            "current_action": "eat",
+            "energy": 48,
+            "location_id": "tavern",
+            "mood": 100,
+            "social": 57
+          },
+          "before": {
+            "current_action": "eat",
+            "energy": 43,
+            "location_id": "tavern",
+            "mood": 99,
+            "social": 57
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 用餐",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 6,
+          "event_sequence": 18,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 7
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 6,
+      "day": 1,
+      "event_sequence": 18,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "work",
+          "energy": 23,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 54,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 42,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 36,
+          "id": "grey",
+          "location_id": "castle",
+          "mood": 49,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 42,
+          "sort_order": 2
+        },
+        {
+          "current_action": "eat",
+          "energy": 48,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 57,
+          "sort_order": 3
+        }
+      ],
+      "time": "14:00",
+      "world_version": 7
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "low_energy",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 前往 park",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_find_companion",
+          "target": {
+            "id": "park",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 用餐",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "low_energy",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "move",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_social_find_companion",
+        "source": "deterministic",
+        "target_id": "park",
+        "target_kind": "location"
+      },
+      {
+        "action_type": "eat",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 6,
+          "world_id": "aleria-town",
+          "world_version": 7
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "low_energy",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_find_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "park",
+            "kind": "location"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 36,
+            "location_id": "park",
+            "mood": 55,
+            "social": 39
+          },
+          "before": {
+            "current_action": "work",
+            "energy": 21,
+            "location_id": "park",
+            "mood": 53,
+            "social": 39
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 29,
+            "location_id": "park",
+            "mood": 48,
+            "social": 39
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 34,
+            "location_id": "castle",
+            "mood": 48,
+            "social": 39
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 前往 park",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "after": {
+            "current_action": "eat",
+            "energy": 51,
+            "location_id": "tavern",
+            "mood": 100,
+            "social": 54
+          },
+          "before": {
+            "current_action": "eat",
+            "energy": 46,
+            "location_id": "tavern",
+            "mood": 99,
+            "social": 54
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 用餐",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 7,
+          "event_sequence": 21,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 8
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 7,
+      "day": 1,
+      "event_sequence": 21,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 36,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 55,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 39,
+          "sort_order": 1
+        },
+        {
+          "current_action": "move",
+          "energy": 29,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 48,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 39,
+          "sort_order": 2
+        },
+        {
+          "current_action": "eat",
+          "energy": 51,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 54,
+          "sort_order": 3
+        }
+      ],
+      "time": "15:00",
+      "world_version": 8
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 交谈 grey",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "talk",
+          "proposal_ordinal": 0,
+          "reason_code": "low_social_with_companion",
+          "target": {
+            "id": "grey",
+            "kind": "npc"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "low_energy",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 用餐",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "talk",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "low_social_with_companion",
+        "source": "deterministic",
+        "target_id": "grey",
+        "target_kind": "npc"
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_energy",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "eat",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 7,
+          "world_id": "aleria-town",
+          "world_version": 8
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "talk",
+          "proposal_ordinal": 0,
+          "reason_code": "low_social_with_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "grey",
+            "kind": "npc"
+          }
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "low_energy",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "talk",
+          "after": {
+            "current_action": "talk",
+            "energy": 32,
+            "location_id": "park",
+            "mood": 59,
+            "social": 51
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 34,
+            "location_id": "park",
+            "mood": 54,
+            "social": 36
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 交谈 grey",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 42,
+            "location_id": "park",
+            "mood": 49,
+            "social": 36
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 27,
+            "location_id": "park",
+            "mood": 47,
+            "social": 36
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "after": {
+            "current_action": "eat",
+            "energy": 54,
+            "location_id": "tavern",
+            "mood": 100,
+            "social": 51
+          },
+          "before": {
+            "current_action": "eat",
+            "energy": 49,
+            "location_id": "tavern",
+            "mood": 99,
+            "social": 51
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 用餐",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 8,
+          "event_sequence": 24,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 9
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 8,
+      "day": 1,
+      "event_sequence": 24,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "talk",
+          "energy": 32,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 59,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 51,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 42,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 49,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 36,
+          "sort_order": 2
+        },
+        {
+          "current_action": "eat",
+          "energy": 54,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 51,
+          "sort_order": 3
+        }
+      ],
+      "time": "16:00",
+      "world_version": 9
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "low_energy",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 交谈 elena",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "talk",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_with_companion",
+          "target": {
+            "id": "elena",
+            "kind": "npc"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 用餐",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "low_energy",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "talk",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_social_with_companion",
+        "source": "deterministic",
+        "target_id": "elena",
+        "target_kind": "npc"
+      },
+      {
+        "action_type": "eat",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_meal",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 8,
+          "world_id": "aleria-town",
+          "world_version": 9
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "low_energy",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "talk",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_with_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "elena",
+            "kind": "npc"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_meal",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 45,
+            "location_id": "park",
+            "mood": 60,
+            "social": 48
+          },
+          "before": {
+            "current_action": "talk",
+            "energy": 30,
+            "location_id": "park",
+            "mood": 58,
+            "social": 48
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "talk",
+          "after": {
+            "current_action": "talk",
+            "energy": 38,
+            "location_id": "park",
+            "mood": 53,
+            "social": 48
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 40,
+            "location_id": "park",
+            "mood": 48,
+            "social": 33
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 交谈 elena",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "eat",
+          "after": {
+            "current_action": "eat",
+            "energy": 57,
+            "location_id": "tavern",
+            "mood": 100,
+            "social": 48
+          },
+          "before": {
+            "current_action": "eat",
+            "energy": 52,
+            "location_id": "tavern",
+            "mood": 99,
+            "social": 48
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed eat",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 用餐",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 9,
+          "event_sequence": 27,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 10
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 9,
+      "day": 1,
+      "event_sequence": 27,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 45,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 60,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 48,
+          "sort_order": 1
+        },
+        {
+          "current_action": "talk",
+          "energy": 38,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 53,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 48,
+          "sort_order": 2
+        },
+        {
+          "current_action": "eat",
+          "energy": 57,
+          "id": "mira",
+          "location_id": "tavern",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 48,
+          "sort_order": 3
+        }
+      ],
+      "time": "17:00",
+      "world_version": 10
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 交谈 grey",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "talk",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_evening_social",
+          "target": {
+            "id": "grey",
+            "kind": "npc"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 前往 castle",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "guardian_patrol_travel",
+          "target": {
+            "id": "castle",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 前往 forest",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_scout_travel",
+          "target": {
+            "id": "forest",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "talk",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_evening_social",
+        "source": "deterministic",
+        "target_id": "grey",
+        "target_kind": "npc"
+      },
+      {
+        "action_type": "move",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "guardian_patrol_travel",
+        "source": "deterministic",
+        "target_id": "castle",
+        "target_kind": "location"
+      },
+      {
+        "action_type": "move",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_scout_travel",
+        "source": "deterministic",
+        "target_id": "forest",
+        "target_kind": "location"
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 9,
+          "world_id": "aleria-town",
+          "world_version": 10
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "talk",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_evening_social",
+          "source": "deterministic",
+          "target": {
+            "id": "grey",
+            "kind": "npc"
+          }
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "guardian_patrol_travel",
+          "source": "deterministic",
+          "target": {
+            "id": "castle",
+            "kind": "location"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_scout_travel",
+          "source": "deterministic",
+          "target": {
+            "id": "forest",
+            "kind": "location"
+          }
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "talk",
+          "after": {
+            "current_action": "talk",
+            "energy": 41,
+            "location_id": "park",
+            "mood": 64,
+            "social": 60
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 43,
+            "location_id": "park",
+            "mood": 59,
+            "social": 45
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 交谈 grey",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 31,
+            "location_id": "castle",
+            "mood": 52,
+            "social": 45
+          },
+          "before": {
+            "current_action": "talk",
+            "energy": 36,
+            "location_id": "park",
+            "mood": 52,
+            "social": 45
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 前往 castle",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 50,
+            "location_id": "forest",
+            "mood": 99,
+            "social": 45
+          },
+          "before": {
+            "current_action": "eat",
+            "energy": 55,
+            "location_id": "tavern",
+            "mood": 99,
+            "social": 45
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 前往 forest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 10,
+          "event_sequence": 30,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 11
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 10,
+      "day": 1,
+      "event_sequence": 30,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "talk",
+          "energy": 41,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 64,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 60,
+          "sort_order": 1
+        },
+        {
+          "current_action": "move",
+          "energy": 31,
+          "id": "grey",
+          "location_id": "castle",
+          "mood": 52,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 45,
+          "sort_order": 2
+        },
+        {
+          "current_action": "move",
+          "energy": 50,
+          "id": "mira",
+          "location_id": "forest",
+          "mood": 99,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 45,
+          "sort_order": 3
+        }
+      ],
+      "time": "18:00",
+      "world_version": 11
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_evening_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "low_energy",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 工作",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "work",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_scout",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_evening_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_energy",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "work",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "assassin_scout",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 10,
+          "world_id": "aleria-town",
+          "world_version": 11
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_evening_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "low_energy",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "work",
+          "proposal_ordinal": 2,
+          "reason_code": "assassin_scout",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 54,
+            "location_id": "park",
+            "mood": 65,
+            "social": 57
+          },
+          "before": {
+            "current_action": "talk",
+            "energy": 39,
+            "location_id": "park",
+            "mood": 63,
+            "social": 57
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 44,
+            "location_id": "castle",
+            "mood": 53,
+            "social": 42
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 29,
+            "location_id": "castle",
+            "mood": 51,
+            "social": 42
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "work",
+          "after": {
+            "current_action": "work",
+            "energy": 40,
+            "location_id": "forest",
+            "mood": 96,
+            "social": 42
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 48,
+            "location_id": "forest",
+            "mood": 98,
+            "social": 42
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed work",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 工作",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 11,
+          "event_sequence": 33,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 12
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 11,
+      "day": 1,
+      "event_sequence": 33,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 54,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 65,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 57,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 44,
+          "id": "grey",
+          "location_id": "castle",
+          "mood": 53,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 42,
+          "sort_order": 2
+        },
+        {
+          "current_action": "work",
+          "energy": 40,
+          "id": "mira",
+          "location_id": "forest",
+          "mood": 96,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 42,
+          "sort_order": 3
+        }
+      ],
+      "time": "19:00",
+      "world_version": 12
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_evening_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 前往 park",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_find_companion",
+          "target": {
+            "id": "park",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 前往 park",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "move",
+          "proposal_ordinal": 2,
+          "reason_code": "low_social_find_companion",
+          "target": {
+            "id": "park",
+            "kind": "location"
+          }
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_evening_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "move",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_social_find_companion",
+        "source": "deterministic",
+        "target_id": "park",
+        "target_kind": "location"
+      },
+      {
+        "action_type": "move",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "low_social_find_companion",
+        "source": "deterministic",
+        "target_id": "park",
+        "target_kind": "location"
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 11,
+          "world_id": "aleria-town",
+          "world_version": 12
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_evening_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_find_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "park",
+            "kind": "location"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "move",
+          "proposal_ordinal": 2,
+          "reason_code": "low_social_find_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "park",
+            "kind": "location"
+          }
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 67,
+            "location_id": "park",
+            "mood": 66,
+            "social": 54
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 52,
+            "location_id": "park",
+            "mood": 64,
+            "social": 54
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 37,
+            "location_id": "park",
+            "mood": 52,
+            "social": 39
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 42,
+            "location_id": "castle",
+            "mood": 52,
+            "social": 39
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 前往 park",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "move",
+          "after": {
+            "current_action": "move",
+            "energy": 33,
+            "location_id": "park",
+            "mood": 95,
+            "social": 39
+          },
+          "before": {
+            "current_action": "work",
+            "energy": 38,
+            "location_id": "forest",
+            "mood": 95,
+            "social": 39
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed move",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 前往 park",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 12,
+          "event_sequence": 36,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 13
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 12,
+      "day": 1,
+      "event_sequence": 36,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 67,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 66,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 54,
+          "sort_order": 1
+        },
+        {
+          "current_action": "move",
+          "energy": 37,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 52,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 39,
+          "sort_order": 2
+        },
+        {
+          "current_action": "move",
+          "energy": 33,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 95,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 39,
+          "sort_order": 3
+        }
+      ],
+      "time": "20:00",
+      "world_version": 13
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 交谈 grey",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "talk",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_evening_social",
+          "target": {
+            "id": "grey",
+            "kind": "npc"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 交谈 elena",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "talk",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_with_companion",
+          "target": {
+            "id": "elena",
+            "kind": "npc"
+          }
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 交谈 elena",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "talk",
+          "proposal_ordinal": 2,
+          "reason_code": "low_social_with_companion",
+          "target": {
+            "id": "elena",
+            "kind": "npc"
+          }
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "talk",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "knight_evening_social",
+        "source": "deterministic",
+        "target_id": "grey",
+        "target_kind": "npc"
+      },
+      {
+        "action_type": "talk",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "low_social_with_companion",
+        "source": "deterministic",
+        "target_id": "elena",
+        "target_kind": "npc"
+      },
+      {
+        "action_type": "talk",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "low_social_with_companion",
+        "source": "deterministic",
+        "target_id": "elena",
+        "target_kind": "npc"
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 12,
+          "world_id": "aleria-town",
+          "world_version": 13
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "talk",
+          "proposal_ordinal": 0,
+          "reason_code": "knight_evening_social",
+          "source": "deterministic",
+          "target": {
+            "id": "grey",
+            "kind": "npc"
+          }
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "talk",
+          "proposal_ordinal": 1,
+          "reason_code": "low_social_with_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "elena",
+            "kind": "npc"
+          }
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "talk",
+          "proposal_ordinal": 2,
+          "reason_code": "low_social_with_companion",
+          "source": "deterministic",
+          "target": {
+            "id": "elena",
+            "kind": "npc"
+          }
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "talk",
+          "after": {
+            "current_action": "talk",
+            "energy": 63,
+            "location_id": "park",
+            "mood": 70,
+            "social": 66
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 65,
+            "location_id": "park",
+            "mood": 65,
+            "social": 51
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 交谈 grey",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "talk",
+          "after": {
+            "current_action": "talk",
+            "energy": 33,
+            "location_id": "park",
+            "mood": 56,
+            "social": 51
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 35,
+            "location_id": "park",
+            "mood": 51,
+            "social": 36
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 交谈 elena",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "talk",
+          "after": {
+            "current_action": "talk",
+            "energy": 29,
+            "location_id": "park",
+            "mood": 99,
+            "social": 51
+          },
+          "before": {
+            "current_action": "move",
+            "energy": 31,
+            "location_id": "park",
+            "mood": 94,
+            "social": 36
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed talk",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 交谈 elena",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 13,
+          "event_sequence": 39,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 14
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 13,
+      "day": 1,
+      "event_sequence": 39,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "talk",
+          "energy": 63,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 70,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 66,
+          "sort_order": 1
+        },
+        {
+          "current_action": "talk",
+          "energy": 33,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 56,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 51,
+          "sort_order": 2
+        },
+        {
+          "current_action": "talk",
+          "energy": 29,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 99,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 51,
+          "sort_order": 3
+        }
+      ],
+      "time": "21:00",
+      "world_version": 14
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 13,
+          "world_id": "aleria-town",
+          "world_version": 14
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 76,
+            "location_id": "park",
+            "mood": 71,
+            "social": 63
+          },
+          "before": {
+            "current_action": "talk",
+            "energy": 61,
+            "location_id": "park",
+            "mood": 69,
+            "social": 63
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 46,
+            "location_id": "park",
+            "mood": 57,
+            "social": 48
+          },
+          "before": {
+            "current_action": "talk",
+            "energy": 31,
+            "location_id": "park",
+            "mood": 55,
+            "social": 48
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 42,
+            "location_id": "park",
+            "mood": 100,
+            "social": 48
+          },
+          "before": {
+            "current_action": "talk",
+            "energy": 27,
+            "location_id": "park",
+            "mood": 98,
+            "social": 48
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 14,
+          "event_sequence": 42,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 15
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 14,
+      "day": 1,
+      "event_sequence": 42,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 76,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 71,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 63,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 46,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 57,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 48,
+          "sort_order": 2
+        },
+        {
+          "current_action": "rest",
+          "energy": 42,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 48,
+          "sort_order": 3
+        }
+      ],
+      "time": "22:00",
+      "world_version": 15
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 14,
+          "world_id": "aleria-town",
+          "world_version": 15
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 89,
+            "location_id": "park",
+            "mood": 72,
+            "social": 60
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 74,
+            "location_id": "park",
+            "mood": 70,
+            "social": 60
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 59,
+            "location_id": "park",
+            "mood": 58,
+            "social": 45
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 44,
+            "location_id": "park",
+            "mood": 56,
+            "social": 45
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 55,
+            "location_id": "park",
+            "mood": 100,
+            "social": 45
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 40,
+            "location_id": "park",
+            "mood": 99,
+            "social": 45
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 15,
+          "event_sequence": 45,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 16
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 15,
+      "day": 1,
+      "event_sequence": 45,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 89,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 72,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 60,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 59,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 58,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 45,
+          "sort_order": 2
+        },
+        {
+          "current_action": "rest",
+          "energy": 55,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 45,
+          "sort_order": 3
+        }
+      ],
+      "time": "23:00",
+      "world_version": 16
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 15,
+          "world_id": "aleria-town",
+          "world_version": 16
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 73,
+            "social": 57
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 87,
+            "location_id": "park",
+            "mood": 71,
+            "social": 57
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 72,
+            "location_id": "park",
+            "mood": 59,
+            "social": 42
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 57,
+            "location_id": "park",
+            "mood": 57,
+            "social": 42
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 68,
+            "location_id": "park",
+            "mood": 100,
+            "social": 42
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 53,
+            "location_id": "park",
+            "mood": 99,
+            "social": 42
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 16,
+          "event_sequence": 48,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 17
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 16,
+      "day": 2,
+      "event_sequence": 48,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 73,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 57,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 72,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 59,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 42,
+          "sort_order": 2
+        },
+        {
+          "current_action": "rest",
+          "energy": 68,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 42,
+          "sort_order": 3
+        }
+      ],
+      "time": "00:00",
+      "world_version": 17
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 16,
+          "world_id": "aleria-town",
+          "world_version": 17
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 74,
+            "social": 54
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 98,
+            "location_id": "park",
+            "mood": 72,
+            "social": 54
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 85,
+            "location_id": "park",
+            "mood": 60,
+            "social": 39
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 70,
+            "location_id": "park",
+            "mood": 58,
+            "social": 39
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 81,
+            "location_id": "park",
+            "mood": 100,
+            "social": 39
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 66,
+            "location_id": "park",
+            "mood": 99,
+            "social": 39
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 17,
+          "event_sequence": 51,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 18
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 17,
+      "day": 2,
+      "event_sequence": 51,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 74,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 54,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 85,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 60,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 39,
+          "sort_order": 2
+        },
+        {
+          "current_action": "rest",
+          "energy": 81,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 39,
+          "sort_order": 3
+        }
+      ],
+      "time": "01:00",
+      "world_version": 18
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 17,
+          "world_id": "aleria-town",
+          "world_version": 18
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 75,
+            "social": 51
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 98,
+            "location_id": "park",
+            "mood": 73,
+            "social": 51
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 98,
+            "location_id": "park",
+            "mood": 61,
+            "social": 36
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 83,
+            "location_id": "park",
+            "mood": 59,
+            "social": 36
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 94,
+            "location_id": "park",
+            "mood": 100,
+            "social": 36
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 79,
+            "location_id": "park",
+            "mood": 99,
+            "social": 36
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 18,
+          "event_sequence": 54,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 19
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 18,
+      "day": 2,
+      "event_sequence": 54,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 75,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 51,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 98,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 61,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 36,
+          "sort_order": 2
+        },
+        {
+          "current_action": "rest",
+          "energy": 94,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 36,
+          "sort_order": 3
+        }
+      ],
+      "time": "02:00",
+      "world_version": 19
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 18,
+          "world_id": "aleria-town",
+          "world_version": 19
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 76,
+            "social": 48
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 98,
+            "location_id": "park",
+            "mood": 74,
+            "social": 48
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 62,
+            "social": 33
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 96,
+            "location_id": "park",
+            "mood": 60,
+            "social": 33
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 100,
+            "social": 33
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 92,
+            "location_id": "park",
+            "mood": 99,
+            "social": 33
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 19,
+          "event_sequence": 57,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 20
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 19,
+      "day": 2,
+      "event_sequence": 57,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 76,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 48,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 62,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 33,
+          "sort_order": 2
+        },
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 33,
+          "sort_order": 3
+        }
+      ],
+      "time": "03:00",
+      "world_version": 20
+    }
+  },
+  {
+    "events": [
+      {
+        "actor_id": "elena",
+        "causation_id": null,
+        "description": "Elena 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "grey",
+        "causation_id": null,
+        "description": "Grey 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      },
+      {
+        "actor_id": "mira",
+        "causation_id": null,
+        "description": "Mira 休息",
+        "event_type": "npc_action",
+        "payload": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "target": null
+        },
+        "visibility": "public"
+      }
+    ],
+    "proposals": [
+      {
+        "action_type": "rest",
+        "actor_id": "elena",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "grey",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      },
+      {
+        "action_type": "rest",
+        "actor_id": "mira",
+        "payload": {},
+        "reason_code": "night_rest",
+        "source": "deterministic",
+        "target_id": null,
+        "target_kind": null
+      }
+    ],
+    "traces": [
+      {
+        "actor_id": null,
+        "data": {
+          "clock_tick": 19,
+          "world_id": "aleria-town",
+          "world_version": 20
+        },
+        "sequence": 1,
+        "stage": "run_started",
+        "summary": "Deterministic world advance started",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 0,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 2,
+        "stage": "proposal",
+        "summary": "elena proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 1,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 3,
+        "stage": "proposal",
+        "summary": "grey proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "proposal_ordinal": 2,
+          "reason_code": "night_rest",
+          "source": "deterministic",
+          "target": null
+        },
+        "sequence": 4,
+        "stage": "proposal",
+        "summary": "mira proposed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 0
+        },
+        "sequence": 5,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 1
+        },
+        "sequence": 6,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "accepted": true,
+          "code": "accepted",
+          "proposal_ordinal": 2
+        },
+        "sequence": 7,
+        "stage": "validation",
+        "summary": "Proposal validation: accepted",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 77,
+            "social": 45
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 98,
+            "location_id": "park",
+            "mood": 75,
+            "social": 45
+          },
+          "proposal_ordinal": 0
+        },
+        "sequence": 8,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "elena",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 0
+        },
+        "sequence": 9,
+        "stage": "event",
+        "summary": "Elena 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 63,
+            "social": 30
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 98,
+            "location_id": "park",
+            "mood": 61,
+            "social": 30
+          },
+          "proposal_ordinal": 1
+        },
+        "sequence": 10,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "grey",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 1
+        },
+        "sequence": 11,
+        "stage": "event",
+        "summary": "Grey 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "action_type": "rest",
+          "after": {
+            "current_action": "rest",
+            "energy": 100,
+            "location_id": "park",
+            "mood": 100,
+            "social": 30
+          },
+          "before": {
+            "current_action": "rest",
+            "energy": 98,
+            "location_id": "park",
+            "mood": 99,
+            "social": 30
+          },
+          "proposal_ordinal": 2
+        },
+        "sequence": 12,
+        "stage": "execution",
+        "summary": "Executed rest",
+        "visibility": "private"
+      },
+      {
+        "actor_id": "mira",
+        "data": {
+          "event_type": "npc_action",
+          "proposal_ordinal": 2
+        },
+        "sequence": 13,
+        "stage": "event",
+        "summary": "Mira 休息",
+        "visibility": "private"
+      },
+      {
+        "actor_id": null,
+        "data": {
+          "accepted_count": 3,
+          "clock_tick": 20,
+          "event_sequence": 60,
+          "rejected_count": 0,
+          "world_id": "aleria-town",
+          "world_version": 21
+        },
+        "sequence": 14,
+        "stage": "run_completed",
+        "summary": "Deterministic world advance completed",
+        "visibility": "private"
+      }
+    ],
+    "world": {
+      "clock_tick": 20,
+      "day": 2,
+      "event_sequence": 60,
+      "id": "aleria-town",
+      "locations": [
+        {
+          "description": "",
+          "id": "tavern",
+          "name": "星辉酒馆",
+          "sort_order": 1
+        },
+        {
+          "description": "",
+          "id": "park",
+          "name": "中央公园",
+          "sort_order": 2
+        },
+        {
+          "description": "",
+          "id": "castle",
+          "name": "晨曦城堡",
+          "sort_order": 3
+        },
+        {
+          "description": "",
+          "id": "forest",
+          "name": "低语森林",
+          "sort_order": 4
+        }
+      ],
+      "name": "曦谷",
+      "npcs": [
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "elena",
+          "location_id": "park",
+          "mood": 77,
+          "name": "Elena",
+          "personality": [
+            "steady"
+          ],
+          "role": "Knight",
+          "social": 45,
+          "sort_order": 1
+        },
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "grey",
+          "location_id": "park",
+          "mood": 63,
+          "name": "Grey",
+          "personality": [
+            "steady"
+          ],
+          "role": "Guardian",
+          "social": 30,
+          "sort_order": 2
+        },
+        {
+          "current_action": "rest",
+          "energy": 100,
+          "id": "mira",
+          "location_id": "park",
+          "mood": 100,
+          "name": "Mira",
+          "personality": [
+            "steady"
+          ],
+          "role": "Assassin",
+          "social": 30,
+          "sort_order": 3
+        }
+      ],
+      "time": "04:00",
+      "world_version": 21
+    }
+  }
+]
