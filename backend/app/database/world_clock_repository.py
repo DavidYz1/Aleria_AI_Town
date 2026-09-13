@@ -273,7 +273,12 @@ class WorldTickRepository:
             require(e.visibility in {"public", "private"})
         require(bool(result.traces))
         require(tuple(t.sequence for t in result.traces) == tuple(range(1, len(result.traces) + 1)))
+        # planning trace 记录的是 LLM 规划结果，天然不可由确定性引擎重算，
+        # 因此这里只能校验「条数有界 + 位置固定在 run_started 之后 + 形状合法」。
+        planning_count = sum(1 for trace in result.traces if trace.stage == "planning")
+        require(planning_count <= len(result.proposals))
         expected_topology = [("run_started", None)]
+        expected_topology.extend(("planning", None) for _ in range(planning_count))
         expected_topology.extend(("proposal", ordinal) for ordinal in range(len(result.proposals)))
         expected_topology.extend(("validation", ordinal) for ordinal in range(len(result.proposals)))
         for ordinal, _ in accepted:
@@ -292,6 +297,22 @@ class WorldTickRepository:
                     "world_version": base.world_version,
                     "clock_tick": base.clock_tick,
                 })
+            elif t.stage == "planning":
+                require(t.actor_id in actors)
+                require(set(t.data) == {
+                    "npc_id", "source", "goal", "thought", "provider", "model",
+                    "latency_ms", "tokens_used",
+                })
+                require(t.data["npc_id"] == t.actor_id)
+                require(t.data["source"] in {source.value for source in ProposalSource})
+                require(all(
+                    isinstance(t.data[key], str) and t.data[key]
+                    for key in ("goal", "thought", "provider", "model")
+                ))
+                require(all(
+                    t.data[key] is None or (type(t.data[key]) is int and t.data[key] >= 0)
+                    for key in ("latency_ms", "tokens_used")
+                ))
             elif t.stage == "proposal":
                 ordinal = self._trace_ordinal(t.data, len(result.proposals))
                 proposal = result.proposals[ordinal]
@@ -393,6 +414,7 @@ class WorldTickRepository:
     def _trace_summary(stage: str) -> str:
         return {
             "run_started": "Deterministic world advance started",
+            "planning": "Planning decision recorded",
             "proposal": "Action proposed",
             "validation": "Proposal validated",
             "execution": "Action executed",

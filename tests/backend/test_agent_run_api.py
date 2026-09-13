@@ -30,7 +30,13 @@ async def test_tick_persists_readable_ordered_runtime_graph(database_url, seed_d
         assert [p["ordinal"] for p in graph["proposals"]] == [0, 1, 2]
         assert [p["actor_id"] for p in graph["proposals"]] == ["ryan", "shir", "grey"]
         assert [e["event_sequence"] for e in graph["events"]] == [1, 2, 3]
-        assert [t["sequence"] for t in graph["trace"]] == list(range(1, 15))
+        # 默认 runtime_mode=auto，三个 NPC 各产生一条 planning trace（spec §11），
+        # 位置固定在 run_started 之后，因此总数由 14 变为 17。
+        assert [t["sequence"] for t in graph["trace"]] == list(range(1, 18))
+        assert [t["stage"] for t in graph["trace"][:4]] == [
+            "run_started", "planning", "planning", "planning",
+        ]
+        assert [t["actor_id"] for t in graph["trace"][1:4]] == ["ryan", "shir", "grey"]
         assert all(a["status"] == "executed" for a in data["actions"])
         assert graph["events"] == data["events"]
 
@@ -132,7 +138,16 @@ async def test_run_detail_redacts_out_of_shape_allowed_fact_values(database_url,
     assert "PRIVATE-" not in response.text
     assert response.json()["data"]["proposals"][0]["payload"] == {}
     assert response.json()["data"]["events"][0]["description"] == "Runtime event recorded"
-    assert response.json()["data"]["trace"][7]["data"] == {}
+    # 按 stage 定位而不是按下标：trace 拓扑会随 runtime_mode 变化，
+    # 写死下标会让这条隐私断言在拓扑变动后悄悄指向别的条目。
+    trace_items = response.json()["data"]["trace"]
+    execution = next(item for item in trace_items if item["stage"] == "execution")
+    assert execution["data"] == {}, "被污染的 execution trace 必须被清空"
+    # 非空前提 + 判别力：脱敏必须是选择性的 —— 形状合法的 planning trace
+    # 不能被一并清空，否则上一条断言在「全部清空」的实现下也会平凡通过。
+    planning = [item for item in trace_items if item["stage"] == "planning"]
+    assert len(planning) == 3
+    assert all(item["data"].get("goal") and item["data"].get("thought") for item in planning)
 
 
 @pytest.mark.anyio

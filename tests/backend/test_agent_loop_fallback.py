@@ -1,8 +1,12 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
+from backend.app.agents.action_registry import ActionRegistry
+from backend.app.agents.contracts import ActionProposal, ProposalSource
+from backend.app.agents.orchestrator import run_advance, run_deterministic_advance
 from backend.app.agents.planning_contracts import AgentDecision, PlanStep
 from backend.app.database.plan_repository import PlanRepository
+from tests.backend.test_golden_deterministic import build_golden_world
 
 
 def _decision() -> AgentDecision:
@@ -61,3 +65,40 @@ def test_partial_index_allows_only_one_active_plan_per_npc(plan_session, seeded_
     )
     plan_session.commit()
     assert repo.get_active(world_id, npc_id) is not None
+
+
+def test_alias_keeps_backward_compatible_signature():
+    """保护现有 11 处调用：不传 override 时行为必须与改造前完全一致。"""
+    world = build_golden_world()
+    assert run_deterministic_advance(world) == run_advance(world)
+    assert run_deterministic_advance(world, registry=ActionRegistry(())) == run_advance(
+        world, registry=ActionRegistry(())
+    )
+
+
+def test_rejected_llm_proposal_falls_back_and_world_still_advances():
+    """spec §13 唯一不变量 —— 这是本项目最核心的卖点，必须有证据。"""
+    world = build_golden_world()
+    actor = world.npcs[0]
+    unreachable = ActionProposal(
+        actor_id=actor.id, action_type="move", target_kind="location",
+        target_id="nowhere", reason_code="agent_plan", source=ProposalSource.LLM,
+    )
+
+    result = run_advance(world, proposal_override={actor.id: unreachable})
+
+    assert result.world.world_version == world.world_version + 1, "世界必须推进"
+    assert result.world.clock_tick == world.clock_tick + 1
+
+    fallback = next(p for p in result.proposals if p.actor_id == actor.id)
+    assert fallback.source is ProposalSource.FALLBACK
+
+    accepted = [
+        r for r in result.resolutions
+        if r.proposal.actor_id == actor.id and r.validation.accepted
+    ]
+    assert accepted, "兜底提案必须通过校验并被执行"
+
+    sources = [t.data.get("source") for t in result.traces if t.stage == "proposal"]
+    assert sources, "非空前提：必须有 proposal 阶段的 trace"
+    assert "fallback" in sources, "降级必须在 trace 中可见，否则 UI 无法显示徽章"

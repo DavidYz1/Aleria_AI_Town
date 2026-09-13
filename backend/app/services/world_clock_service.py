@@ -1,7 +1,15 @@
+from dataclasses import replace
 import logging
 from uuid import uuid4
 
-from backend.app.agents.orchestrator import run_deterministic_advance
+from backend.app.agents.contracts import (
+    AgentRuntimeResult,
+    ProposalSource,
+    RuntimeMode,
+    TraceDraft,
+)
+from backend.app.agents.orchestrator import run_advance
+from backend.app.agents.planner import AgentPlanner, PlanningOutcome
 from backend.app.schemas.agent_run import AgentRunSummary
 from backend.app.database.action_compat import to_public_action_type
 from backend.app.database.world_clock_repository import (
@@ -65,18 +73,87 @@ def snapshot_to_world_data(snapshot: WorldSnapshot) -> WorldData:
     )
 
 
+def _planning_trace(npc_id: str, outcome: PlanningOutcome) -> TraceDraft:
+    plan = outcome.plan
+    return TraceDraft(
+        sequence=0,  # 插入时统一重排
+        stage="planning",
+        actor_id=npc_id,
+        summary="Planning decision recorded",
+        data={
+            "npc_id": npc_id,
+            "source": outcome.source.value,
+            "goal": plan.goal if plan is not None else "确定性兜底，本 tick 未生成计划",
+            "thought": plan.thought if plan is not None else "规划不可用，回退到确定性策略",
+            "provider": plan.provider if plan is not None else "deterministic",
+            "model": plan.model if plan is not None else "rule-based",
+            "latency_ms": outcome.latency_ms,
+            "tokens_used": outcome.tokens_used,
+        },
+    )
+
+
+def _with_planning_traces(
+    result: AgentRuntimeResult,
+    planning: list[TraceDraft],
+) -> AgentRuntimeResult:
+    """把 planning trace 插在 run_started 之后并重排 sequence。
+
+    持久化层要求 sequence 连续且 planning 段紧随 run_started。
+    """
+    if not planning:
+        return result
+    ordered = [result.traces[0], *planning, *result.traces[1:]]
+    return replace(
+        result,
+        traces=tuple(
+            replace(trace, sequence=sequence)
+            for sequence, trace in enumerate(ordered, 1)
+        ),
+    )
+
+
 class WorldTickService:
-    def __init__(self, repository: WorldTickRepository, cognition: CognitionProjectionService | None = None) -> None:
+    def __init__(
+        self,
+        repository: WorldTickRepository,
+        cognition: CognitionProjectionService | None = None,
+        planner: AgentPlanner | None = None,
+    ) -> None:
         self._repository = repository
         self._cognition = cognition
+        self._planner = planner
 
-    def advance(self, expected_world_version: int) -> WorldTickData:
+    def advance(
+        self,
+        expected_world_version: int,
+        runtime_mode: RuntimeMode = RuntimeMode.AUTO,
+    ) -> WorldTickData:
         snapshot = self._repository.get_snapshot()
         if snapshot.world_version != expected_world_version:
             raise WorldTickConflictError("world version conflict; refresh and retry")
 
+        outcomes = self._plan(snapshot, runtime_mode)
+        override = {
+            npc_id: (
+                replace(outcome.proposal, source=ProposalSource.FALLBACK)
+                if outcome.source is ProposalSource.FALLBACK
+                else outcome.proposal
+            )
+            for npc_id, outcome in outcomes.items()
+        }
+        runtime_result = _with_planning_traces(
+            run_advance(snapshot, proposal_override=override or None),
+            [_planning_trace(npc_id, outcome) for npc_id, outcome in outcomes.items()],
+        )
+        # 计划回填必须发生在 persist_run 之前，两者共用同一 Session，
+        # 从而与 run / action / event 在同一事务里提交或回滚。
+        final = {proposal.actor_id: proposal for proposal in runtime_result.proposals}
+        for npc_id, outcome in outcomes.items():
+            self._planner.settle(snapshot, outcome, final[npc_id])
+
         persisted = self._repository.persist_run(
-            str(uuid4()), expected_world_version, run_deterministic_advance(snapshot),
+            str(uuid4()), expected_world_version, runtime_result,
             correlation_id=str(uuid4()),
         )
         result = WorldTickData(
@@ -110,3 +187,22 @@ class WorldTickService:
             except CognitionProjectionError:
                 logger.warning("Post-commit cognition projection failed", extra={"category": "core_projection"})
         return result
+
+    def _plan(self, snapshot: WorldSnapshot, runtime_mode: RuntimeMode) -> dict[str, PlanningOutcome]:
+        """逐 NPC 产出规划结果。任何单个 NPC 规划失败都只影响该 NPC。
+
+        spec §13 唯一不变量：规划层出任何问题，世界都要能推进 —— 缺席的 NPC
+        由 orchestrator 走确定性 decide_action。
+        """
+        if runtime_mode is RuntimeMode.DETERMINISTIC or self._planner is None:
+            return {}
+        outcomes: dict[str, PlanningOutcome] = {}
+        for actor in snapshot.npcs:
+            try:
+                outcomes[actor.id] = self._planner.decide(snapshot, actor, last_outcome=None)
+            except Exception:
+                logger.warning(
+                    "Planning failed; falling back to the deterministic policy",
+                    extra={"category": "planning", "npc_id": actor.id},
+                )
+        return outcomes

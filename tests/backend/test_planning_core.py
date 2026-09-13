@@ -1,9 +1,17 @@
+from dataclasses import replace
 import json
 
 import pytest
 from pydantic import ValidationError
 
+from backend.app.agents.contracts import ProposalSource
+from backend.app.agents.memory_retrieval import RetrievalResult
+from backend.app.agents.planner import AgentPlanner
 from backend.app.agents.planning_contracts import AgentDecision, PlanStep
+from backend.app.database.plan_repository import PlanRepository
+from backend.app.llm.planning_provider import PlanningProviderError
+from backend.app.world.action_rules import DEFAULT_ACTION_REGISTRY
+from tests.backend.test_golden_deterministic import build_golden_world
 
 
 def _kwargs():
@@ -67,3 +75,87 @@ def test_rejects_empty_thought_and_oversized_plan():
     oversized = _kwargs() | {"steps": (step,) * 5}
     with pytest.raises(ValidationError):
         AgentDecision(**oversized)
+
+
+class StubProvider:
+    provider_name = "stub"
+    model_name = "stub-1"
+    last_tokens_used = 42
+
+    def __init__(self, decision=None, error=None):
+        self.decision, self.error, self.calls = decision, error, 0
+
+    def plan(self, request):
+        self.calls += 1
+        if self.error is not None:
+            raise self.error
+        return self.decision
+
+
+class StubRetriever:
+    def retrieve(self, request):
+        return RetrievalResult(memories=(), mode="stub")
+
+
+def _plan_decision(*actions: str) -> AgentDecision:
+    return AgentDecision(
+        thought="测试推理", goal="测试目标", goal_reason="测试理由",
+        steps=tuple(
+            PlanStep(action_type=a, target_kind=None, target_id=None, intent=f"执行{a}")
+            for a in actions
+        ),
+        prompt_version="planning-v1",
+    )
+
+
+def _planner(plan_session, provider, **kwargs):
+    return AgentPlanner(
+        PlanRepository(plan_session), StubRetriever(), provider, DEFAULT_ACTION_REGISTRY, **kwargs
+    )
+
+
+def test_active_plan_is_reused_without_calling_the_model(plan_session, seeded_ids):
+    """spec §6 规则 2：有 active plan 时不调 LLM —— 这是成本控制的核心。"""
+    provider = StubProvider(decision=_plan_decision("rest", "work"))
+    planner = _planner(plan_session, provider)
+    world = build_golden_world()
+    actor = world.npcs[0]
+
+    first = planner.decide(world, actor, last_outcome=None)
+    plan_session.commit()
+    assert provider.calls == 1
+    assert first.source is ProposalSource.LLM
+    assert first.proposal.action_type == "rest"
+
+    second = planner.decide(world, actor, last_outcome=None)
+    assert provider.calls == 1, "复用计划时不得再次调用模型"
+    assert second.source is ProposalSource.EXISTING_PLAN
+    assert second.proposal.action_type == "work"
+
+
+def test_provider_failure_degrades_to_deterministic(plan_session, seeded_ids):
+    """spec §13 唯一不变量：provider 失败仍产出可执行提案。"""
+    planner = _planner(plan_session, StubProvider(error=PlanningProviderError("timeout")))
+    world = build_golden_world()
+
+    outcome = planner.decide(world, world.npcs[0], last_outcome=None)
+    assert outcome.source is ProposalSource.FALLBACK
+    assert outcome.proposal.action_type in {"move", "work", "eat", "talk", "rest", "wait"}
+    assert outcome.plan is None
+
+
+def test_plan_older_than_max_age_triggers_replanning(plan_session, seeded_ids):
+    """spec §6 规则 5：过龄强制完成，防止 NPC 卡在一个计划里。"""
+    provider = StubProvider(decision=_plan_decision("rest", "work", "eat"))
+    planner = _planner(plan_session, provider, max_plan_age_ticks=2)
+    world = build_golden_world()
+    actor = world.npcs[0]
+
+    planner.decide(world, actor, last_outcome=None)
+    plan_session.commit()
+    assert provider.calls == 1
+
+    aged = replace(world, clock_tick=world.clock_tick + 5)
+    outcome = planner.decide(aged, actor, last_outcome=None)
+    assert provider.calls == 2, "过龄计划应被放弃并触发重新规划"
+    assert outcome.source is ProposalSource.LLM

@@ -19,7 +19,7 @@ async def test_get_npc_detail_returns_complete_public_contract_after_tick(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         tick_response = await client.post(
             "/api/world/tick",
-            json={"expected_world_version": 0},
+            json={"expected_world_version": 0, "runtime_mode": "deterministic"},
         )
         response = await client.get("/api/npcs/ryan")
 

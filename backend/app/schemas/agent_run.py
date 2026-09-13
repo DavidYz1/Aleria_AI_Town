@@ -21,7 +21,7 @@ class AgentRunSummary(BaseModel):
 ACTION_TYPES = frozenset({"eat", "move", "rest", "talk", "wait", "work"})
 TARGET_KINDS = frozenset({"location", "npc"})
 SOURCES = frozenset({"deterministic", "existing_plan", "llm", "fallback"})
-TRACE_STAGES = frozenset({"run_started", "proposal", "validation", "execution", "event", "run_completed"})
+TRACE_STAGES = frozenset({"run_started", "planning", "proposal", "validation", "execution", "event", "run_completed"})
 QUEST_STATUSES = frozenset({"available", "accepted", "briefed_by_grey", "shoe_found", "child_found", "completed"})
 QUEST_INTERACTIONS = frozenset({"accept_quest", "ask_grey", "inspect_shoe", "search_child", "return_child"})
 
@@ -102,6 +102,19 @@ def _trace_facts(stage: str, value: object) -> dict:
         return {}
     if stage == "run_started":
         if set(value) == {"world_id", "world_version", "clock_tick"} and _identifier(value["world_id"]) and _integer(value["world_version"]) and _integer(value["clock_tick"]):
+            return dict(value)
+    if stage == "planning":
+        keys = {"npc_id", "source", "goal", "thought", "provider", "model", "latency_ms", "tokens_used"}
+        # goal / thought 是模型自由文本，长度上限与 AgentDecision 契约、DB 列宽一致，
+        # 保证公开投影始终有界。
+        limits = {"goal": 200, "thought": 800, "provider": 100, "model": 200}
+        if (
+            set(value) == keys
+            and _identifier(value["npc_id"])
+            and value["source"] in SOURCES
+            and all(isinstance(value[key], str) and 0 < len(value[key]) <= limit for key, limit in limits.items())
+            and all(value[key] is None or _integer(value[key]) for key in ("latency_ms", "tokens_used"))
+        ):
             return dict(value)
     if stage == "proposal":
         keys = {"action_type", "target", "reason_code", "proposal_ordinal", "source"}
@@ -187,6 +200,7 @@ class AgentTraceInfo(BaseModel):
     def factual_summary(self):
         summaries = {
             "run_started": "Deterministic world advance started",
+            "planning": "Planning decision recorded",
             "proposal": "Action proposed", "validation": "Proposal validated",
             "execution": "Action executed", "event": "Domain event recorded",
             "run_completed": "Deterministic world advance completed",

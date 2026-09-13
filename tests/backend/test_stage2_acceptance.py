@@ -175,7 +175,7 @@ async def test_stage2_http_closure_survives_restart_and_cognition_failures(
 
             tick = await client.post(
                 "/api/world/tick",
-                json={"expected_world_version": 0},
+                json={"expected_world_version": 0, "runtime_mode": "deterministic"},
             )
             assert tick.status_code == 200, tick.text
             first_run_id = tick.json()["data"]["run"]["id"]
@@ -216,7 +216,7 @@ async def test_stage2_http_closure_survives_restart_and_cognition_failures(
 
             degraded_tick = await client.post(
                 "/api/world/tick",
-                json={"expected_world_version": 1},
+                json={"expected_world_version": 1, "runtime_mode": "deterministic"},
             )
             assert degraded_tick.status_code == 200, degraded_tick.text
             second_run_id = degraded_tick.json()["data"]["run"]["id"]

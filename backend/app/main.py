@@ -5,6 +5,7 @@ from backend.app.api.demo import router as demo_router
 from backend.app.api.agent_runs import router as agent_runs_router
 from backend.app.api.health import router as health_router
 from backend.app.api.npc_chat import router as npc_chat_router
+from backend.app.api.npc_plan import router as npc_plan_router
 from backend.app.api.npcs import router as npcs_router
 from backend.app.api.player import router as player_router
 from backend.app.api.quests import router as quests_router
@@ -51,6 +52,7 @@ def create_app(
     application.include_router(agent_runs_router)
     application.include_router(npcs_router)
     application.include_router(npc_chat_router)
+    application.include_router(npc_plan_router)
     application.include_router(player_router)
     application.include_router(quests_router)
     application.include_router(demo_router)

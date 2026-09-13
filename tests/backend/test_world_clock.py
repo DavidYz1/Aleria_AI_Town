@@ -32,7 +32,7 @@ from scripts.upgrade_schema import upgrade_schema
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("path,payload,want", [
-    ("/api/world/tick", {"expected_world_version": 0}, 5),
+    ("/api/world/tick", {"expected_world_version": 0, "runtime_mode": "deterministic"}, 5),
     ("/api/player/travel", {"target_location_id": "castle", "expected_world_version": 0}, 1),
     ("/api/quests/missing-child/interact", {"interaction": "accept_quest", "expected_version": 0, "expected_world_version": 0}, 1),
     ("/api/npcs/grey/chat", {"message": "A player claim"}, 1),
@@ -87,7 +87,8 @@ async def test_tick_advances_world_and_records_three_actions_and_events(
     transport = ASGITransport(app=create_app(database_url))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/api/world/tick", json={"expected_world_version": 0}
+            "/api/world/tick",
+            json={"expected_world_version": 0, "runtime_mode": "deterministic"},
         )
 
     assert response.status_code == 200
@@ -189,7 +190,7 @@ async def test_tick_exposes_and_persists_canonical_talk(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/world/tick",
-            json={"expected_world_version": 0},
+            json={"expected_world_version": 0, "runtime_mode": "deterministic"},
         )
         current_world = await client.get("/api/world")
         current_ryan = await client.get("/api/npcs/ryan")

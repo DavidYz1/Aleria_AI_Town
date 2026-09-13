@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import replace
 
 from backend.app.agents.action_registry import (
@@ -10,6 +11,7 @@ from backend.app.agents.contracts import (
     AgentRuntimeResult,
     DomainEventDraft,
     JsonValue,
+    ProposalSource,
     TraceDraft,
 )
 from backend.app.world.clock import advance_clock
@@ -18,9 +20,10 @@ from backend.app.world.action_rules import DEFAULT_ACTION_REGISTRY
 from backend.app.world.types import NpcSnapshot, WorldSnapshot
 
 
-def run_deterministic_advance(
+def run_advance(
     world: WorldSnapshot,
     registry: ActionRegistry = DEFAULT_ACTION_REGISTRY,
+    proposal_override: Mapping[str, ActionProposal] | None = None,
 ) -> AgentRuntimeResult:
     ordered_npcs = tuple(
         sorted(world.npcs, key=lambda npc: (npc.sort_order, npc.id))
@@ -34,8 +37,14 @@ def run_deterministic_advance(
         clock_tick=world.clock_tick + 1,
         npcs=drifted_npcs,
     )
+    override = proposal_override or {}
+    initial = tuple(
+        override.get(actor.id) or decide_action(actor, decision_world)
+        for actor in decision_world.npcs
+    )
     proposals = tuple(
-        decide_action(actor, decision_world) for actor in decision_world.npcs
+        _with_fallback(proposal, actor, decision_world, registry)
+        for proposal, actor in zip(initial, decision_world.npcs, strict=True)
     )
     resolutions = resolve_proposals(decision_world, proposals, registry)
 
@@ -148,6 +157,24 @@ def run_deterministic_advance(
     )
 
 
+def _with_fallback(
+    proposal: ActionProposal,
+    actor: NpcSnapshot,
+    world: WorldSnapshot,
+    registry: ActionRegistry,
+) -> ActionProposal:
+    """外部提案被拒绝时替换为确定性兜底。spec §13 唯一不变量。"""
+    if proposal.source is ProposalSource.DETERMINISTIC:
+        return proposal
+    try:
+        accepted = registry.validate(proposal, actor, world).accepted
+    except Exception:
+        accepted = False
+    if accepted:
+        return proposal
+    return replace(decide_action(actor, world), source=ProposalSource.FALLBACK)
+
+
 def _apply_passive_drift(npc: NpcSnapshot) -> NpcSnapshot:
     return replace(
         npc,
@@ -207,3 +234,7 @@ def _append_trace(
             data=data,
         )
     )
+
+
+# 向后兼容：现有 11 处调用继续使用此名称
+run_deterministic_advance = run_advance

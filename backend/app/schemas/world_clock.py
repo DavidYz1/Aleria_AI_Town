@@ -2,12 +2,14 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from backend.app.agents.contracts import RuntimeMode
 from backend.app.schemas.world import ActionId, WorldData
 from backend.app.schemas.agent_run import AgentRunSummary, DomainEventInfo
 
 
 class WorldTickRequest(BaseModel):
     expected_world_version: int = Field(ge=0)
+    runtime_mode: RuntimeMode = RuntimeMode.AUTO
 
 
 class WorldActionInfo(BaseModel):
