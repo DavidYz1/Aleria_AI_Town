@@ -196,13 +196,12 @@ class WorldTickService:
         """
         if runtime_mode is RuntimeMode.DETERMINISTIC or self._planner is None:
             return {}
-        outcomes: dict[str, PlanningOutcome] = {}
-        for actor in snapshot.npcs:
-            try:
-                outcomes[actor.id] = self._planner.decide(snapshot, actor, last_outcome=None)
-            except Exception:
-                logger.warning(
-                    "Planning failed; falling back to the deterministic policy",
-                    extra={"category": "planning", "npc_id": actor.id},
-                )
-        return outcomes
+        try:
+            return self._planner.decide_many(snapshot, snapshot.npcs, last_outcome=None)
+        except Exception:
+            # `decide_many` 已经逐 NPC 隔离了失败，走到这里说明是它整体崩了。
+            logger.warning(
+                "Planning failed; falling back to the deterministic policy",
+                extra={"category": "planning"},
+            )
+            return {}

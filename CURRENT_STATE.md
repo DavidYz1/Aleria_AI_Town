@@ -17,17 +17,20 @@
 | 项 | 值 |
 | --- | --- |
 | 分支 | `main` |
-| HEAD | `532898a`（`feat: complete live planning integration and thought UI`） |
-| 上一提交 | `c1b75dd`（`feat: add planner-driven agent runtime with fallback`） |
+| HEAD | `f53f125`（`feat: switch reflection to native tool calling and isolate tests from .env`） |
+| 上一提交 | `9de8e7d`（`docs: add stage 3m evaluation, demo seed and architecture narrative`） |
 | 远程 | `origin` → `github.com/DavidYz1/Aleria_AI_Town` |
 | 与远程的关系 | **本地领先 8 个提交，尚未 push** |
-| tracked 工作树 | **未暂存、未提交** — Stage 3m Task 8（Eval、演示种子与文档） |
-| 未跟踪文件 | `scripts/eval_agent.py`、`docs/eval/2026-09-14-agent-eval.md` |
-| 生产代码 | `scripts/ensure_demo_world.py`、`backend/app/llm/planning_provider.py`（Fake 世界感知） |
+| tracked 工作树 | **未暂存、未提交** — 跟进项 ②「并行化 provider 调用」 |
+| 未跟踪文件 | 无 |
+| 生产代码 | `backend/app/agents/planner.py`、`backend/app/llm/planning_provider.py`、`backend/app/services/world_clock_service.py` |
 
 ### 提交历史（近期）
 
 ```
+f53f125  feat: switch reflection to native tool calling and isolate tests from .env
+9de8e7d  docs: add stage 3m evaluation, demo seed and architecture narrative
+060d963  fix(frontend): stabilize npc chat and player facing
 532898a  feat: complete live planning integration and thought UI
 c1b75dd  feat: add planner-driven agent runtime with fallback
 8b78eb6  feat: add agent_plans table for procedural memory
@@ -38,22 +41,61 @@ fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage
 6a25028  chore: finalize AI review workflow and stage2 contract alignment
 ```
 
-### 测试基线（Stage 3m Task 8 工作树，本机实测，2026-09-14）
+### 测试基线（跟进项 ② 工作树，本机实测，2026-09-14）
 
 | 套件 | 结果 |
 | --- | --- |
-| Backend 全量 | **`734 passed, 5 skipped, 1 warning in 265.14s`**（exit 0） |
-| Frontend | **`213 passed, 30 files`** |
-| type-check | **exit 0** |
+| Backend 全量 | **`748 passed, 5 skipped, 1 warning in 269.50s`**（exit 0） |
+| Frontend | **`213 passed, 30 files`**（跟进项 ①② 均零前端改动，沿用 Task 8 实测） |
+| type-check | **exit 0**（同上） |
 | Golden 快照闸门 | **PASS**（含在全量内） |
-| 真实 PostgreSQL / pgvector 四文件 opt-in | 本轮未运行（Task 8 不涉及数据库结构） |
+| 真实 PostgreSQL / pgvector 四文件 opt-in | 未运行（跟进项不涉及数据库结构） |
 | build | 本会话未跑 |
 | Fake eval（20 tick） | 动作合法率 **100.0%**，兜底率 0.0% |
 | Live eval（20 tick，`hy3`） | 动作合法率 **90.2%**，见 `docs/eval/2026-09-14-agent-eval.md` |
 
-Task 8 按 plan **不新增自动化测试**，734 与热修后的基线逐项一致，
-5 个 skip 与 1 个 warning 均为既有，未新增。Fake / Live eval 与演示种子验证
-全部跑在临时或 scratchpad 数据库上，`backend/data/aleria.db` 未读取、未写入。
+测试数 734 → 745（跟进项 ① reflection tool calling）→ 748（跟进项 ② 并行化）。
+5 个 skip 与 1 个 warning 自 Stage 2 起未变，**无新增**。
+所有 Live 验证都跑在临时或 scratchpad 数据库副本上，`backend/data/aleria.db` 只读不写。
+
+---
+
+## Stage 3m 收尾后的跟进项
+
+顺序由人类选定：① reflection 切 tool calling → ② 并行化 provider 调用 →
+③ 落盘规划命中的 memory id。
+
+### ① Reflection 切 tool calling — ✅ 已提交 `f53f125`
+
+**执行中更正了一条 Stage 3m 期间的错误诊断。** 原先报告「reflection 在 `hy3` 上返回
+`{"": ""}`」，那是基于一次**无效探针**（复用了 planning 的 prompt 去测 `json_object`
+模式）。真实根因是 `COGNITION_POST_COMMIT_BUDGET_SECONDS=5.0` 把生效超时压到 4.9 秒，
+而模型需要 8–13 秒 —— `REFLECTION_TIMEOUT_SECONDS=20` 完全不起作用。
+
+尽管如此 tool calling 仍值得做：延迟 13.0s → 8.9–11.1s，结构约束从 prompt 移到 API 层，
+且 `provider` / `model` 不再由模型自报（旧实现等于允许模型伪造来源标注）。
+证据改用**序号**引用而非裸 UUID。`.env` 的预算调到 20（`Settings` 默认保持 5.0）。
+
+端到端实测：4 tick 后 reflection 记忆 0 → 3 条、beliefs 0 → 1 条。
+代价：触发反思的 tick 从 ~0.2s 涨到 12–20s。
+
+连带修复：`conftest.py` 追加 `env_file=None` 隔离 —— 测试不再读仓库根的 `.env`。
+这是「填了 key 测试就打真实 API」的同一根因的第二个症状。
+
+### ② 并行化 provider 调用 — ✅ 已实现与验证，等待人类 review
+
+`AgentPlanner.decide` 拆成三相，**只把纯网络的第 2 相放进线程池**：
+`_prepare`（数据库）→ `_ask`（provider，可并发）→ `_settle_answer`（数据库）。
+边界理由：`PlanRepository` 与 `persist_run` 共用同一 tick Session，SQLAlchemy Session
+不是线程安全的；而第 2 相恰好是耗时的全部（单次 12–19 秒 vs 另两相合计 ~30 毫秒）。
+
+连带修复：`OpenAICompatiblePlanningProvider.last_tokens_used` 原为普通实例属性，
+并发下会把 token 记到别的 NPC 头上且完全静默，已改为 thread-local。
+
+**实测 2.1×**：调模型的 tick 平均 34.8s → 16.3s，最慢 58.4s → 20.5s。
+
+完整记录（含一次 Git 规则违规的说明）见
+`.superpowers/sdd/2026-09-14-parallel-planning/progress.md`。
 
 ---
 
@@ -409,11 +451,23 @@ git diff HEAD --stat
 
 ### 下一步应该做什么
 
-**人类 review Task 8 diff 并手动提交，Stage 3m 即告收尾。** 建议提交信息：
+**人类 review 跟进项 ② 的 diff 并手动提交。** 建议提交信息：
 
 ```text
-docs: add stage 3m evaluation, demo seed and architecture narrative
+perf: run npc planning calls concurrently within one tick
 ```
+
+review 时值得重点看的三点：
+
+1. **三相拆分的边界是否画对** —— 只有 `_ask`（`provider.plan()`）进线程池，
+   两侧数据库操作仍在调用线程。判据是「是否持有 Session」。
+2. **`last_tokens_used` 改 thread-local** 是否必要。变异验证显示：退回共享属性时
+   token 归属断言必然变红（双 barrier 让竞争确定性发生，不靠运气）。
+3. **ledger 里记了一次 Git 规则违规**：我执行了 `git checkout --`，销毁了当时未提交的
+   三条新测试（已重写且更强）。规则存在的理由在本轮得到了实证。
+
+之后是跟进项 ③：把规划命中的 memory id 落盘，让「思考」Tab 能如实标注引用记忆 ——
+这是 spec §17 第 4 条只能部分达成的直接原因，需要一次迁移。
 
 review 时值得重点看的三点：
 

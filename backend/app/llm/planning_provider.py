@@ -10,6 +10,7 @@ from hashlib import sha256
 import json
 import logging
 import re
+import threading
 from typing import Annotated, Protocol
 
 import httpx
@@ -220,11 +221,25 @@ class OpenAICompatiblePlanningProvider:
         self._endpoint = base_url.rstrip("/") + "/chat/completions"
         self._key, self._model, self._auth = api_key, model, auth_mode
         self._timeout, self._transport = timeout_seconds, transport
-        self.last_tokens_used: int | None = None
+        self._state = threading.local()
 
     @property
     def model_name(self) -> str:
         return self._model
+
+    @property
+    def last_tokens_used(self) -> int | None:
+        """按线程隔离。
+
+        `AgentPlanner.decide_many` 会为多个 NPC 并发调用同一个 provider 实例。
+        用普通实例属性的话，线程 A 的读取会拿到线程 B 刚写进去的数字 ——
+        token 被记到别的 NPC 头上，数值看起来完全合理，没有任何报错。
+        """
+        return getattr(self._state, "tokens", None)
+
+    @last_tokens_used.setter
+    def last_tokens_used(self, value: int | None) -> None:
+        self._state.tokens = value
 
     def plan(self, request: PlanningRequest) -> AgentDecision:
         # 与 reflection provider 同构：私有事件循环在超时后取消真实 socket I/O

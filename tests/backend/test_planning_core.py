@@ -1,5 +1,6 @@
 from dataclasses import replace
 import json
+import threading
 
 import pytest
 from pydantic import ValidationError
@@ -279,3 +280,112 @@ def test_configured_provider_timeout_survives_a_request_that_does_not_narrow_it(
     provider.plan(PlanningRequest(
         npc_id="ryan", context_text="x", tool_manifest=manifest, timeout_seconds=4))
     assert recorded == [25, 4], f"请求显式给出的更短超时必须生效，实际 {recorded}"
+
+
+class BarrierProvider:
+    """两道 barrier，两条断言各自确定性成立，不依赖任何计时阈值。
+
+    `arrival`：三个 NPC 的规划必须**同时**在途才放行。串行实现下第一次调用
+    永远等不到另外两个，barrier 超时抛 `BrokenBarrierError`。
+
+    `written`：三个线程都写完自己的 token 之后才允许任何一个返回。
+    provider 若用共享属性存 token（而不是 thread-local），三个线程读到的就都是
+    最后一个写入者的数字 —— 于是 token 归属错位被**必然**暴露，而不是碰运气。
+    """
+
+    provider_name = "barrier"
+    model_name = "barrier-1"
+
+    def __init__(self, parties: int):
+        self.arrival = threading.Barrier(parties, timeout=5)
+        self.written = threading.Barrier(parties, timeout=5)
+        self._state = threading.local()
+        self.threads: set[int] = set()
+
+    @staticmethod
+    def tokens_for(npc_id: str) -> int:
+        return 100 + sum(npc_id.encode())
+
+    @property
+    def last_tokens_used(self):
+        return getattr(self._state, "tokens", None)
+
+    def plan(self, request):
+        self.threads.add(threading.get_ident())
+        self.arrival.wait()
+        self._state.tokens = self.tokens_for(request.npc_id)
+        self.written.wait()
+        return AgentDecision(
+            thought=f"{request.npc_id} 的推理", goal=f"{request.npc_id} 的目标",
+            goal_reason=f"{request.npc_id} 的理由",
+            steps=(PlanStep(action_type="rest", target_kind=None, target_id=None,
+                            intent=f"{request.npc_id} 休息"),),
+            prompt_version="planning-v1",
+        )
+
+
+def test_provider_calls_run_concurrently_and_stay_attributed_to_their_own_npc(
+    plan_session, seeded_ids,
+):
+    world = build_golden_world()
+    provider = BarrierProvider(len(world.npcs))
+    planner = _planner(plan_session, provider)
+
+    outcomes = planner.decide_many(world, world.npcs, last_outcome=None)
+    plan_session.commit()
+
+    # 非空前提：三个 NPC 都真的走了模型分支，否则两道 barrier 根本不会被触及。
+    assert len(outcomes) == len(world.npcs) == 3
+    assert all(o.source is ProposalSource.LLM for o in outcomes.values())
+    assert len(provider.threads) == 3, f"三次调用应落在三个线程上，实际 {len(provider.threads)}"
+
+    # 三个 token 两两不同，才谈得上「错位会被看见」。
+    expected = {npc.id: BarrierProvider.tokens_for(npc.id) for npc in world.npcs}
+    assert len(set(expected.values())) == 3
+
+    for npc in world.npcs:
+        outcome = outcomes[npc.id]
+        assert outcome.plan.goal == f"{npc.id} 的目标", "计划串到了别的 NPC 头上"
+        assert outcome.plan.thought == f"{npc.id} 的推理"
+        assert outcome.tokens_used == expected[npc.id], "token 归属错位"
+        assert outcome.plan.tokens_used == expected[npc.id]
+
+
+def test_one_failing_npc_does_not_take_down_the_others(plan_session, seeded_ids):
+    """spec §13 不变量在并发下依然成立：单个 NPC 失败只影响它自己。"""
+    world = build_golden_world()
+    failing = world.npcs[1].id
+
+    class PartiallyFailing:
+        provider_name, model_name, last_tokens_used = "partial", "partial-1", None
+
+        def plan(self, request):
+            if request.npc_id == failing:
+                raise PlanningProviderError("timeout")
+            return _plan_decision("rest")
+
+    outcomes = _planner(plan_session, PartiallyFailing()).decide_many(
+        world, world.npcs, last_outcome=None)
+    plan_session.commit()
+
+    assert outcomes[failing].source is ProposalSource.FALLBACK
+    assert outcomes[failing].plan is None
+    survivors = [npc.id for npc in world.npcs if npc.id != failing]
+    # 非空前提：确实有幸存者，否则「只影响它自己」无从谈起。
+    assert survivors and all(outcomes[i].source is ProposalSource.LLM for i in survivors)
+
+
+def test_decide_many_reuses_active_plans_without_calling_the_model(plan_session, seeded_ids):
+    """复用分支不得进入线程池 —— 它只有数据库操作，跑并发只会制造 Session 竞争。"""
+    world = build_golden_world()
+    provider = StubProvider(decision=_plan_decision("rest", "work"))
+    planner = _planner(plan_session, provider)
+
+    planner.decide_many(world, world.npcs, last_outcome=None)
+    plan_session.commit()
+    assert provider.calls == 3
+
+    second = planner.decide_many(world, world.npcs, last_outcome=None)
+    plan_session.commit()
+    assert provider.calls == 3, "有活跃计划时不得再次调用模型"
+    assert all(o.source is ProposalSource.EXISTING_PLAN for o in second.values())

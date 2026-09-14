@@ -4,7 +4,9 @@ spec §6 的五条规则在 `AgentPlanner.decide` 内实现，spec §7 的八段
 `build_context` 内实现。本模块**不做任何世界写入** —— 它只产出 `ActionProposal`，
 校验、冲突处理与执行仍然归 orchestrator。
 """
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+import logging
 import time
 
 from backend.app.agents.action_registry import ActionRegistry
@@ -14,6 +16,26 @@ from backend.app.agents.planning_contracts import AgentDecision
 from backend.app.llm.planning_provider import PlanningRequest
 from backend.app.world.decision import decide_action
 from backend.app.world.types import NpcSnapshot, WorldSnapshot
+
+
+logger = logging.getLogger(__name__)
+
+# 上限而非目标值：演示世界只有三个 NPC，但世界变大时不应为每个 NPC 各开一条连接。
+MAX_PLANNING_WORKERS = 8
+
+
+@dataclass(frozen=True)
+class _PendingDecision:
+    """`_prepare` 产出、等待模型回答的中间态。只带纯数据，不带 Session。"""
+
+    request: PlanningRequest
+
+
+@dataclass(frozen=True)
+class _ProviderAnswer:
+    decision: AgentDecision | None
+    latency_ms: int
+    tokens_used: int | None
 
 
 @dataclass(frozen=True)
@@ -49,6 +71,50 @@ class AgentPlanner:
         self._max_plan_age_ticks = max_plan_age_ticks
 
     def decide(self, world: WorldSnapshot, actor: NpcSnapshot, *, last_outcome: LastOutcome | None) -> PlanningOutcome:
+        """单个 NPC 的串行路径：三相依次执行，行为与拆分前逐字段相同。"""
+        prepared = self._prepare(world, actor, last_outcome)
+        if isinstance(prepared, PlanningOutcome):
+            return prepared
+        return self._settle_answer(world, actor, self._ask(prepared))
+
+    def decide_many(self, world: WorldSnapshot, actors, *,
+                    last_outcome: LastOutcome | None) -> dict[str, PlanningOutcome]:
+        """多个 NPC：**只有纯网络的那一相并发**，两侧的数据库操作仍然串行。
+
+        这条边界是刻意的。`PlanRepository` 与 `persist_run` 共用同一个 tick Session，
+        SQLAlchemy 的 Session 不是线程安全的；`_retrieve` 又要求所在 Session 没有
+        进行中的事务。把它们放进线程池会制造难以复现的竞争。
+        `provider.plan()` 不持有任何 Session，是唯一可以安全并发的部分 ——
+        它也恰好是耗时的全部（实测单次 12–19 秒，另外两相合计约 30 毫秒）。
+
+        单个 NPC 的任何失败只影响它自己：缺席的 NPC 由 orchestrator 走
+        确定性 `decide_action`（spec §13 唯一不变量）。
+        """
+        prepared: list[tuple[NpcSnapshot, PlanningOutcome | _PendingDecision | None]] = []
+        for actor in actors:
+            try:
+                prepared.append((actor, self._prepare(world, actor, last_outcome)))
+            except Exception:
+                logger.warning("Planning preparation failed npc_id=%s", actor.id)
+                prepared.append((actor, None))
+
+        pending = [(actor, item) for actor, item in prepared if isinstance(item, _PendingDecision)]
+        answers = self._ask_all(pending)
+
+        outcomes: dict[str, PlanningOutcome] = {}
+        for actor, item in prepared:
+            if isinstance(item, PlanningOutcome):
+                outcomes[actor.id] = item
+            elif item is not None:
+                try:
+                    outcomes[actor.id] = self._settle_answer(world, actor, answers[actor.id])
+                except Exception:
+                    logger.warning("Planning persistence failed npc_id=%s", actor.id)
+        return outcomes
+
+    def _prepare(self, world: WorldSnapshot, actor: NpcSnapshot,
+                 last_outcome: LastOutcome | None) -> "PlanningOutcome | _PendingDecision":
+        """第一相：全部数据库读写。要么直接定案（复用计划），要么产出待问的请求。"""
         plan = self._repository.get_active(world.id, actor.id)
 
         # 规则 5：过龄强制放弃
@@ -71,38 +137,61 @@ class AgentPlanner:
 
         # 规则 1：调模型生成新计划
         memories = self._retrieve(world, actor)
-        context = self.build_context(world, actor, None, memories, last_outcome)
+        return _PendingDecision(request=PlanningRequest(
+            npc_id=actor.id,
+            context_text=self.build_context(world, actor, None, memories, last_outcome),
+            tool_manifest=self._registry.to_tool_manifest(),
+        ))
+
+    def _ask(self, pending: "_PendingDecision") -> "_ProviderAnswer":
+        """第二相：纯网络，不碰任何 Session。失败在这里被吞成 `decision=None`。
+
+        token 必须在**发起调用的同一线程里**读出：provider 把它记在 thread-local
+        上，跨线程读会拿到别人的数字（`planning_provider.py` 的同名属性）。
+        """
         started = time.monotonic()
         try:
-            decision = self._provider.plan(
-                PlanningRequest(
-                    npc_id=actor.id,
-                    context_text=context,
-                    tool_manifest=self._registry.to_tool_manifest(),
-                )
-            )
+            decision = self._provider.plan(pending.request)
         except Exception:
             # spec §13 唯一不变量：任何失败都必须产出可执行提案。
             # 捕获宽泛 Exception 是刻意的，不是遗漏 —— PlanningProviderError 之外的
             # 任何意外（网络栈、序列化、第三方库）都不得让世界停摆。
+            return _ProviderAnswer(None, int((time.monotonic() - started) * 1000), None)
+        return _ProviderAnswer(
+            decision, int((time.monotonic() - started) * 1000),
+            getattr(self._provider, "last_tokens_used", None),
+        )
+
+    def _ask_all(self, pending) -> dict[str, "_ProviderAnswer"]:
+        if not pending:
+            return {}
+        if len(pending) == 1:
+            actor, item = pending[0]
+            return {actor.id: self._ask(item)}
+        with ThreadPoolExecutor(max_workers=min(len(pending), MAX_PLANNING_WORKERS)) as pool:
+            futures = {actor.id: pool.submit(self._ask, item) for actor, item in pending}
+            return {npc_id: future.result() for npc_id, future in futures.items()}
+
+    def _settle_answer(self, world: WorldSnapshot, actor: NpcSnapshot,
+                       answer: "_ProviderAnswer") -> PlanningOutcome:
+        """第三相：回到调用线程串行写库。"""
+        if answer.decision is None:
             return PlanningOutcome(
                 proposal=decide_action(actor, world), source=ProposalSource.FALLBACK,
                 plan=None, decision=None, latency_ms=None, tokens_used=None,
             )
-
-        latency_ms = int((time.monotonic() - started) * 1000)
         created = self._repository.create_from_decision(
-            world.id, actor.id, decision,
+            world.id, actor.id, answer.decision,
             clock_tick=world.clock_tick, run_id=None,
             provider=getattr(self._provider, "provider_name", "unknown"),
             model=getattr(self._provider, "model_name", "unknown"),
-            latency_ms=latency_ms,
-            tokens_used=getattr(self._provider, "last_tokens_used", None),
+            latency_ms=answer.latency_ms,
+            tokens_used=answer.tokens_used,
         )
         return PlanningOutcome(
             proposal=self._to_proposal(actor, created.steps_json[0], ProposalSource.LLM),
-            source=ProposalSource.LLM, plan=created, decision=decision,
-            latency_ms=latency_ms, tokens_used=created.tokens_used,
+            source=ProposalSource.LLM, plan=created, decision=answer.decision,
+            latency_ms=answer.latency_ms, tokens_used=created.tokens_used,
         )
 
     def settle(self, world: WorldSnapshot, outcome: "PlanningOutcome", final_proposal: ActionProposal) -> None:
