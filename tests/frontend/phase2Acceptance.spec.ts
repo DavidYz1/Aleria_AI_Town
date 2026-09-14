@@ -225,7 +225,13 @@ describe('Phase 2 presentation acceptance', () => {
 
     await wrapper.get('.tick-panel button').trigger('click')
     await flushPromises()
-    expect(post).toHaveBeenCalledWith('/api/world/tick', { expected_world_version: 0 })
+    // Live planning makes a tick a 30-50s call. The third argument is what keeps
+    // the 5s client default from aborting a request the server still completes,
+    // so assert the ceiling is really raised rather than just tolerating the arg.
+    const tickCall = post.mock.calls.find(([url]) => url === '/api/world/tick')
+    expect(tickCall, 'tick 请求必须真的发出过，否则下面的断言无从谈起').toBeDefined()
+    expect(tickCall![1]).toEqual({ expected_world_version: 0 })
+    expect((tickCall![2] as { timeout: number }).timeout).toBeGreaterThan(30_000)
     expect(host.props('npcs')).toEqual([
       expect.objectContaining({ id: 'ryan', anchorName: 'location:park' }),
       expect.objectContaining({ id: 'shir', anchorName: 'location:park' }),
@@ -237,7 +243,9 @@ describe('Phase 2 presentation acceptance', () => {
     )
     await castle!.get('button').trigger('click')
     await flushPromises()
-    expect(post.mock.calls).toEqual([
+    // 本断言的目的是「Phaser 移动不打后端」：调用序列与载荷必须逐项精确。
+    // 只把每次调用的 axios config 摘掉 —— tick 的超时覆盖在上面单独断言过了。
+    expect(post.mock.calls.map(([url, payload]) => [url, payload])).toEqual([
       ['/api/world/tick', { expected_world_version: 0 }],
       ['/api/player/travel', { target_location_id: 'castle', expected_world_version: 1 }],
     ])

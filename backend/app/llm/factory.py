@@ -6,8 +6,11 @@ from backend.app.core.config import Settings
 from backend.app.llm.fallback import FallbackChatProvider
 from backend.app.llm.mock import MockChatProvider
 from backend.app.llm.openai_compatible import OpenAICompatibleChatProvider
+from backend.app.llm.planning_provider import build_planning_provider
 from backend.app.llm.provider import ChatProvider
 
+
+__all__ = ["build_chat_provider", "build_planning_provider"]
 
 logger = logging.getLogger(__name__)
 

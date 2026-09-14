@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     reflection_min_new_memories: int = Field(default=3, ge=1, le=50)
     reflection_memory_limit: int = Field(default=12, ge=1, le=20)
     reflection_char_budget: int = Field(default=4000, ge=500, le=12000)
+    planning_provider_base_url: str = ""
+    planning_provider_api_key: str = ""
+    planning_provider_model: str = ""
+    planning_provider_auth_mode: Literal["bearer", "none"] = "bearer"
+    planning_provider_timeout_seconds: float = Field(default=20.0, gt=0, le=120)
 
     model_config = SettingsConfigDict(
         env_file=REPO_ROOT / ".env",

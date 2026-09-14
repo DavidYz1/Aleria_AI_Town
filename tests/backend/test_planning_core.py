@@ -3,13 +3,15 @@ import json
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import select
 
 from backend.app.agents.contracts import ProposalSource
 from backend.app.agents.memory_retrieval import RetrievalResult
 from backend.app.agents.planner import AgentPlanner
 from backend.app.agents.planning_contracts import AgentDecision, PlanStep
+from backend.app.database.models import AgentPlan
 from backend.app.database.plan_repository import PlanRepository
-from backend.app.llm.planning_provider import PlanningProviderError
+from backend.app.llm.planning_provider import PlanningProviderError, PlanningRequest
 from backend.app.world.action_rules import DEFAULT_ACTION_REGISTRY
 from tests.backend.test_golden_deterministic import build_golden_world
 
@@ -159,3 +161,121 @@ def test_plan_older_than_max_age_triggers_replanning(plan_session, seeded_ids):
     outcome = planner.decide(aged, actor, last_outcome=None)
     assert provider.calls == 2, "过龄计划应被放弃并触发重新规划"
     assert outcome.source is ProposalSource.LLM
+
+
+def test_planner_retrieval_never_writes_memory_access_telemetry(
+    plan_session, seeded_ids, database_url,
+):
+    """Planner 的检索运行在 world tick 的事务内，且走**第二个** SQLite 连接。
+
+    任何写入都拿不到写锁：它会干等满 sqlite3 的 5 秒 busy timeout 才失败，
+    然后被 `MemoryRetriever` 的 telemetry try/except 静默吞掉。三个 NPC 就是
+    16 秒一 tick，前端 5 秒超时，演示里每次推进都红字报错 —— 而世界其实推进了。
+
+    实测：这条写入在该路径上**从未成功过**（access_count 恒为 0），
+    所以禁止它不损失任何现有行为，只是不再为一次注定失败的写付 5.5 秒。
+    """
+    from backend.app.agents.memory_retrieval import MemoryRetriever
+    from backend.app.database.cognition_repository import CognitionRepository
+    from backend.app.database.connection import create_engine_and_session
+    from backend.app.llm.embedding_provider import DeterministicEmbeddingProvider
+    from backend.app.services.cognition_projection import CognitionProjectionService
+
+    world_id, npc_id = seeded_ids
+    embedding = DeterministicEmbeddingProvider()
+
+    # 第二个连接，和 `api/dependencies.py:get_planner` 的装配方式一致。
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as cognition_session:
+        cognition_repository = CognitionRepository(cognition_session)
+        CognitionProjectionService(cognition_repository).catch_up_world(world_id)
+        cognition_session.commit()
+
+        request_log: list = []
+
+        class RecordingRepository(CognitionRepository):
+            def record_access(self, memory_ids):
+                request_log.append(tuple(memory_ids))
+                return super().record_access(memory_ids)
+
+        recording = RecordingRepository(cognition_session)
+        candidates = recording.allowed_memories(
+            _retrieval_request_for(world_id, npc_id)
+        )
+        cognition_session.rollback()
+        # 非空前提：owner 确实有可检索的记忆，否则「没写 telemetry」是平凡成立的。
+        assert candidates, "投影后 owner 必须有可检索记忆，否则本测试证明不了任何事"
+
+        planner = AgentPlanner(
+            PlanRepository(plan_session),
+            MemoryRetriever(recording, embedding),
+            StubProvider(decision=_plan_decision("rest", "work")),
+            DEFAULT_ACTION_REGISTRY,
+        )
+        world = replace(build_golden_world(), id=world_id)
+        actor = next(npc for npc in world.npcs if npc.id == npc_id)
+
+        # tick session 持有事务 —— 这正是 WorldTickService.advance 调 _plan 时的状态。
+        plan_session.execute(select(AgentPlan).limit(1))
+        assert plan_session.in_transaction(), "非空前提：tick session 必须正持有事务"
+
+        outcome = planner.decide(world, actor, last_outcome=None)
+
+    assert outcome.source is ProposalSource.LLM
+    assert request_log == [], (
+        f"planner 检索不得写 access telemetry，实际尝试写入 {request_log}"
+    )
+
+
+def _retrieval_request_for(world_id: str, npc_id: str):
+    from backend.app.agents.memory_retrieval import (
+        MemoryType,
+        RetrievalRequest,
+        RetrievalScope,
+    )
+
+    return RetrievalRequest(
+        world_id=world_id, owner_npc_id=npc_id,
+        current_world_version=1, current_clock_tick=1,
+        query_text="knight 当前处境与近期经历",
+        scope=RetrievalScope.INTERNAL_REFLECTION,
+        allowed_memory_types=frozenset(MemoryType),
+        limit=6, char_budget=1200,
+    )
+
+
+def test_configured_provider_timeout_survives_a_request_that_does_not_narrow_it():
+    """`PLANNING_PROVIDER_TIMEOUT_SECONDS` 必须真的到达出站请求。
+
+    `AgentPlanner` 不传 `timeout_seconds`，provider 又取 `min(配置, 请求)`。
+    只要请求端有个非 None 的默认值，配置就被它悄悄压掉 —— 没有异常、没有日志，
+    只是每次调用都在更短的时限上超时，然后一路降级到确定性兜底。
+    实测该模型单次规划要 7.6–17 秒，被压到 8 秒就等于 Live 规划永远不可用。
+    """
+    import httpx
+
+    from backend.app.llm.planning_provider import OpenAICompatiblePlanningProvider
+
+    recorded: list[float | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        recorded.append(request.extensions.get("timeout", {}).get("read"))
+        return httpx.Response(200, json={"choices": [{"message": {"tool_calls": [
+            {"function": {"name": "rest", "arguments": json.dumps({
+                "reason_code": "low_energy", "intent": "休息",
+                "thought": "体力偏低", "goal": "恢复体力", "goal_reason": "低于阈值"})}}]}}]})
+
+    provider = OpenAICompatiblePlanningProvider(
+        base_url="https://api.example.com/v1", api_key="k", model="m",
+        auth_mode="bearer", timeout_seconds=25,
+        transport=httpx.MockTransport(handler),
+    )
+    manifest = DEFAULT_ACTION_REGISTRY.to_tool_manifest()
+
+    provider.plan(PlanningRequest(npc_id="ryan", context_text="x", tool_manifest=manifest))
+    assert recorded == [25], f"未指定超时的请求必须沿用配置值 25s，实际 {recorded}"
+
+    # 请求仍然可以收紧超时；能收紧才证明上面那条不是「干脆忽略请求」。
+    provider.plan(PlanningRequest(
+        npc_id="ryan", context_text="x", tool_manifest=manifest, timeout_seconds=4))
+    assert recorded == [25, 4], f"请求显式给出的更短超时必须生效，实际 {recorded}"

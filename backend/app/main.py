@@ -13,7 +13,8 @@ from backend.app.api.world import router as world_router
 from backend.app.api.world_clock import router as world_clock_router
 from backend.app.core.config import Settings, get_settings
 from backend.app.database.connection import create_engine_and_session
-from backend.app.llm.factory import build_chat_provider
+from backend.app.llm.factory import build_chat_provider, build_planning_provider
+from backend.app.llm.planning_provider import PlanningProvider
 from backend.app.llm.provider import ChatProvider
 from backend.app.llm.embedding_provider import EmbeddingProvider, build_embedding_provider
 from backend.app.llm.reflection_provider import ReflectionProvider, build_reflection_provider
@@ -26,6 +27,7 @@ def create_app(
     chat_provider: ChatProvider | None = None,
     embedding_provider: EmbeddingProvider | None = None,
     reflection_provider: ReflectionProvider | None = None,
+    planning_provider: PlanningProvider | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     _, session_factory = create_engine_and_session(
@@ -39,6 +41,7 @@ def create_app(
     )
     application.state.embedding_provider = embedding_provider or build_embedding_provider(resolved_settings)
     application.state.reflection_provider = reflection_provider or build_reflection_provider(resolved_settings)
+    application.state.planning_provider = planning_provider or build_planning_provider(resolved_settings)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=[resolved_settings.frontend_origin],

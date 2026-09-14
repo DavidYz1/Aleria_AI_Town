@@ -151,6 +151,9 @@ class AgentPlanner:
                     scope=RetrievalScope.INTERNAL_REFLECTION,
                     allowed_memory_types=frozenset(MemoryType),
                     limit=6, char_budget=1200,
+                    # 本调用发生在 world tick 的事务内、且走第二个连接：写 telemetry
+                    # 拿不到锁，只会等满 busy timeout 再被静默吞掉。
+                    record_access=False,
                 )
             ).memories
         except Exception:

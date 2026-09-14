@@ -52,6 +52,12 @@ class RetrievalRequest:
     excluded_turn_ids: frozenset[str] = frozenset()
     conversation_message_upper: int | None = None
     created_before: datetime | None = None
+    # Access telemetry is a write. Callers that retrieve while another session
+    # already holds a transaction on the same SQLite file (the world tick's
+    # planner does) must opt out: the write cannot get the lock, so it waits out
+    # the full busy timeout and is then swallowed as best-effort — seconds per
+    # call, for a row update that never lands.
+    record_access: bool = True
 
     def __post_init__(self):
         if self.scope not in SCOPE_RULES or not 1 <= self.limit <= 50 or not 1 <= self.char_budget <= 8000:
@@ -211,7 +217,7 @@ class MemoryRetriever:
                 if len(chosen) == request.limit:
                     break
             result = RetrievalResult(tuple(chosen), mode, error_code)
-            if request.scope != RetrievalScope.PUBLIC_EXPLANATION:
+            if request.record_access and request.scope != RetrievalScope.PUBLIC_EXPLANATION:
                 try:
                     self.repository.record_access(result.memory_ids)
                     session.commit()
