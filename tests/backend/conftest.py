@@ -10,11 +10,9 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# `Settings` 默认读仓库根的 `.env`，测试进程也不例外。开发者一旦在那里填了真 key，
-# 任何 `create_app()` 而不注入 provider 的用例就会装配真实 provider 并打真实 API：
-# 跑一次全量套件既花钱又不确定，超时还会让本该稳定的用例随机变红。
-# 环境变量在 pydantic-settings 里优先于 `.env`，所以清空它们即可让四个 provider
-# 全部回到确定性替身。守卫见 `test_provider_isolation.py`。
+# 环境变量在 pydantic-settings 里优先于 `.env`，置空它们可以让四个 provider
+# 无条件回到确定性替身，即便 env_file 隔离将来被改坏。守卫见
+# `test_provider_isolation.py`。
 LIVE_PROVIDER_ENV_VARS = (
     "CHAT_LLM_API_KEY", "EMBEDDING_API_KEY",
     "REFLECTION_API_KEY", "PLANNING_PROVIDER_API_KEY",
@@ -22,12 +20,24 @@ LIVE_PROVIDER_ENV_VARS = (
 
 
 @pytest.fixture(autouse=True)
-def isolate_live_provider_credentials(monkeypatch):
-    from backend.app.core.config import get_settings
+def isolate_repository_dotenv(monkeypatch):
+    """测试进程一律看不到仓库根的 `.env`。
 
+    这个缺口在本仓库已经出现过两次症状，都不是理论风险：
+    ① 开发者填了真 key 之后，任何 `create_app()` 而不注入 provider 的用例
+       都会装配真实 provider 并打真实 API —— 既花钱又不确定；
+    ② `.env` 把 `COGNITION_POST_COMMIT_BUDGET_SECONDS` 从默认 5 调到 20 之后，
+       三条用虚拟时钟断言 deadline 的用例直接变红 —— 它们隐含依赖默认值。
+
+    根因是同一个：`Settings` 默认读 `.env`，测试没有任何隔离。这里把 env_file
+    置空，让测试只看 `Settings` 的默认值与用例自己显式传入的参数。
+    """
+    from backend.app.core.config import Settings, get_settings
+
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
     for name in LIVE_PROVIDER_ENV_VARS:
         monkeypatch.setenv(name, "")
-    # `get_settings` 带 lru_cache：先前缓存的实例会绕过上面的清空。
+    # `get_settings` 带 lru_cache：先前缓存的实例会绕过上面的隔离。
     get_settings.cache_clear()
     try:
         yield
