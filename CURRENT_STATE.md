@@ -21,9 +21,9 @@
 | 上一提交 | `c1b75dd`（`feat: add planner-driven agent runtime with fallback`） |
 | 远程 | `origin` → `github.com/DavidYz1/Aleria_AI_Town` |
 | 与远程的关系 | **本地领先 8 个提交，尚未 push** |
-| tracked 工作树 | **未暂存、未提交** — Task 8 前 Chat timeout + Phaser 朝向热修及测试/状态更新 |
-| 未跟踪文件 | 热修 spec + plan 各 1 份 |
-| 生产代码 | `frontend/src/api/chat.ts`、`frontend/src/game/scenes/TownScene.ts` |
+| tracked 工作树 | **未暂存、未提交** — Stage 3m Task 8（Eval、演示种子与文档） |
+| 未跟踪文件 | `scripts/eval_agent.py`、`docs/eval/2026-09-14-agent-eval.md` |
+| 生产代码 | `scripts/ensure_demo_world.py`、`backend/app/llm/planning_provider.py`（Fake 世界感知） |
 
 ### 提交历史（近期）
 
@@ -38,23 +38,22 @@ fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage
 6a25028  chore: finalize AI review workflow and stage2 contract alignment
 ```
 
-### 测试基线（Task 8 前热修工作树，本机实测，2026-09-14）
+### 测试基线（Stage 3m Task 8 工作树，本机实测，2026-09-14）
 
 | 套件 | 结果 |
 | --- | --- |
-| Backend 全量 | **`734 passed, 5 skipped, 1 warning in 277.25s`**（exit 0） |
-| Frontend | **`213 passed, 30 files`**（原 209 + 四方向朝向 4） |
+| Backend 全量 | **`734 passed, 5 skipped, 1 warning in 265.14s`**（exit 0） |
+| Frontend | **`213 passed, 30 files`** |
 | type-check | **exit 0** |
-| 真实 PostgreSQL / pgvector 四文件 opt-in | 本轮未运行（热修不涉及后端或数据库） |
+| Golden 快照闸门 | **PASS**（含在全量内） |
+| 真实 PostgreSQL / pgvector 四文件 opt-in | 本轮未运行（Task 8 不涉及数据库结构） |
 | build | 本会话未跑 |
-| Live NPC Chat / Phaser 浏览器冒烟 | **未执行、未宣称通过**（避免写演示 DB / 消耗 API 额度） |
+| Fake eval（20 tick） | 动作合法率 **100.0%**，兜底率 0.0% |
+| Live eval（20 tick，`hy3`） | 动作合法率 **90.2%**，见 `docs/eval/2026-09-14-agent-eval.md` |
 
-热修的聚焦 RED 为 `7 failed, 60 passed`：Chat 的 5 个出站契约断言都缺少
-Axios config；Phaser right/left 两例收到恰好相反的 flip 值，而 up/down 已通过。
-最小实现后聚焦 `67 passed`，再跑完整矩阵得到上表结果。5 个 skip 与 1 个 warning
-均为既有基线，未新增。`backend/data/aleria.db` 未读取、未写入。
-
-下一步：人类 review 并提交本热修后进入 **Stage 3m Task 8（Eval、演示种子与文档）**。
+Task 8 按 plan **不新增自动化测试**，734 与热修后的基线逐项一致，
+5 个 skip 与 1 个 warning 均为既有，未新增。Fake / Live eval 与演示种子验证
+全部跑在临时或 scratchpad 数据库上，`backend/data/aleria.db` 未读取、未写入。
 
 ---
 
@@ -70,8 +69,8 @@ Axios config；Phaser right/left 两例收到恰好相反的 flip 值，而 up/d
 | Stage 3 生产级 plan | `docs/superpowers/plans/deferred/2026-09-13-stage-3-goals-plans-llm-actions-plan-cn.md` | **DEFERRED** |
 | test-suite-cleanup 决策记录 | `docs/superpowers/specs/deferred/2026-09-13-test-suite-cleanup-decision-record-cn.md` | **DEFERRED**，MVP 交付后执行 |
 | test-suite-cleanup plan | `docs/superpowers/plans/deferred/2026-09-13-test-suite-cleanup-plan-cn.md` | **DEFERRED** |
-| **Stage 3m MVP design** | `docs/superpowers/specs/2026-09-13-stage-3m-agent-loop-mvp-design-cn.md` | **ACTIVE**，待 review |
-| Stage 3m MVP plan | `docs/superpowers/plans/2026-09-13-stage-3m-agent-loop-mvp-plan-cn.md` | 未创建（spec 通过后产出） |
+| **Stage 3m MVP design** | `docs/superpowers/specs/2026-09-13-stage-3m-agent-loop-mvp-design-cn.md` | **ACTIVE**，§17 验收见下方「Stage 3m 验收」 |
+| Stage 3m MVP plan | `docs/superpowers/plans/2026-09-13-stage-3m-agent-loop-mvp-plan-cn.md` | **ACTIVE**，Task 0–8 已按它执行完毕 |
 
 四个 deferred 文档顶部均已插入延期状态横幅。四份文档在移动前均为 git 未跟踪状态，无历史丢失。
 
@@ -80,7 +79,7 @@ Axios config；Phaser right/left 两例收到恰好相反的 flip 值，而 up/d
 **定位**：可展示的 Agent MVP，不是精简版生产 Runtime。冲突时选「更快看到效果」。
 
 P0（T0-T6，约 2.85d）：golden 闸门、PlanningProvider（structured output）、`agent_plans` 单表、planner 八段 Context、orchestrator `proposal_override` 注入、Service 接线、Live provider 原生 tool calling。
-P1（T7-T8，约 1.1d）：NpcDetailPanel「思考」Tab、`eval_agent.py` 四项指标、演示种子与 README 叙事。
+P1（T7-T8，约 1.1d）：NpcDetailPanel「思考」Tab、`eval_agent.py` 指标报告、演示种子与 README 叙事。
 
 **合计 3.95d**，5 天窗口内留约 1 天缓冲。
 
@@ -133,15 +132,85 @@ Foundation 提供的稳定边界：三套独立计数器分离、所有 NPC 消�
 
 ## Current Task
 
-### Stage 3m Task 8 前稳定性热修 — ✅ 已实现、验证并通过 R1 review
+### Stage 3m Task 8：Eval、演示种子与文档 — ✅ 已实现与验证，等待人类 review
 
-- NPC Chat 仅对 `/api/npcs/{id}/chat` 覆盖 Axios timeout 为 60 秒；全局仍是 5 秒，
-  后端 provider 仍按 `.env` 的 30 秒上限执行，不加入自动重试。
-- Phaser player side sprite 改为向左才 `flipX`；right/left/up/down 四方向均有回归测试。
-- 首包 P0004 因提前声明 approved 基线形成循环，reviewer 给出 1 条 Important；
-  修复后的冻结包 `P0005-B0003..WT-20260914T1750.diff` 已获
-  `ADDRESSED — APPROVED`，Critical 0 / Important 0 / Minor 0。
-- 下一项是 Stage 3m **Task 8：Eval、演示种子与文档**。
+**Stage 3m 的最后一个 Task。Task 0–8 全部完成。**
+
+交付物：
+
+- `scripts/eval_agent.py`：隔离临时 SQLite 跑 N tick，输出 markdown 指标表，
+  支持 Fake / Live 双 provider 对照。指标全部从**已落盘数据**计算，不复算业务逻辑 ——
+  `planning` trace 记录 planner 产出的来源，`proposal` trace 记录经
+  `_with_fallback` 替换之后真正执行的来源，两者逐 (run, actor) 配对即可区分
+  「模型没返回可用结果」与「模型返回了但动作被引擎拒绝」。
+- `docs/eval/2026-09-14-agent-eval.md`：Live 真实报告。
+- `scripts/ensure_demo_world.py`：演示剧本（shir 体力 34 @tavern、grey 挪到 park 与
+  ryan 同处、authored knowledge 预投影成记忆），只作用于刚建出的空世界。
+- `README.md`：新增「Agent Loop」章节，覆盖 spec §19 的全部包装点；
+  校正了两处已经不成立的旧表述（核心原则 4「AI 只负责表达」、
+  已知限制「Goal、Plan 与 LLM 驱动的行动决策属于后续阶段」）。
+
+**spec §17 逐条验收结论见下方「Stage 3m 验收」小节。**
+
+---
+
+## Stage 3m 验收（对照 spec §17 逐条）
+
+判据：**有实测证据的才记通过；未执行的明确标注「未执行」，不得宣称通过。**
+
+| # | 验收条款 | 结论 | 证据 |
+| --- | --- | --- | --- |
+| 1 | 连续推进 20 tick，世界零异常，行为可追溯到 goal 与 thought | ✅ **通过** | Live eval 实跑 20/20 tick 全部 HTTP 200，日志零 Traceback / Exception；每条计划的 goal / goal_reason / thought / steps 落在 `agent_plans`，并有 `planning` trace 逐 tick 记录 |
+| 2 | 强制关闭 LLM，世界仍推进，UI 显示兜底徽章 | ✅ **通过** | 两条路径都实测：① 注入恒失败 provider 重启后从 UI 推进，世界 21:00→22:00，「思考」Tab 出现琥珀色「确定性兜底」徽章；② `runtime_mode=deterministic` 下 planning trace 条数为 0、tick 0.12s（Task 5 ledger） |
+| 3 | `GET /api/npcs/{id}/plan` 返回当前目标、计划步骤与进度 | ✅ **通过** | Task 5 端到端 14 项检查全 PASS（含 404 分支）；Task 7 在 UI 上渲染同一份数据 |
+| 4 | 「思考」Tab 完整展示一次决策的推理链路**与引用记忆** | ⚠️ **部分达成** | 推理链路完整：来源徽章、Goal + goal_reason、Thought、逐步进度、provider / model / latency / tokens、近期计划。**「引用记忆」未实现** —— 见下方说明 |
+| 5 | `eval_agent.py` 产出 6 项指标；**Live** 动作合法率 ≥ 90% | ✅ **通过** | spec §14 的 6 项全部产出（延迟与 token 拆成两行呈现）；Live `hy3` 实测 **90.2%（37/41）**，压线通过 |
+| 6 | 10 个关键测试全部通过 | ✅ **通过（13 个）** | `pytest --collect-only` 实测 13 collected：golden 1 + `test_planning_core` 8 + `test_agent_loop_fallback` 3 + `test_provider_isolation` 1。plan 定的 10 个之外多出 3 个，均为执行期定位到的静默缺陷（见「本阶段额外修复」） |
+| 7 | Golden 快照比对通过 | ✅ **通过** | `test_golden_deterministic.py` 全程绿，Task 0 建立后每次全量都跑，从未更新过快照 |
+| 8 | 全量测试通过，无新增 skip / warning | ✅ **通过** | `734 passed, 5 skipped, 1 warning in 265.14s`；Frontend `213 passed (30 files)`；type-check exit 0。5 skip 与 1 warning 与基线逐项一致 |
+
+### 第 4 条为什么只算部分达成
+
+spec §12 要求「思考」Tab 展示「**引用的 Memory**：按四层分组展示」。这一项没做，
+原因不是漏了，而是**做不成诚实的**：
+
+`agent_plans` 不记录哪些记忆参与了那一次规划。检索发生在 `AgentPlanner._retrieve`，
+结果进了 `[Episodic]` 段就被丢弃，没有落盘。如果把面板当前的公开记忆列表标成
+「本次决策引用的记忆」，那是**在界面上做一个无法支撑的断言** —— 展示的是此刻
+可公开的记忆，不是那一次决策实际看过的东西。
+
+档案 Tab 里的 Stage 2「相关记忆」区域仍然正常工作，展示该 NPC 当前可公开的记忆。
+
+**补齐的做法**（留给后续）：在 `agent_plans` 上增加一列记录本次检索命中的
+memory id，Plan API 带出，「思考」Tab 才能如实标注引用。这需要一次迁移，
+属 Stage 4 范围。
+
+### 本阶段在 plan 之外额外修复的三个静默缺陷
+
+三个都满足 plan 自己定的判据「错了会静默通过的用自动化测试」，因此各配一条回归：
+
+1. **Planner 检索在 tick 事务内写 telemetry**（Task 7 发现）。第二个 SQLite 连接拿不到
+   写锁，每个 NPC 干等满 5 秒 busy timeout 再被静默吞掉。tick 16.6s → 0.26s，
+   后端套件 462s → 266s。实测该写入在该路径上从未成功过，禁止它不损失任何现有行为。
+2. **配置的规划超时被静默压掉**（Live 冒烟发现）。`PlanningRequest.timeout_seconds`
+   的非 None 默认值让 `PLANNING_PROVIDER_TIMEOUT_SECONDS` 完全不起作用，
+   生效超时恒为 8 秒而模型需要 7.6–17 秒 —— Live 规划因此永远超时降级。
+3. **测试套件会花掉真实额度**（同上）。`conftest.py` 不隔离 `.env`，填了 key 之后
+   任何 `create_app()` 而不注入 provider 的用例都会打真实 API；全量套件从 266s
+   涨到 600s+ 未结束。这是 Stage 2 就存在的仓库级缺口，key 为空时被遮住了。
+
+### 遗留 P2（本轮明确不做）
+
+| 项 | 说明 |
+| --- | --- |
+| 确定性回放 | 未排期 |
+| LLM-as-judge | 未排期 |
+| 真 MCP 传输层（stdio / SSE） | manifest 形状已对齐，只差传输层 |
+| Token 预算治理 | 只记录 `tokens_used`，无预算约束或熔断 |
+| `LastOutcome` 跨 tick 回传 | 契约与 Context 段位都在，当前固定传 `None` |
+| **计划引用的记忆未落盘** | 第 4 条验收只能部分达成的直接原因 |
+| **Reflection 在 `hy3` 上返回 `{"": ""}`** | `json_object` 模式只保证「是 JSON」，不保证「是你的 JSON」。同一模型的 tool calling 完全正常 —— 修法是把 reflection 也切到 tool calling，属 Stage 2 代码 |
+| **三个 NPC 串行规划** | Live 下单 tick 24.6s（最慢 50s）。并行化要先解决共用 tick Session 的线程安全 |
 
 ## Historical Stage 2 Task 5 Closeout Notes（保留供追溯）
 
@@ -340,23 +409,45 @@ git diff HEAD --stat
 
 ### 下一步应该做什么
 
-**人类 review 当前热修 diff，并手动提交。** 建议提交信息：
+**人类 review Task 8 diff 并手动提交，Stage 3m 即告收尾。** 建议提交信息：
 
 ```text
-fix(frontend): stabilize npc chat and player facing
+docs: add stage 3m evaluation, demo seed and architecture narrative
 ```
 
-### 之后
+review 时值得重点看的三点：
 
-- 进入 Stage 3m Task 8，运行隔离的 Fake / Live eval 并产出真实指标。
-- Reflection 在 `hy3` 上返回 `{"": ""}` 与 3 NPC 串行规划 30–50 秒仍是既有 deferred，
-  不在本热修中展开。
+1. **`scripts/eval_agent.py` 的指标口径**是否成立 —— 特别是把 `llm` 与
+   `existing_plan` 一并计入「模型产出的提案」，以及用
+   `planning` trace 与 `proposal` trace 配对来区分「没拿到结果」与「结果被拒」。
+2. **`FakePlanningProvider` 现在会读 `[World]` 段**。这是为了让替身产出自洽计划
+   （原实现盲发 `work` / `eat`，合法率只有 46.7%，替身反而成了兜底的主要触发源）。
+   正则解析上下文文本是否可接受，值得一问。
+3. **README 校正的两处旧表述**是否准确：核心原则 4 从「AI 只负责表达」改成
+   「模型负责判断，引擎负责执行」；已知限制删掉了「Goal、Plan 与 LLM 驱动的
+   行动决策属于后续阶段」。
 
-### 仍然开放的两项
+### 之后：Stage 3m 收尾后的三项候选
+
+按价值/风险排序，都不在本阶段范围内：
+
+1. **Reflection 切到 tool calling**。`json_object` 模式在 `hy3` 上返回 `{"": ""}`，
+   而同一模型的 tool calling 完全正常 —— 模式只保证「是 JSON」不保证「是你的 JSON」。
+   `planning_provider.py` 里的做法可直接照搬。属 Stage 2 代码，应单独开小 task。
+2. **并行化三个 NPC 的 provider 调用**。Live 下单 tick 24.6s（最慢 50s），
+   其中绝大部分是串行等待。安全的做法：检索与 Context 组装仍串行（~30ms），
+   只把不持有任何 Session 的 `provider.plan()` 放进线程池，计划写入串行回到
+   tick session。预计 45s → ~18s。
+3. **把规划命中的 memory id 落盘**，让「思考」Tab 能如实标注引用记忆 ——
+   这是 spec §17 第 4 条只能部分达成的直接原因。需要一次迁移。
+
+### 仍然开放的项
 
 - ~~根 `.gitignore` 补 `/.superpowers/`~~ —— **已完成**。已验证：改动前 `.superpowers/foo.txt` 未被忽略（嵌套规则只覆盖 `sdd/`），改动后由 `.gitignore:121` 命中；且无任何已跟踪文件被误伤。
-- 本热修未运行 Live NPC Chat / 浏览器冒烟，避免写演示数据库与消耗真实 API 额度；
-  自动化测试与冻结包 review 已完成。
+- 外部 live Embedding Provider Smoke **从未配置、未执行、未宣称通过**。
+  `.env` 里 `EMBEDDING_PROVIDER` 仍是 `fake`：`hy3` 是 chat 模型，打 `/embeddings`
+  不会返回向量；且换 provider 会让既有记忆行在 `compatible()` 的四元组比对上全部失配。
+- 真实 PostgreSQL / pgvector 四文件 opt-in 测试本轮未运行（Task 8 不涉及数据库结构）。
 
 ### 必须遵守的约束
 

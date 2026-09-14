@@ -11,6 +11,7 @@
 
 - [90 秒体验路线](#90-秒体验路线)
 - [记忆闭环演示](#记忆闭环演示)
+- [Agent Loop：NPC 自己决定做什么](#agent-loopnpc-自己决定做什么)
 - [项目定位与核心设计](#项目定位与核心设计)
 - [世界观与当前章节](#世界观与当前章节)
 - [NPC 设定](#npc-设定)
@@ -68,6 +69,142 @@
 
 如果模型或 Embedding 不可用，这个区域会退化成关键词匹配并给出说明，但地图、详情、对话、推进和任务都照常可用。
 
+## Agent Loop：NPC 自己决定做什么
+
+记忆闭环证明的是 NPC **记得**什么。这一节是它的另一半：NPC 拿这些记忆**做什么**。
+
+推进世界时间时，每个 NPC 会形成一个目标、生成一份多步计划，并通过受校验的工具修改世界。整个过程在「思考」Tab 上逐步可见——目标、推理、计划进度，以及这一步到底是模型决定的还是引擎兜底的。
+
+```mermaid
+flowchart LR
+    Snapshot["不可变世界快照"]
+    Context["Context 组装<br/>八段分层"]
+    Retrieval["Hybrid Retrieval<br/>语义+词面+时近+重要度"]
+    Plan[("agent_plans<br/>Procedural Memory")]
+    Provider["PlanningProvider<br/>native tool calling"]
+    Decision["AgentDecision<br/>Pydantic 契约"]
+    Registry["ActionRegistry<br/>二次校验"]
+    Fallback["decide_action<br/>确定性兜底"]
+    Engine["冲突处理 → 原子提交"]
+
+    Snapshot --> Context
+    Retrieval --> Context
+    Plan -->|有活跃计划就复用，不调模型| Registry
+    Context --> Provider --> Decision --> Registry
+    Decision -->|写入| Plan
+    Provider -.超时 / 非法 schema.-> Fallback
+    Registry -.提案被拒.-> Fallback
+    Fallback --> Engine
+    Registry --> Engine
+    Engine --> Snapshot
+```
+
+### 模型负责判断，引擎负责执行
+
+这条分界线是整个设计的核心：**模型只能提出类型化的行动提案，不能直接写世界状态。**
+
+提案经过 `ActionRegistry` 的二次校验才可能执行——`work` 必须在该角色的职责地点、`eat` 必须在酒馆、`talk` 的目标必须是同地点的另一个 NPC。模型说了不算，规则说了算。
+
+### 工具是自描述的，与 MCP 对齐
+
+动作不是 prompt 里的一段自然语言说明，而是注册表里的类型化定义。`ActionRegistry.to_tool_manifest()` 输出的结构就是 MCP `tools/list` 的响应体形状，直接作为 OpenAI 原生 tool calling 的 `tools` 传给模型：
+
+```json
+{
+  "name": "move",
+  "description": "移动到地图上的另一个地点。目标必须是当前世界中存在的地点 id。",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "reason_code": { "type": "string", "description": "本次动作的简短原因码" },
+      "target_id": { "type": "string", "description": "目标地点 id" }
+    },
+    "required": ["reason_code", "target_id"]
+  }
+}
+```
+
+收益是工具说明与校验规则写在同一处，不会漂移；模型只能调已注册的工具，调了别的直接被拒。**本轮不实现 MCP 传输层**（stdio / SSE），只对齐契约形状。
+
+### Memory 四层
+
+| 层 | 落点 | 作用 |
+| --- | --- | --- |
+| Working | `planner.build_context()` 的单 tick 上下文 | 本次决策看到的全部信息 |
+| Episodic | `observations` + `memories(episodic/conversation)` | 亲历的事件与听到的说法 |
+| Semantic | `memories(knowledge)` + `beliefs` | 稳定知识与带生命周期的信念（active / disputed / superseded） |
+| Procedural | `agent_plans` + `ActionRegistry` | 会做什么、怎么做 |
+
+Context 按八段组装，而不是把所有东西塞进 prompt：
+
+```
+[Identity]   角色与性格
+[Needs]      体力 / 心情 / 社交 + 阈值提示
+[World]      当前位置、同场 NPC、可达地点
+[Episodic]   检索出的相关经历（有预算上限）
+[Semantic]   已确立的信念
+[Procedural] 当前计划与进度
+[Tools]      注册表导出的工具清单
+[LastOutcome] 上一步动作的执行结果
+```
+
+### Plan-and-Execute × ReAct
+
+tick 制世界天然构成跨 tick 的 ReAct 循环，两种范式在 tick 边界上结合而不是二选一：
+
+- **Plan-and-Execute 提供长程一致性**：一次规划产出 1–4 步，存进 `agent_plans` 跨 tick 续用。有活跃计划时**不调用模型**——这既是成本控制，也让 NPC 的行为有连贯脉络而不是每回合重新起意。
+- **ReAct 提供单步反应性**：每一步执行后的结果回流成 Observation，下一次规划时进入 `[LastOutcome]` 段。
+
+计划在三种情况下终止：步骤走完（`completed`）、某一步被引擎拒绝（`abandoned`）、或超过 8 个 tick 未完成（强制重规划，防止 NPC 抱着过期计划不放）。
+
+### 韧性：LLM 挂了，世界照常运转
+
+这是整个 Stage 的唯一不变量：
+
+> **无论模型超时、返回非法 schema、还是提案被 `ActionRegistry` 拒绝，世界一定能推进。**
+
+任一环节失败都落到确定性策略 `decide_action()`，提案标记为 `source=fallback` 写入 trace，UI 上显示琥珀色「确定性兜底」徽章。降级是可见的，不是静默的——玩家和开发者都能看出这一步是谁决定的。
+
+「思考」Tab 的徽章有四种：
+
+| 徽章 | 含义 |
+| --- | --- |
+| **LLM 规划** | 本回合由真实模型生成了新计划 |
+| **替身规划** | 未配置规划 provider，由确定性替身生成计划（流程完全一致） |
+| **沿用计划** | 复用已有计划，本回合没有调用模型 |
+| **确定性兜底** | 规划不可用，由确定性策略接管 |
+
+### 评估
+
+`scripts/eval_agent.py` 在隔离的临时数据库里跑 N 个 tick，输出 markdown 指标表，支持 Fake / Live 双 provider 对照。它**绝不写入 `backend/data/aleria.db`**。
+
+```bash
+python scripts/eval_agent.py --ticks 20 --provider fake
+python scripts/eval_agent.py --ticks 20 --provider live --out docs/eval/report.md
+```
+
+下面是 2026-09-14 的真实运行结果，20 个 tick、三个 NPC。Fake 一列是基线对照，Live 一列跑在腾讯混元 `hy3` 上（完整报告见 [`docs/eval/2026-09-14-agent-eval.md`](docs/eval/2026-09-14-agent-eval.md)）：
+
+| 指标 | Fake | Live（`hy3`） | 含义 |
+| --- | --- | --- | --- |
+| 动作合法率 | 100.0%（60/60） | **90.2%（37/41）** | 模型产出的提案中未被引擎替换的比例 |
+| Schema 有效率 | 100.0%（30/30） | 59.6%（28/47） | 调用模型的 tick 中一次返回合法 `AgentDecision` 的比例 |
+| 兜底率 | 0.0%（0/60） | 38.3%（23/60） | 实际由确定性策略执行的提案占比 |
+| 目标达成率 | 90.0%（27/30） | 85.7%（24/28） | `completed` 计划占全部计划的比例 |
+| 行为熵 | 1.411 / 2.585 | 1.871 / 2.585 | 动作类型分布的香农熵 |
+| 平均规划延迟 | 0 ms | 12666 ms | 单次模型调用的平均耗时 |
+| 累计 token | — | 83183（28 次调用） | 本次评估的总消耗 |
+
+三点如实说明：
+
+- **动作合法率 90.2% 刚好压在验收线上**，样本 41 条偏小，不宜当作稳定结论。
+- **Schema 有效率 59.6% 是最弱的一项**：47 次调用里 19 次超时。平均延迟 12.7 秒而超时上限配在 20 秒，长尾会被切掉。调高超时能直接改善，代价是 tick 更慢。
+- **兜底率 38.3% 主要来自超时，而不是模型选错动作。** 把这两件事分开统计正是「Schema 有效率」与「动作合法率」并列的意义：前者衡量拿没拿到结果，后者衡量拿到的对不对。
+
+Live 下单个 tick 24.6 秒（最慢 50 秒），因为三个 NPC 是**串行**调用模型；有活跃计划的 tick 不调模型，只要几百毫秒。
+
+行为熵用来防「NPC 一直吃饭」的行为坍缩：6 个动词的满熵是 `log2(6) ≈ 2.585`，低于 1.0 会被标注风险。
+
 ## 项目定位与核心设计
 
 Aleria AI Town 是一个“**确定性世界模拟 + 生成式角色对话**”的小型叙事 RPG。它不是让大模型决定游戏规则，而是让大模型在明确的世界规则、角色知识和任务上下文内扮演 NPC。
@@ -77,9 +214,9 @@ Aleria AI Town 是一个“**确定性世界模拟 + 生成式角色对话**”�
 1. **Backend 是唯一事实来源**：World、NPC、玩家语义地点和 Quest 状态均由 FastAPI 与数据库维护（本地 SQLite，Docker PostgreSQL）。
 2. **Phaser 负责游戏表现**：地图、碰撞、移动、镜头与 Sprite 由 Phaser 管理，但 Phaser 不独立完成任务状态迁移。
 3. **键盘与点击移动归一**：WASD 进入地点区域和“快速前往”最终都会同步到同一个 Backend 地点状态，避免输入设备限制阻断任务。
-4. **AI 只负责表达**：模型可以决定 NPC 如何说，但不能擅自推进 Tick、移动 NPC、完成任务或写入世界状态。
-5. **确定性规则优先**：World Tick、行为校验和 Quest 状态机均使用可测试、可复现的普通业务逻辑。
-6. **可降级、可重置**：模型失败时回退 Mock；地图不可用时保留 DOM 交互入口；Demo 可以恢复到初始状态。
+4. **模型负责判断，引擎负责执行**：模型决定 NPC 说什么、以及**提议**做什么，但它只能产出类型化的 `ActionProposal`，不能推进 Tick、移动 NPC、完成任务或写入任何世界状态。所有提案都要再过一遍 `ActionRegistry` 校验和确定性冲突处理才可能落地。
+5. **确定性规则优先**：World Tick、行为校验和 Quest 状态机均使用可测试、可复现的普通业务逻辑。模型不可用时它们就是全部逻辑。
+6. **可降级、可重置**：对话失败回退 Mock，规划失败回退确定性策略并在 UI 上标注来源；地图不可用时保留 DOM 交互入口；Demo 可以恢复到初始状态。
 7. **事实、感知、记忆、信念分层**：世界事实、NPC 感知到的内容、玩家的说法和 NPC 自己的推断是四类不同的东西。每条记忆都能沿来源或证据链追溯，NPC 没有全知视角——同一件事对在场者、旁观者和不在场的人产生不同的记忆，甚至不产生记忆。
 8. **认知永远是从属的**：权威世界写入先提交，感知与记忆随后投影。Embedding、Reflection 或记忆检索失败只会让 NPC 表现得"想不起来"，不会让世界推进、任务或对话失败。
 
@@ -821,7 +958,11 @@ docker compose --env-file .env.production.example config --quiet
 - NPC 记忆是 append-only 的，只做来源幂等与内容去重，没有自动摘要压缩；长时间演示会持续累积记忆行。
 - Reflection 由累计重要度与新增记忆数触发，失败后最多自动重试一次；它只能引用真实存在的同 owner 证据，不能创造世界事实。
 - 记忆解释接口是匿名只读的，没有账号级身份，因此它不返回任何聊天原文；跨会话记忆要通过对话行为来验证。
-- NPC 之间不会互相交谈或传播信息；Goal、Plan 与 LLM 驱动的行动决策属于后续阶段。
+- NPC 之间可以 `talk`，但不会传播信息：交谈产生的是行动与事件，不会把一个 NPC 的记忆搬到另一个 NPC 身上。多 Agent 协商与消息总线属于后续阶段。
+- 规划是**串行**的：三个 NPC 依次调用模型，真实 provider 下单个 tick 约 30–50 秒。前端已为该接口单独放宽超时，但体感仍然偏慢；并行化需要先解决共用 tick Session 的线程安全问题。
+- 计划的动作空间锁定在 6 个动词（`move / work / eat / talk / rest / wait`）。NPC 的智能体现在选择与排序，不在可做事情的种类。
+- 不做 schema repair 重试：模型返回非法结构即判失败并降级，不会二次追问补救。
+- `agent_plans.tokens_used` 只记录消耗，没有预算约束或熔断。
 - 当前线上入口为 HTTP，没有域名和 TLS。
 - Phaser 像素坐标不持久化；Backend 只保存任务需要的语义地点。
 - 职业只影响外观、称谓和对话上下文，没有战斗数值差异。

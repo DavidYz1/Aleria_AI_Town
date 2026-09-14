@@ -9,6 +9,7 @@ import asyncio
 from hashlib import sha256
 import json
 import logging
+import re
 from typing import Annotated, Protocol
 
 import httpx
@@ -55,23 +56,27 @@ class PlanningProvider(Protocol):
     def plan(self, request: PlanningRequest) -> AgentDecision: ...
 
 
-# 每条剖面只用无目标动作：fake 拿不到世界快照，猜目标会被 registry 拒绝。
-# 按 npc_id 的稳定哈希选取，从而同一 NPC 输出恒定、不同 NPC 各有脉络。
-_FAKE_PROFILES = (
-    ("维持日常节奏并保持体力", "身份与作息决定先把本职事务推进到稳定状态",
-     (("work", "处理本职工作"), ("rest", "工作告一段落后原地休息"))),
-    ("先补足体力再谈其他", "体力是一切行动的前提，优先恢复",
-     (("eat", "进食补充体力"), ("rest", "进食后短暂休息"))),
-    ("观察局势后再决定投入方向", "信息不足时先等待，避免过早消耗体力",
-     (("wait", "原地观察周围动静"), ("work", "看清情况后回到本职工作"))),
+# `[World] 第 N 天 HH:MM，当前位于 X；同地点：a、b；可达地点：c、d`
+_WORLD_LINE = re.compile(
+    r"\[World\][^\n]*?当前位于\s*(?P<here>[^；\s]+)；"
+    r"同地点：(?P<peers>[^；\n]*)；"
+    r"可达地点：(?P<reachable>[^；\n]*)"
 )
+# 无条件合法的两个动作，解析失败时的安全退路。
+_SAFE_STEPS = (("rest", "原地休息恢复体力"), ("wait", "观察周围动静再做打算"))
 
 
 class FakePlanningProvider:
-    """确定性替身：不调外部服务，输出只由 `npc_id` 的稳定哈希决定。
+    """确定性替身：不调外部服务，输出只取决于 `npc_id` 与上下文里的世界信息。
 
-    同一 `npc_id` 每次返回同一计划；不同 `npc_id` 落到不同剖面，
-    使演示世界里三个 NPC 有各自的目标脉络，而不是复读同一句。
+    **计划必须自洽**。`work` 要求在职责地点、`eat` 要求在酒馆、`talk` 要求同地点有人，
+    盲发这些动作会被 `ActionRegistry` 拒绝并替换为兜底 —— 实测合法率只有 46.7%，
+    替身反而成了兜底路径的主要触发源，既污染评估基线也让未配 key 的演示像坏了。
+    因此这里读 `[World]` 段的三个事实（当前位置 / 同地点 NPC / 可达地点），
+    产出「第一步把自己带进条件成立的状态，第二步再做那件事」的两步计划。
+
+    解析失败一律退回 `rest` + `wait`：替身永远不该成为失败来源。
+    同一 `npc_id` 与同一世界状态每次返回同一计划。
     """
 
     provider_name = "fake"
@@ -79,18 +84,53 @@ class FakePlanningProvider:
     last_tokens_used = None
 
     def plan(self, request: PlanningRequest) -> AgentDecision:
-        digest = sha256(request.npc_id.encode()).digest()
-        goal, goal_reason, steps = _FAKE_PROFILES[digest[0] % len(_FAKE_PROFILES)]
+        goal, goal_reason, steps = self._profile(request)
         return AgentDecision(
             thought=f"{request.npc_id} 正在评估当前状态与近期记忆，判断下一步该做什么",
             goal=goal,
             goal_reason=goal_reason,
             steps=tuple(
-                PlanStep(action_type=action, target_kind=None, target_id=None, intent=intent)
-                for action, intent in steps
+                PlanStep(
+                    action_type=action,
+                    target_kind=kind,
+                    target_id=target,
+                    intent=intent,
+                )
+                for action, kind, target, intent in steps
             ),
             prompt_version=PROMPT_VERSION,
         )
+
+    def _profile(self, request: PlanningRequest):
+        match = _WORLD_LINE.search(request.context_text)
+        if match is None:
+            return ("保持基本节奏", "上下文缺少可用的世界信息，只做无条件安全的事",
+                    tuple((a, None, None, i) for a, i in _SAFE_STEPS))
+
+        here = match.group("here")
+        peers = [p for p in match.group("peers").split("、") if p and p != "无"]
+        reachable = [r for r in match.group("reachable").split("、") if r and r != "无"]
+        # 稳定哈希只用来在同样成立的选项间做确定性选择，不影响合法性。
+        digest = sha256(request.npc_id.encode()).digest()
+
+        if peers:
+            peer = peers[digest[0] % len(peers)]
+            return ("与同地点的居民建立联系", f"{here} 有 {peer} 在场，社交机会就在眼前",
+                    (("talk", "npc", peer, f"与同处 {here} 的 {peer} 交谈"),
+                     ("rest", None, None, "交谈后原地稍作休息")))
+
+        if here == "tavern":
+            return ("先补足体力再谈其他", "人已在酒馆，进食是此刻代价最低的选择",
+                    (("eat", None, None, "在酒馆进食补充体力"),
+                     ("rest", None, None, "进食后短暂休息")))
+
+        if "tavern" in reachable:
+            return ("前往酒馆补给并寻找同伴", f"{here} 此刻无人，酒馆既能进食也更可能遇到人",
+                    (("move", "location", "tavern", "移动到酒馆"),
+                     ("eat", None, None, "抵达后进食补充体力")))
+
+        return ("在当前位置保持观察", f"{here} 无人可谈且酒馆不可达，先不消耗体力",
+                tuple((a, None, None, i) for a, i in _SAFE_STEPS))
 
 
 def to_openai_tools(manifest: list[dict]) -> list[dict]:
