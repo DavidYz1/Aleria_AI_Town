@@ -215,7 +215,7 @@ export class TownScene extends Phaser.Scene {
 
     if (Math.abs(x) >= Math.abs(y) && x !== 0) {
       this.facing = 'side'
-      this.player.setFlipX(x > 0)
+      this.player.setFlipX(x < 0)
     } else if (y < 0) {
       this.facing = 'up'
       this.player.setFlipX(false)

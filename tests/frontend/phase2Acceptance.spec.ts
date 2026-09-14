@@ -186,7 +186,7 @@ describe('Phase 2 presentation acceptance', () => {
         display_name: '洛恩',
         adventurer_class: 'ranger',
       },
-    })
+    }, { timeout: 60_000 })
     expect(wrapper.get('.npc-chat-panel').text()).toContain('你的过去仍没有可靠证据')
     expect(useWorldStore().data?.world.clock_tick).toBe(0)
     expect(usePlayerQuestStore().data?.quest.version).toBe(0)

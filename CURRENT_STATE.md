@@ -8,7 +8,7 @@
 
 ## Current Date
 
-**2026-09-13**
+**2026-09-14**
 
 ---
 
@@ -17,51 +17,44 @@
 | 项 | 值 |
 | --- | --- |
 | 分支 | `main` |
-| HEAD | `bba9c72`（`docs: add AI review policy and collaboration contract`） |
-| 上一提交 | `85ce338`（`feat: complete stage 2 perception memory and reflection`） |
+| HEAD | `532898a`（`feat: complete live planning integration and thought UI`） |
+| 上一提交 | `c1b75dd`（`feat: add planner-driven agent runtime with fallback`） |
 | 远程 | `origin` → `github.com/DavidYz1/Aleria_AI_Town` |
-| 与远程的关系 | **本地领先 16 个提交，尚未 push** |
-| tracked 工作树 | **未暂存、未提交** — 8 个后端测试文件的替身签名修复（+57 / −33） |
-| 未跟踪文件 | 无 |
-| 生产代码 | **零改动**（`git diff HEAD -- backend/ frontend/ docs/ README.md` 为空） |
+| 与远程的关系 | **本地领先 8 个提交，尚未 push** |
+| tracked 工作树 | **未暂存、未提交** — Task 8 前 Chat timeout + Phaser 朝向热修及测试/状态更新 |
+| 未跟踪文件 | 热修 spec + plan 各 1 份 |
+| 生产代码 | `frontend/src/api/chat.ts`、`frontend/src/game/scenes/TownScene.ts` |
 
 ### 提交历史（近期）
 
 ```
-85ce338  feat: complete stage 2 perception memory and reflection  ← Stage 2 关闭
-2253768  feat: add safe memory explanation api and ui        ← Stage 2 Task 5 段 1
-d836f3c  feat: add evidence-bound reflection and beliefs      ← Stage 2 Task 4
-91c8a3d  feat: add permission-aware memory retrieval to npc chat  ← Stage 2 Task 3
-efc347f  feat: project authoritative sources into npc memories ← Stage 2 Task 2
-8ef1a24  feat: add stage 2 cognition schema and source metadata ← Stage 2 Task 1
-ba935ae  docs: add AI-native agent RPG stages 2-6 roadmap
-9ac8d1f  fix: close historical sqlite migration and git bash startup gaps
-e78714f  feat: add PostgreSQL persistence and Docker Compose database setup
-951a440  feat(frontend): migrate RPG runtime contract to world versions
-a00b234  feat(runtime): persist agent runs atomically with trace support
-b1c9e10  feat: add deterministic agent orchestration runtime
-9faa58f  feat: add typed action registry foundation
-514d0d7  refactor: add schema migrations and separate world_version from clock_tick
+532898a  feat: complete live planning integration and thought UI
+c1b75dd  feat: add planner-driven agent runtime with fallback
+8b78eb6  feat: add agent_plans table for procedural memory
+0dad0ac  feat: add planning contracts and mcp-compatible tool manifest
+eefa2c5  test: widen golden world coverage to low_mood branch
+54db5ab  test: add golden snapshot gate for deterministic engine
+fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage 3
+6a25028  chore: finalize AI review workflow and stage2 contract alignment
 ```
 
-### 测试基线（修复后的本机实测，2026-09-13）
+### 测试基线（Task 8 前热修工作树，本机实测，2026-09-14）
 
 | 套件 | 结果 |
 | --- | --- |
-| Backend 全量 | **`720 passed, 5 skipped, 1 warning in 234.96s`**（exit 0） |
-| Frontend | **`209 passed, 30 files`** |
+| Backend 全量 | **`734 passed, 5 skipped, 1 warning in 277.25s`**（exit 0） |
+| Frontend | **`213 passed, 30 files`**（原 209 + 四方向朝向 4） |
 | type-check | **exit 0** |
-| 真实 PostgreSQL / pgvector 四文件 opt-in | **`46 passed in 26.50s`，零 skip** |
+| 真实 PostgreSQL / pgvector 四文件 opt-in | 本轮未运行（热修不涉及后端或数据库） |
 | build | 本会话未跑 |
-| 外部 live Embedding/Reflection Smoke | **未配置、未执行、未宣称通过** |
+| Live NPC Chat / Phaser 浏览器冒烟 | **未执行、未宣称通过**（避免写演示 DB / 消耗 API 额度） |
 
-修复前是 `7 failed, 713 passed, 5 skipped, 3 warnings`；713 + 7 = 720，**没有丢失任何测试**。5 个 skip 与历史基线一致（四个 `TEST_POSTGRES_URL` opt-in + PowerShell `PATH` 无 POSIX `sh`），**无新增 skip**。warning 从 3 回落到 1，即既有的 Starlette/httpx 弃用提示——新增的两个 `PytestUnhandledThreadExceptionWarning` 随失败一并消失。
+热修的聚焦 RED 为 `7 failed, 60 passed`：Chat 的 5 个出站契约断言都缺少
+Axios config；Phaser right/left 两例收到恰好相反的 flip 值，而 up/down 已通过。
+最小实现后聚焦 `67 passed`，再跑完整矩阵得到上表结果。5 个 skip 与 1 个 warning
+均为既有基线，未新增。`backend/data/aleria.db` 未读取、未写入。
 
-PostgreSQL 验证使用独立 `aleria-postgres-test` Compose project；结束时用**不带 `-v`** 的 `down` 停止容器与网络，三个数据卷全部保留。
-
-Backend 从 709 增至 710，来自 Step 5 新增的 Stage 2 acceptance 用例（九步闭环写在单个测试内）。Step 6 对 `test_postgres_runtime.py` 的扩展位于 opt-in 用例中，未设置 URL 时仍计为 skip。
-
-Step 8 完整验证矩阵已执行；外部 live Embedding/Reflection Provider Smoke 未配置、未执行，也未宣称通过。
+下一步：人类 review 并提交本热修后进入 **Stage 3m Task 8（Eval、演示种子与文档）**。
 
 ---
 
@@ -139,6 +132,18 @@ Foundation 提供的稳定边界：三套独立计数器分离、所有 NPC 消�
 ---
 
 ## Current Task
+
+### Stage 3m Task 8 前稳定性热修 — ✅ 已实现、验证并通过 R1 review
+
+- NPC Chat 仅对 `/api/npcs/{id}/chat` 覆盖 Axios timeout 为 60 秒；全局仍是 5 秒，
+  后端 provider 仍按 `.env` 的 30 秒上限执行，不加入自动重试。
+- Phaser player side sprite 改为向左才 `flipX`；right/left/up/down 四方向均有回归测试。
+- 首包 P0004 因提前声明 approved 基线形成循环，reviewer 给出 1 条 Important；
+  修复后的冻结包 `P0005-B0003..WT-20260914T1750.diff` 已获
+  `ADDRESSED — APPROVED`，Critical 0 / Important 0 / Minor 0。
+- 下一项是 Stage 3m **Task 8：Eval、演示种子与文档**。
+
+## Historical Stage 2 Task 5 Closeout Notes（保留供追溯）
 
 ### Stage 2 Task 5：交付安全解释 UI、双数据库验收与 Stage 2 文档
 
@@ -292,33 +297,34 @@ tests/backend/test_stage2_acceptance.py::test_stage2_http_closure_survives_resta
 
 | 项 | 值 |
 | --- | --- |
-| **当前 approved 基线** | **`B0002-stage2-close-approved`** |
-| 基线路径 | `.superpowers/sdd/baselines/B0002-stage2-close-approved/` |
-| form | **C** — 全部内容由提交 `6a25028` 提供 |
-| 基线对应 HEAD | `6a25028`（`chore: finalize AI review workflow and stage2 contract alignment`） |
-| scope | 12 个文件（本轮交付物 + 评审判据文档） |
-| 通过的 gate | R1 — round 1 代码层面通过（Critical 0），round 2 scoped re-review 两条 Important 均 ADDRESSED |
-| 复核包 | `P0002-B0001..WT-20260913T1412.diff`（39,941 bytes） |
+| **当前 approved 基线** | **`B0004-stage3m-pre-task8-hotfix-approved`** |
+| 基线路径 | `.superpowers/sdd/baselines/B0004-stage3m-pre-task8-hotfix-approved/` |
+| form / HEAD | **W** / `532898a`（未提交热修工作树快照） |
+| scope | 9 个文件（2 production + 4 tests + CURRENT_STATE + spec + plan） |
+| 通过的 gate | R1 fix round — P0005 `ADDRESSED — APPROVED`，Critical 0 / Important 0 / Minor 0 |
+| 复核包 | `P0005-B0003..WT-20260914T1750.diff`（SHA256 `D5E1A67E…A90A`） |
 | 未清零 findings | **无** |
-| deferred minors | 6 条，见 `.superpowers/sdd/baselines/index.md` |
-| 前一基线 | `B0001-stage2-close-before`（❌ 未批准，**禁止**作为任何 gate 的增量起点，红线 10） |
+| deferred minors | 本热修无新增；Stage 3m 既有项见 ledger |
+| 前一基线 | `B0003-stage3m-pre-task8-hotfix-before`（❌ before，禁止作为下一 gate 增量起点） |
 
-### 这个基线授权什么
+### 当前 gate 状态
 
-**它是 Stage 3 的增量起点。** Stage 3 第一个 gate 的 delta 从 `6a25028` 起算。
+`B0004` 是 Stage 3m Task 8 的增量起点。它由 reviewer 实际批准的 P0005 状态建立；
+本小节是在 B0004 建立后才能写出的状态指针，按 policy 属 R0 预期移动。
 
-开始 Stage 3 前**必须先跑漂移检查**（`AI_REVIEW_POLICY` §3.6）：
+开始 Task 8 前必须先跑漂移检查（`AI_REVIEW_POLICY` §3.6）：
 
 ```bash
-git diff 6a25028 --stat
 git status --porcelain -uall
+git diff HEAD --stat
 ```
 
 范围外有差异即 `OUT_OF_SCOPE_DRIFT`，不得直接做增量 review（红线 11）；需先裁定或把漂移文件纳入 scope 后重建基线。
 
-> **已知的预期漂移**：本小节本身在 B0002 建立**之后**才能写（先有基线才能记录基线），因此 `CURRENT_STATE.md` 相对 `6a25028` 必然有一次改动。它是状态指针而非交付物，按 §2.3 属 R0。做漂移检查时把它视为预期移动项，不要当作违规。同类考虑见 `index.md` 的 DM-P0002-3。
+> 当前热修尚未由人类提交；人类提交导致
+> HEAD 移动但 scope 内容相同时属于 `HEAD_MOVED_CONTENT_SAME`，不需要重做 R1 review。
 
-### 本轮的机制实战记录
+### 历史机制实战记录（Stage 2，保留供追溯）
 
 三件事第一次在真实 gate 上发生，全部按设计工作：
 
@@ -334,26 +340,23 @@ git status --porcelain -uall
 
 ### 下一步应该做什么
 
-**对 `P0001` 做一次独立 R1 review，然后提交。**
+**人类 review 当前热修 diff，并手动提交。** 建议提交信息：
 
-reviewer 只需读那一个 21,535 bytes 的包——它自带 `## Integrity` 段（scope 8/8 变更、范围外漂移 1 处且已裁定），不需要重建仓库上下文，也不需要重读 Stage 2 的任何已批准内容。
-
-review 时值得重点看的三点：
-
-1. 那 14 处 `embed` 签名对齐是否**逐个判定过**，而不是机械套模板——特别是"provider 失败"类替身，它们的函数体现在才第一次真正执行。
-2. `test_stage2_acceptance.py` 那处**断言变更**是否成立（这是唯一一处改测试去匹配代码，依据是 `docs/05:105` 与 `api/npcs.py:76`）。
-3. `test_cognition_projection.py` 新增的 `budgets` 断言是否真的有判别力。
+```text
+fix(frontend): stabilize npc chat and player facing
+```
 
 ### 之后
 
-- 提交（建议信息：`test: align stale test doubles with fix A-E signatures`）。
-- 建立 `B0002-stage2-close-approved`，写入本小节，作为 Stage 3 的增量起点。
-- 进 Stage 3 前，Plan 需按 `AI_REVIEW_POLICY` §7.3 预声明 Review Level 与 binding 条款锚点，并加一条全局约束：每个 Task ≤ 8 文件、只命中一类触发条款，超出就拆。依据是 roadmap §8 的 8 条技术交付几乎条条命中 R2/R3。
+- 进入 Stage 3m Task 8，运行隔离的 Fake / Live eval 并产出真实指标。
+- Reflection 在 `hy3` 上返回 `{"": ""}` 与 3 NPC 串行规划 30–50 秒仍是既有 deferred，
+  不在本热修中展开。
 
 ### 仍然开放的两项
 
 - ~~根 `.gitignore` 补 `/.superpowers/`~~ —— **已完成**。已验证：改动前 `.superpowers/foo.txt` 未被忽略（嵌套规则只覆盖 `sdd/`），改动后由 `.gitignore:121` 命中；且无任何已跟踪文件被误伤。
-- 外部 live Embedding / Reflection Provider Smoke 从未配置、未执行、未宣称通过。
+- 本热修未运行 Live NPC Chat / 浏览器冒烟，避免写演示数据库与消耗真实 API 额度；
+  自动化测试与冻结包 review 已完成。
 
 ### 必须遵守的约束
 

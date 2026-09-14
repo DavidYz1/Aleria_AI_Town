@@ -421,7 +421,7 @@ describe('TownView', () => {
         display_name: '洛恩',
         adventurer_class: 'ranger',
       },
-    })
+    }, { timeout: 60_000 })
   })
 
   it('keeps TownGameHost mounted while a successful travel waits for background world refresh', async () => {

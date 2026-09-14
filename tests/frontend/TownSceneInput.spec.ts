@@ -277,6 +277,41 @@ describe('TownScene canvas input policy', () => {
   })
 })
 
+describe('TownScene player facing', () => {
+  it.each([
+    ['right', 160, 0, false],
+    ['left', -160, 0, true],
+    ['up', 0, -160, false],
+    ['down', 0, 160, false],
+  ])('faces %s while moving', async (_name, x, y, expectedFlipX) => {
+    const { TownScene } = await import('../../frontend/src/game/scenes/TownScene')
+    const bridge = new TownGameBridge({
+      profile: {
+        version: 1,
+        displayName: '洛恩',
+        adventurerClass: 'ranger',
+        introCompleted: true,
+      },
+      playerLocationId: 'tavern',
+      npcs: [],
+    })
+    const scene = new TownScene(bridge)
+    const player = {
+      anims: { play: vi.fn() },
+      setFlipX: vi.fn(),
+    }
+    Reflect.set(scene, 'player', player)
+    const updatePlayerAnimation = Reflect.get(scene, 'updatePlayerAnimation') as (
+      velocityX: number,
+      velocityY: number,
+    ) => void
+
+    updatePlayerAnimation.call(scene, x, y)
+
+    expect(player.setFlipX).toHaveBeenLastCalledWith(expectedFlipX)
+  })
+})
+
 describe('TownScene semantic player locations', () => {
   it('spawns at Backend location and emits only distinct location entries', async () => {
     const { TownScene } = await import('../../frontend/src/game/scenes/TownScene')

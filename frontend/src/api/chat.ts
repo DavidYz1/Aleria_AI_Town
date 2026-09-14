@@ -9,6 +9,9 @@ import type {
 } from '../types/chat'
 
 
+const NPC_CHAT_TIMEOUT_MS = 60_000
+
+
 export class ChatApiError extends Error {
   constructor(
     public readonly status: number | null,
@@ -27,6 +30,7 @@ export const sendNpcChat: ChatFetcher = async (
     const response = await api.post<ApiResponse<NpcChatData>>(
       `/api/npcs/${encodeURIComponent(npcId)}/chat`,
       request,
+      { timeout: NPC_CHAT_TIMEOUT_MS },
     )
     return response.data.data
   } catch (caught) {

@@ -42,6 +42,7 @@ describe('Chat API adapter', () => {
     expect(post).toHaveBeenCalledWith(
       '/api/npcs/ryan%2Fname/chat',
       { conversation_id: null, message: '你害怕史莱姆吗？' },
+      { timeout: 60_000 },
     )
   })
 
@@ -58,7 +59,7 @@ describe('Chat API adapter', () => {
     expect(post).toHaveBeenCalledWith('/api/npcs/ryan/chat', {
       conversation_id: '5e547c21-a228-4e86-940d-a1bf5d65702f',
       message: '继续聊聊吧。',
-    })
+    }, { timeout: 60_000 })
   })
 
   it('passes the optional player profile through in the wire payload', async () => {
@@ -82,7 +83,7 @@ describe('Chat API adapter', () => {
         display_name: '洛恩',
         adventurer_class: 'ranger',
       },
-    })
+    }, { timeout: 60_000 })
   })
 
   it.each([
