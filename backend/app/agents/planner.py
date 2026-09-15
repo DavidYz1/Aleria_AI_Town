@@ -218,9 +218,12 @@ class AgentPlanner:
                     f"当前计划「{active_plan.goal}」进行到第 {active_plan.current_step_index + 1} 步"
                     if active_plan is not None else "当前没有进行中的计划"
                 ),
-                "[Tools] " + "；".join(
-                    f"{t['name']}：{t['description']}" for t in self._registry.to_tool_manifest()
-                ),
+                # 只列动作名：完整描述已经随 `tools` 数组发出去了（实测占请求体 75%），
+                # 在这里再抄一遍等于让模型为同一份内容付两次 prompt token。
+                # spec §7 的八段式要求这一段存在，所以保留段落、压缩内容。
+                "[Tools] 可用工具："
+                + "、".join(t["name"] for t in self._registry.to_tool_manifest())
+                + "（参数与约束见工具定义）",
                 "[LastOutcome] " + (
                     f"上一步 {last_outcome.action_type} "
                     f"{'成功' if last_outcome.accepted else '被拒绝'}（{last_outcome.code}）"

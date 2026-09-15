@@ -389,3 +389,54 @@ def test_decide_many_reuses_active_plans_without_calling_the_model(plan_session,
     plan_session.commit()
     assert provider.calls == 3, "有活跃计划时不得再次调用模型"
     assert all(o.source is ProposalSource.EXISTING_PLAN for o in second.values())
+
+
+def test_request_does_not_ship_the_tool_descriptions_twice():
+    """`tools` 数组已经带了每个工具的完整描述（实测占请求体 75%）。
+
+    Context 的 `[Tools]` 段若再抄一遍全文，等于让模型为同一份内容付两次 prompt token。
+    这是**纯性能退化**：功能完全正常，只是每次调用更慢更贵，没有任何报错。
+    spec §7 的八段式要求这一段存在，所以保留段落、只列动作名。
+    """
+    from backend.app.llm.planning_provider import to_openai_tools
+
+    manifest = DEFAULT_ACTION_REGISTRY.to_tool_manifest()
+    planner = AgentPlanner(None, None, None, DEFAULT_ACTION_REGISTRY)
+    world = build_golden_world()
+    context = planner.build_context(world, world.npcs[0], None, (), None)
+
+    tools_line = next(l for l in context.split("\n") if l.startswith("[Tools]"))
+    # 非空前提：八段式的这一段必须还在，且真的列出了全部动作名。
+    assert all(tool["name"] in tools_line for tool in manifest)
+    for tool in manifest:
+        assert tool["description"] not in tools_line, (
+            f"`{tool['name']}` 的完整描述在 context 与 tools 数组里各出现一次")
+
+    # meta 三字段由第一条 call 提供，不该逼每条 call 都生成一遍。
+    for tool in to_openai_tools(manifest):
+        required = tool["function"]["parameters"]["required"]
+        assert not {"thought", "goal", "goal_reason"} & set(required), (
+            f"`{tool['function']['name']}` 仍把 meta 列为必填，模型会逐条重复生成")
+        assert "intent" in required, "每一步仍必须说明自己要达成什么"
+
+
+def test_decision_meta_is_taken_from_the_first_call_that_supplies_it():
+    """meta 改为选填之后，模型可能把它放在第二条 call 上。
+
+    只认第一条的话，这种响应会被判为非法并一路降级到确定性兜底 ——
+    模型明明给了可用结果，却因为位置不同被丢弃。
+    """
+    from backend.app.llm.planning_provider import _decision_from_tool_calls
+
+    def call(name, **arguments):
+        return {"function": {"name": name, "arguments": json.dumps(arguments, ensure_ascii=False)}}
+
+    decision = _decision_from_tool_calls([
+        call("rest", reason_code="low_energy", intent="先休息"),
+        call("work", reason_code="duty", intent="再工作",
+             thought="体力偏低", goal="恢复后回到岗位", goal_reason="能量低于阈值"),
+    ])
+
+    assert (decision.thought, decision.goal) == ("体力偏低", "恢复后回到岗位")
+    assert [s.action_type for s in decision.steps] == ["rest", "work"]
+    assert [s.intent for s in decision.steps] == ["先休息", "再工作"]
