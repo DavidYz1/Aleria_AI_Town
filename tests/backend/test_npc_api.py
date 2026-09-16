@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 
 from backend.app.core.config import Settings
 from backend.app.database.connection import create_engine_and_session
-from backend.app.database.models import AgentCognitionState, Memory, NpcState, Observation
+from backend.app.database.models import AgentCognitionState, AgentPlan, Memory, NpcState, Observation
 from backend.app.main import create_app
 from scripts.seed_world import seed_database
 
@@ -393,3 +393,52 @@ async def test_public_explanation_route_runs_core_only_and_never_live_providers(
     assert after_second == after_first
     assert embedding.calls == 0
     assert reflection.calls == 0
+
+
+@pytest.mark.anyio
+async def test_npc_plan_cites_only_memories_the_player_may_see(database_url, seed_dir):
+    """Planner 用 `INTERNAL_REFLECTION` 检索，那包含 secret 与 internal_only。
+
+    计划落盘的 id 是**完整的**（内部可追溯），但 Plan API 只能返回其中独立通过
+    公开硬过滤的那部分。私密记忆既不出现内容，也不以计数或占位符暴露 ——
+    这与 `memory-explanations` 的既有规则一致：看不到的东西就是不出现。
+    """
+    seed_database(database_url, seed_dir)
+    app = create_app(database_url, settings=Settings(_env_file=None))
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        tick = await client.post("/api/world/tick", json={"expected_world_version": 0})
+        chat = await client.post(
+            "/api/npcs/grey/chat",
+            json={"message": "只有你知道：我把蓝色羽毛藏在低语森林的石堆下"},
+        )
+        # 第一份计划建于 tick 0，那时只有预投影的 authored knowledge。公开的
+        # episodic 记忆由 tick 自己产生，所以要推到下一份计划出现，它引用的
+        # 才会同时包含公开与私密两类 —— 否则过滤断言跑在纯私密集合上。
+        for version in range(1, 7):
+            await client.post("/api/world/tick", json={"expected_world_version": version})
+        response = await client.get("/api/npcs/grey/plan")
+
+    assert (tick.status_code, chat.status_code, response.status_code) == (200, 200, 200)
+
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        plan = session.scalars(
+            select(AgentPlan).where(AgentPlan.owner_npc_id == "grey")
+            .order_by(AgentPlan.created_clock_tick.desc())
+        ).first()
+        owned = session.scalars(select(Memory).where(Memory.owner_npc_id == "grey")).all()
+    private = [m for m in owned if (m.secrecy, m.disclosure_scope) != ("public", "public")]
+
+    # 非空前提三条：计划确实落盘了引用、被引用的里确实有私密的、公开的也确实有。
+    assert plan is not None and plan.evidence_memory_ids_json, "计划必须记录引用的记忆"
+    assert private, "本用例要求 grey 名下确实存在不可公开的记忆"
+    cited_private = [m for m in private if m.id in plan.evidence_memory_ids_json]
+    assert cited_private, "被引用的记忆里必须确实包含私密的，否则过滤断言是平凡的"
+
+    shown = response.json()["data"]["current"]["evidence"]
+    shown_ids = {item["id"] for item in shown}
+    assert shown_ids, "公开的那部分必须仍然展示，空列表会让下面的断言全部平凡通过"
+    assert shown_ids.isdisjoint({m.id for m in cited_private})
+    assert len(shown_ids) < len(plan.evidence_memory_ids_json)
+    assert "蓝色羽毛" not in response.text and "石堆" not in response.text

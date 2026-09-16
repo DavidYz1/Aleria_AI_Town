@@ -316,6 +316,20 @@ class CognitionRepository:
             filters.append(or_(Memory.memory_type != "reflection", Memory.created_at <= request.created_before))
         return filters
 
+    def memories_by_id(self, request, memory_ids):
+        """按 id 取记忆，但**照常套用 `request.scope` 的完整硬过滤**。
+
+        调用方传 `PUBLIC_EXPLANATION` 即得到可公开的子集。这里刻意复用
+        `_memory_filters` 而不是另写一份 where —— 公开面只能有一套过滤规则，
+        复制一份迟早会与本体漂移，而漂移的方向是泄露。
+        """
+        if not memory_ids:
+            return ()
+        return tuple(self.session.scalars(
+            select(Memory).outerjoin(Observation, Observation.id == Memory.source_observation_id)
+            .where(*self._memory_filters(request), Memory.id.in_(list(memory_ids)))
+            .order_by(Memory.id)))
+
     def allowed_memories(self, request):
         return tuple(self.session.execute(select(Memory, Observation.source_turn_id)
             .outerjoin(Observation, Observation.id == Memory.source_observation_id)

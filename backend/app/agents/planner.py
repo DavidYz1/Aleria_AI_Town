@@ -29,6 +29,8 @@ class _PendingDecision:
     """`_prepare` 产出、等待模型回答的中间态。只带纯数据，不带 Session。"""
 
     request: PlanningRequest
+    # 本次检索命中的 memory id，随计划一起落盘，供「思考」Tab 如实标注引用记忆。
+    evidence_memory_ids: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -75,7 +77,7 @@ class AgentPlanner:
         prepared = self._prepare(world, actor, last_outcome)
         if isinstance(prepared, PlanningOutcome):
             return prepared
-        return self._settle_answer(world, actor, self._ask(prepared))
+        return self._settle_answer(world, actor, self._ask(prepared), prepared)
 
     def decide_many(self, world: WorldSnapshot, actors, *,
                     last_outcome: LastOutcome | None) -> dict[str, PlanningOutcome]:
@@ -107,7 +109,8 @@ class AgentPlanner:
                 outcomes[actor.id] = item
             elif item is not None:
                 try:
-                    outcomes[actor.id] = self._settle_answer(world, actor, answers[actor.id])
+                    outcomes[actor.id] = self._settle_answer(
+                        world, actor, answers[actor.id], item)
                 except Exception:
                     logger.warning("Planning persistence failed npc_id=%s", actor.id)
         return outcomes
@@ -137,11 +140,14 @@ class AgentPlanner:
 
         # 规则 1：调模型生成新计划
         memories = self._retrieve(world, actor)
-        return _PendingDecision(request=PlanningRequest(
-            npc_id=actor.id,
-            context_text=self.build_context(world, actor, None, memories, last_outcome),
-            tool_manifest=self._registry.to_tool_manifest(),
-        ))
+        return _PendingDecision(
+            request=PlanningRequest(
+                npc_id=actor.id,
+                context_text=self.build_context(world, actor, None, memories, last_outcome),
+                tool_manifest=self._registry.to_tool_manifest(),
+            ),
+            evidence_memory_ids=tuple(str(m.memory_id) for m in memories),
+        )
 
     def _ask(self, pending: "_PendingDecision") -> "_ProviderAnswer":
         """第二相：纯网络，不碰任何 Session。失败在这里被吞成 `decision=None`。
@@ -173,7 +179,8 @@ class AgentPlanner:
             return {npc_id: future.result() for npc_id, future in futures.items()}
 
     def _settle_answer(self, world: WorldSnapshot, actor: NpcSnapshot,
-                       answer: "_ProviderAnswer") -> PlanningOutcome:
+                       answer: "_ProviderAnswer",
+                       pending: "_PendingDecision") -> PlanningOutcome:
         """第三相：回到调用线程串行写库。"""
         if answer.decision is None:
             return PlanningOutcome(
@@ -187,6 +194,7 @@ class AgentPlanner:
             model=getattr(self._provider, "model_name", "unknown"),
             latency_ms=answer.latency_ms,
             tokens_used=answer.tokens_used,
+            evidence_memory_ids=list(pending.evidence_memory_ids),
         )
         return PlanningOutcome(
             proposal=self._to_proposal(actor, created.steps_json[0], ProposalSource.LLM),

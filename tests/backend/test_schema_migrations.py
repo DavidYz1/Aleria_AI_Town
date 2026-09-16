@@ -53,7 +53,7 @@ def test_empty_sqlite_database_upgrades_to_head_with_model_tables(
         "alembic_version"
     }
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0006"
 
 
 def test_sqlite_url_with_percent_character_upgrades_to_head(tmp_path: Path) -> None:
@@ -93,7 +93,7 @@ def test_exact_unversioned_legacy_schema_is_adopted(tmp_path: Path) -> None:
     upgrade_schema(database_url)
 
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0006"
 
 
 def test_partial_unversioned_schema_is_rejected(tmp_path: Path) -> None:
@@ -129,7 +129,7 @@ def test_real_orm_legacy_sqlite_upgrades_without_data_loss(
         column["name"] for column in inspector.get_columns("world_state")
     )
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0006"
         assert connection.execute(
             text(
                 "SELECT day, time, clock_tick, world_version, event_sequence "
@@ -429,7 +429,7 @@ def test_0003_foundation_data_upgrades_to_cognition_head_without_fabricated_sour
 
     assert COGNITION_TABLES.issubset(inspect(engine).get_table_names())
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0006"
         assert connection.execute(text(
             "SELECT location_id, perception_scope, participant_npc_ids_json, "
             "witness_npc_ids_json FROM events WHERE id=:id"
@@ -450,7 +450,7 @@ def test_postgresql_empty_database_upgrades_to_runtime_head(postgres_database_ur
         upgrade_schema(url)
         assert set(inspect(engine).get_table_names()) == MODEL_TABLES | COGNITION_TABLES | STAGE3M_TABLES | {"alembic_version"}
         with engine.connect() as conn:
-            assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
+            assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "0006"
         checks = inspect(engine).get_check_constraints("actions")
         assert not any("action_type" in check["sqltext"] for check in checks)
     finally:
@@ -490,8 +490,54 @@ def test_0005_agent_plans_upgrade_is_idempotent_and_preserves_rows(tmp_path: Pat
 
     assert set(inspect(engine).get_table_names()) == tables_before
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0005"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0006"
         assert connection.scalar(text("SELECT count(*) FROM agent_plans")) == 1, (
             "非空前提：重复升级后计划行必须仍在"
         )
         assert connection.scalar(text("SELECT status FROM agent_plans WHERE id = 'plan-1'")) == "active"
+
+
+def test_0006_plan_evidence_upgrades_in_place_and_leaves_legacy_rows_unknown(
+    tmp_path: Path,
+) -> None:
+    """`0006` 给 `agent_plans` 补记录本次规划引用了哪些记忆的列。
+
+    列必须可空且**不带 server_default**：`0006` 之前写入的计划确实没有这份记录，
+    默认成空数组等于声称「它引用了 0 条记忆」—— 那是一条无法支撑的断言，
+    UI 会把「未记录」渲染成「什么都没引用」。两者必须可区分。
+    """
+    database_url = f"sqlite:///{(tmp_path / 'evidence.db').as_posix()}"
+    upgrade_schema(database_url)
+
+    engine = create_engine(database_url)
+    with engine.begin() as connection:
+        connection.execute(text(
+            "INSERT INTO world_state (id, name, day, time, clock_tick, world_version, event_sequence)"
+            " VALUES ('aleria-town', 'w', 1, '08:00', 0, 0, 0)"
+        ))
+        connection.execute(text(
+            "INSERT INTO npc_profiles (id, name, role, personality_json, sort_order)"
+            " VALUES ('elena', 'Elena', 'Knight', '[]', 1)"
+        ))
+        connection.execute(text(
+            "INSERT INTO agent_plans (id, world_id, owner_npc_id, thought, goal, goal_reason,"
+            " steps_json, current_step_index, status, created_clock_tick, updated_clock_tick,"
+            " provider, model, prompt_version)"
+            " VALUES ('legacy-plan', 'aleria-town', 'elena', 't', 'g', 'r', '[]', 0, 'active', 1, 1,"
+            " 'fake', 'fake-1', 'planning-v1')"
+        ))
+
+    tables_before = set(inspect(engine).get_table_names())
+    upgrade_schema(database_url)  # 重复运行必须幂等
+
+    assert set(inspect(engine).get_table_names()) == tables_before
+    columns = {c["name"] for c in inspect(engine).get_columns("agent_plans")}
+    assert "evidence_memory_ids_json" in columns
+
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0006"
+        # 非空前提：升级前写入的那一行必须还在，否则下面的断言无从谈起。
+        assert connection.scalar(text("SELECT count(*) FROM agent_plans")) == 1
+        assert connection.scalar(text(
+            "SELECT evidence_memory_ids_json FROM agent_plans WHERE id = 'legacy-plan'"
+        )) is None, "历史行必须读作「未记录」，不能被默认成空数组"

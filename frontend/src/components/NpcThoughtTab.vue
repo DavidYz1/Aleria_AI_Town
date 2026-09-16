@@ -77,6 +77,16 @@ const source = computed<DecisionSource | null>(() => {
 const badge = computed(() => (source.value === null ? null : SOURCE_BADGES[source.value]))
 const reference = computed<PlanInfo | null>(() => current.value ?? recent.value[0] ?? null)
 
+// 兜底时 `reference` 指向上一份计划，那份计划的引用也属于上一份决策 ——
+// 本回合根本没有决策，不该展示任何「本次引用」。
+const evidence = computed(() =>
+  source.value === 'fallback' || reference.value === null
+    ? []
+    : Array.isArray(reference.value.evidence)
+      ? reference.value.evidence
+      : [],
+)
+
 const observability = computed(() => {
   const plan = reference.value
   if (plan === null) return []
@@ -197,6 +207,24 @@ watch(
               <p class="thought-step-intent">{{ step.intent }}</p>
             </li>
           </ol>
+        </section>
+
+        <section
+          v-if="evidence.length > 0"
+          class="thought-evidence"
+          aria-labelledby="thought-evidence-heading"
+        >
+          <p class="detail-label">Evidence</p>
+          <h4 id="thought-evidence-heading">这次决策引用的记忆</h4>
+          <ul class="thought-evidence-list" aria-label="引用的记忆">
+            <li v-for="item in evidence" :key="item.id">
+              <span class="thought-evidence-label">{{ item.label }}</span>
+              <span class="thought-evidence-summary">{{ item.summary }}</span>
+            </li>
+          </ul>
+          <p class="thought-note thought-evidence-note">
+            只列出可以公开的部分；不可公开的记忆不会出现，也不会以数量差异体现。
+          </p>
         </section>
 
         <dl class="thought-observability" aria-label="规划可观测性">
@@ -481,6 +509,43 @@ watch(
 
 .thought-steps li.is-done .thought-step-intent {
   color: #77857b;
+}
+
+.thought-evidence-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thought-evidence-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  border-left: 0.18rem solid #cbd1c6;
+  border-radius: 0.45rem;
+  background: #f4f5ef;
+}
+
+.thought-evidence-label {
+  color: #7a6348;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.thought-evidence-summary {
+  color: #4b5b50;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.thought-evidence-note {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
 }
 
 .thought-observability {

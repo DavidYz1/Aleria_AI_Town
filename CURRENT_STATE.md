@@ -8,7 +8,7 @@
 
 ## Current Date
 
-**2026-09-14**
+**2026-09-16**
 
 ---
 
@@ -17,17 +17,19 @@
 | 项 | 值 |
 | --- | --- |
 | 分支 | `main` |
-| HEAD | `f53f125`（`feat: switch reflection to native tool calling and isolate tests from .env`） |
-| 上一提交 | `9de8e7d`（`docs: add stage 3m evaluation, demo seed and architecture narrative`） |
+| HEAD | `5bc8858`（`perf: stop shipping tool descriptions twice and prefer multi-step plans`） |
+| 上一提交 | `853e4f7`（`perf: run npc planning calls concurrently within one tick`） |
 | 远程 | `origin` → `github.com/DavidYz1/Aleria_AI_Town` |
 | 与远程的关系 | **本地领先 8 个提交，尚未 push** |
-| tracked 工作树 | **未暂存、未提交** — 跟进项 ②「并行化 provider 调用」 |
-| 未跟踪文件 | 无 |
-| 生产代码 | `backend/app/agents/planner.py`、`backend/app/llm/planning_provider.py`、`backend/app/services/world_clock_service.py` |
+| tracked 工作树 | **未暂存、未提交** — 跟进项 ③「规划命中的 memory id 落盘」 |
+| 未跟踪文件 | `backend/migrations/versions/0006_plan_evidence.py` |
+| 生产代码 | planner / npc_plan / cognition_repository / models / plan_repository / schemas.plan + 前端两个文件 |
 
 ### 提交历史（近期）
 
 ```
+5bc8858  perf: stop shipping tool descriptions twice and prefer multi-step plans
+853e4f7  perf: run npc planning calls concurrently within one tick
 f53f125  feat: switch reflection to native tool calling and isolate tests from .env
 9de8e7d  docs: add stage 3m evaluation, demo seed and architecture narrative
 060d963  fix(frontend): stabilize npc chat and player facing
@@ -41,20 +43,23 @@ fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage
 6a25028  chore: finalize AI review workflow and stage2 contract alignment
 ```
 
-### 测试基线（跟进项 ② 工作树，本机实测，2026-09-14）
+### 测试基线（跟进项 ③ 工作树，本机实测，2026-09-16）
 
 | 套件 | 结果 |
 | --- | --- |
-| Backend 全量 | **`748 passed, 5 skipped, 1 warning in 269.50s`**（exit 0） |
-| Frontend | **`213 passed, 30 files`**（跟进项 ①② 均零前端改动，沿用 Task 8 实测） |
-| type-check | **exit 0**（同上） |
+| Backend 全量 | **`754 passed, 5 skipped, 1 warning in 295.26s`**（exit 0） |
+| Frontend | **`213 passed, 30 files`** |
+| type-check | **exit 0** |
 | Golden 快照闸门 | **PASS**（含在全量内） |
 | 真实 PostgreSQL / pgvector 四文件 opt-in | 未运行（跟进项不涉及数据库结构） |
 | build | 本会话未跑 |
 | Fake eval（20 tick） | 动作合法率 **100.0%**，兜底率 0.0% |
 | Live eval（20 tick，`hy3`） | 动作合法率 **90.2%**，见 `docs/eval/2026-09-14-agent-eval.md` |
 
-测试数 734 → 745（跟进项 ① reflection tool calling）→ 748（跟进项 ② 并行化）。
+测试数 734 → 745（① reflection tool calling）→ 748（② 并行化）
+→ 750（延迟诊断的两条静默退化守卫）→ 754（③ memory id 落盘）。
+**迁移链现为 `0001 → … → 0006`；演示库 `backend/data/aleria.db` 仍停在 `0005`，
+下次通过启动脚本会自动升级。**
 5 个 skip 与 1 个 warning 自 Stage 2 起未变，**无新增**。
 所有 Live 验证都跑在临时或 scratchpad 数据库副本上，`backend/data/aleria.db` 只读不写。
 
@@ -96,6 +101,30 @@ fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage
 
 完整记录（含一次 Git 规则违规的说明）见
 `.superpowers/sdd/2026-09-14-parallel-planning/progress.md`。
+
+### ③ 规划命中的 memory id 落盘 — ✅ 已实现与验证，等待人类 review
+
+补齐 spec §17 第 4 条。迁移 `0006` 给 `agent_plans` 加
+`evidence_memory_ids_json`：**落盘完整、对外收窄** —— planner 用
+`INTERNAL_REFLECTION` 检索（含 secret），Plan API 返回前重新过一遍
+`PUBLIC_EXPLANATION` 硬过滤，不可公开的既不出现内容也不以计数暴露。
+过滤复用 `_memory_filters`，不另写一份 where。
+`None`（`0006` 之前写入、未记录）与 `[]`（确实没检索到）刻意可区分。
+
+隐私断言配变异验证：移除硬过滤后私密 id 立刻出现在响应里。
+执行中被自己的非空前提断言抓到两处错（把 `created_clock_tick` 当 `world_version`；
+测试场景没造出混合引用集）。完整记录见
+`.superpowers/sdd/2026-09-15-plan-evidence/progress.md`。
+
+### 延迟诊断（跟进项 ② 与 ③ 之间）— ✅ 已提交 `5bc8858`
+
+回答了「为什么每 tick 恒约 20.2 秒且各有一次 planning unavailable」：
+tick = 三个并发调用里最慢的那个，被 20 秒超时截断；并发把单次延迟拉长约 3 倍
+（服务端吞吐受限）。载荷去重 + 更长计划把调用数从 0.78 降到 0.50 次/NPC-tick，
+但**墙钟 tick 时间基本没改善**，因为单次调用本身就是 ~17 秒中位。
+三个假设被证伪（放宽超时、连接池、单 tick 调用数上限），记录在
+`.superpowers/sdd/2026-09-15-planning-latency-diagnostic/progress.md`。
+**客户端侧杠杆已基本用尽，真正的答案是把规划移出 tick 的关键路径。**
 
 ---
 
@@ -205,13 +234,20 @@ Foundation 提供的稳定边界：三套独立计数器分离、所有 NPC 消�
 | 1 | 连续推进 20 tick，世界零异常，行为可追溯到 goal 与 thought | ✅ **通过** | Live eval 实跑 20/20 tick 全部 HTTP 200，日志零 Traceback / Exception；每条计划的 goal / goal_reason / thought / steps 落在 `agent_plans`，并有 `planning` trace 逐 tick 记录 |
 | 2 | 强制关闭 LLM，世界仍推进，UI 显示兜底徽章 | ✅ **通过** | 两条路径都实测：① 注入恒失败 provider 重启后从 UI 推进，世界 21:00→22:00，「思考」Tab 出现琥珀色「确定性兜底」徽章；② `runtime_mode=deterministic` 下 planning trace 条数为 0、tick 0.12s（Task 5 ledger） |
 | 3 | `GET /api/npcs/{id}/plan` 返回当前目标、计划步骤与进度 | ✅ **通过** | Task 5 端到端 14 项检查全 PASS（含 404 分支）；Task 7 在 UI 上渲染同一份数据 |
-| 4 | 「思考」Tab 完整展示一次决策的推理链路**与引用记忆** | ⚠️ **部分达成** | 推理链路完整：来源徽章、Goal + goal_reason、Thought、逐步进度、provider / model / latency / tokens、近期计划。**「引用记忆」未实现** —— 见下方说明 |
+| 4 | 「思考」Tab 完整展示一次决策的推理链路**与引用记忆** | ✅ **已补齐**（跟进项 ③，2026-09-15） | 推理链路完整；引用记忆经 `0006` 落盘后由「这次决策引用的记忆」区展示。**只列可公开的部分**：planner 用 `INTERNAL_REFLECTION` 检索，API 返回前重新过 `PUBLIC_EXPLANATION` 硬过滤，不可公开的既不出现内容也不以计数暴露。隐私断言配变异验证 |
 | 5 | `eval_agent.py` 产出 6 项指标；**Live** 动作合法率 ≥ 90% | ✅ **通过** | spec §14 的 6 项全部产出（延迟与 token 拆成两行呈现）；Live `hy3` 实测 **90.2%（37/41）**，压线通过 |
 | 6 | 10 个关键测试全部通过 | ✅ **通过（13 个）** | `pytest --collect-only` 实测 13 collected：golden 1 + `test_planning_core` 8 + `test_agent_loop_fallback` 3 + `test_provider_isolation` 1。plan 定的 10 个之外多出 3 个，均为执行期定位到的静默缺陷（见「本阶段额外修复」） |
 | 7 | Golden 快照比对通过 | ✅ **通过** | `test_golden_deterministic.py` 全程绿，Task 0 建立后每次全量都跑，从未更新过快照 |
 | 8 | 全量测试通过，无新增 skip / warning | ✅ **通过** | `734 passed, 5 skipped, 1 warning in 265.14s`；Frontend `213 passed (30 files)`；type-check exit 0。5 skip 与 1 warning 与基线逐项一致 |
 
-### 第 4 条为什么只算部分达成
+### 第 4 条：原本为什么只算部分达成（跟进项 ③ 已补齐）
+
+**以下是 Stage 3m 收尾时的记录，保留供追溯。** 该条已由 2026-09-15 的跟进项 ③
+补齐：`agent_plans.evidence_memory_ids_json`（迁移 `0006`）记录完整命中 id，
+Plan API 只返回其中通过公开硬过滤的部分。执行记录见
+`.superpowers/sdd/2026-09-15-plan-evidence/progress.md`。
+
+#### 当时的判断
 
 spec §12 要求「思考」Tab 展示「**引用的 Memory**：按四层分组展示」。这一项没做，
 原因不是漏了，而是**做不成诚实的**：

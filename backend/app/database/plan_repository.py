@@ -23,6 +23,7 @@ class PlanRepository:
         self, world_id: str, npc_id: str, decision: AgentDecision, *,
         clock_tick: int, run_id: str | None, provider: str, model: str,
         latency_ms: int | None, tokens_used: int | None,
+        evidence_memory_ids: list[str] | None = None,
     ) -> AgentPlan:
         plan = AgentPlan(
             id=str(uuid4()), world_id=world_id, owner_npc_id=npc_id, source_run_id=run_id,
@@ -32,6 +33,9 @@ class PlanRepository:
             created_clock_tick=clock_tick, updated_clock_tick=clock_tick,
             provider=provider, model=model, prompt_version=decision.prompt_version,
             latency_ms=latency_ms, tokens_used=tokens_used,
+            # `None` 只应出现在 `0006` 之前写入的行上。本方法的调用方总是给出
+            # 一份列表（哪怕检索失败也是空列表），两者语义不同，不要合并。
+            evidence_memory_ids_json=evidence_memory_ids,
         )
         self._session.add(plan)
         self._session.flush()

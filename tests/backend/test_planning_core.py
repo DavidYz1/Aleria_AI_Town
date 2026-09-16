@@ -1,6 +1,7 @@
 from dataclasses import replace
 import json
 import threading
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -440,3 +441,67 @@ def test_decision_meta_is_taken_from_the_first_call_that_supplies_it():
     assert (decision.thought, decision.goal) == ("体力偏低", "恢复后回到岗位")
     assert [s.action_type for s in decision.steps] == ["rest", "work"]
     assert [s.intent for s in decision.steps] == ["先休息", "再工作"]
+
+
+class RecordingRetriever:
+    """返回固定的一组记忆，用来验证落盘的 id 就是检索真正命中的那一组。"""
+
+    def __init__(self, memory_ids):
+        self.memory_ids = list(memory_ids)
+
+    def retrieve(self, request):
+        memories = tuple(
+            SimpleNamespace(memory_id=mid, content=f"记忆 {mid}") for mid in self.memory_ids
+        )
+        return RetrievalResult(memories=memories, mode="stub")
+
+
+def test_plan_records_the_memory_ids_that_actually_fed_the_decision(
+    plan_session, seeded_ids,
+):
+    """没有这份记录，「思考」Tab 就无法如实标注引用记忆 —— 拿面板当前的公开记忆
+    充数是在界面上做一个数据支撑不了的断言（spec §17 第 4 条只能部分达成的原因）。
+
+    断言逐个 id 精确相等：只断言「都在候选集里」的话，落盘成**别的**记忆
+    同样会通过，而那恰恰是最难发现的错。
+    """
+    world = build_golden_world()
+    actor = world.npcs[0]
+    cited = ["mem-a", "mem-b"]
+    planner = AgentPlanner(
+        PlanRepository(plan_session), RecordingRetriever(cited),
+        StubProvider(decision=_plan_decision("rest", "work")), DEFAULT_ACTION_REGISTRY)
+
+    outcome = planner.decide(world, actor, last_outcome=None)
+    plan_session.commit()
+
+    assert outcome.source is ProposalSource.LLM
+    assert outcome.plan.evidence_memory_ids_json == cited
+
+    # 复用计划的那一 tick 不重新检索，旧计划上的记录必须原样保留。
+    reused = planner.decide(world, actor, last_outcome=None)
+    plan_session.commit()
+    assert reused.source is ProposalSource.EXISTING_PLAN
+    assert reused.plan.evidence_memory_ids_json == cited
+
+
+def test_retrieval_failure_records_an_empty_list_not_null(plan_session, seeded_ids):
+    """检索失败与「这条计划早于 0006、没有记录」必须可区分。
+
+    前者是「确实没检索到东西」（空列表），后者是「不知道」（NULL）。
+    把失败记成 NULL 会让 UI 把一次真实的空检索显示成「未记录」。
+    """
+    class BrokenRetriever:
+        def retrieve(self, request):
+            raise RuntimeError("retrieval down")
+
+    world = build_golden_world()
+    planner = AgentPlanner(
+        PlanRepository(plan_session), BrokenRetriever(),
+        StubProvider(decision=_plan_decision("rest")), DEFAULT_ACTION_REGISTRY)
+
+    outcome = planner.decide(world, world.npcs[0], last_outcome=None)
+    plan_session.commit()
+
+    assert outcome.source is ProposalSource.LLM, "检索失败不得阻断规划"
+    assert outcome.plan.evidence_memory_ids_json == []

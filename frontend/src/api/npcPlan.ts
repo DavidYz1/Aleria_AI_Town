@@ -15,6 +15,14 @@ export interface PlanStepInfo {
   intent: string
 }
 
+/** 一条本次规划引用过、且允许公开的记忆。不可公开的不会出现在这里。 */
+export interface PlanEvidenceItem {
+  id: string
+  type: string
+  label: string
+  summary: string
+}
+
 export interface PlanInfo {
   id: string
   goal: string
@@ -28,6 +36,7 @@ export interface PlanInfo {
   model: string
   latency_ms: number | null
   tokens_used: number | null
+  evidence: PlanEvidenceItem[]
 }
 
 export interface NpcPlanData {

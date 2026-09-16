@@ -606,3 +606,6 @@ class AgentPlan(Base):
     prompt_version: Mapped[str] = mapped_column(String(40))
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     tokens_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # 本次规划检索命中的 memory id。`None` = 未记录（`0006` 之前写入的计划），
+    # `[]` = 确实一条都没检索到。两者语义不同，不要合并。
+    evidence_memory_ids_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
