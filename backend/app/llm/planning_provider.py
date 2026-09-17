@@ -52,7 +52,40 @@ class PlanningRequest(BaseModel):
 
 
 class PlanningProviderError(RuntimeError):
-    """规划 provider 不可用或返回不可解析的结果。"""
+    """规划 provider 不可用或返回不可解析的结果。
+
+    `reason` 把失败分到 `PLANNING_FAILURE_REASONS` 里的一类。adapter 仍然只向上
+    抛这一个异常类型 —— 上层不该依赖 httpx 的细节 —— 但**收敛异常类型不等于丢弃
+    分类信息**。旧实现把两件事一起做了，于是 20 秒超时和响应结构错误在 trace 里
+    长得一模一样，2026-09-14 报告中「19 次超时」因此无法复核。
+    """
+
+    def __init__(self, message: str, *, reason: str = "unknown"):
+        super().__init__(message)
+        self.reason = reason
+
+
+# 失败归因的四类。扁平而非嵌套：trace 存 JSON，扁平 code 能直接 GROUP BY 聚合。
+PLANNING_FAILURE_REASONS = ("timeout", "http_status", "transport", "parse_error")
+
+
+def classify_planning_failure(exc: BaseException) -> str:
+    """把 adapter 能遇到的失败分成四类。
+
+    顺序不可调换：`httpx.TimeoutException` 是 `httpx.TransportError` 的子类，
+    而后者是 `httpx.HTTPError` 的子类。先判超时，否则超时会被记成 transport。
+    `httpx.HTTPStatusError` 直接继承 `HTTPError`（不经过 TransportError），
+    所以它必须排在通用的 HTTPError 之前。
+    """
+    if isinstance(exc, (TimeoutError, httpx.TimeoutException)):
+        return "timeout"
+    if isinstance(exc, httpx.HTTPStatusError):
+        return "http_status"
+    if isinstance(exc, httpx.HTTPError):
+        return "transport"
+    if isinstance(exc, (ValueError, KeyError, IndexError, TypeError)):
+        return "parse_error"
+    return "unknown"
 
 
 class PlanningProvider(Protocol):
@@ -261,9 +294,13 @@ class OpenAICompatiblePlanningProvider:
         # 并关闭它，不留下计时线程或游离请求。
         try:
             return asyncio.run(self._plan(request))
-        except (TimeoutError, httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
-            logger.warning("Planning unavailable category=planning_provider")
-            raise PlanningProviderError("planning unavailable") from None
+        except (TimeoutError, httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+            # 只记分类，不记响应正文或 URL —— 正文可能含世界内容，URL 含租户信息。
+            reason = classify_planning_failure(exc)
+            logger.warning(
+                "Planning unavailable category=planning_provider reason=%s", reason
+            )
+            raise PlanningProviderError("planning unavailable", reason=reason) from None
 
     async def _plan(self, request: PlanningRequest) -> AgentDecision:
         headers = {"Content-Type": "application/json", "Accept-Encoding": "identity"}

@@ -39,6 +39,8 @@ class _ProviderAnswer:
     decision: AgentDecision | None
     latency_ms: int
     tokens_used: int | None
+    # provider 侧的失败分类；成功时为 None。见 planning_provider 的四类。
+    failure_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -56,6 +58,11 @@ class PlanningOutcome:
     decision: AgentDecision | None
     latency_ms: int | None
     tokens_used: int | None
+    # 兜底归因：`failure_stage` 说明是谁拒绝的（目前只有 "provider"；规则拒绝
+    # 发生在 orchestrator，由它自己落 trace），`failure_code` 是具体分类。
+    # 成功或复用计划时两者都是 None。
+    failure_stage: str | None = None
+    failure_code: str | None = None
 
 
 class AgentPlanner:
@@ -159,11 +166,17 @@ class AgentPlanner:
         started = time.monotonic()
         try:
             decision = self._provider.plan(pending.request)
-        except Exception:
+        except Exception as exc:
             # spec §13 唯一不变量：任何失败都必须产出可执行提案。
             # 捕获宽泛 Exception 是刻意的，不是遗漏 —— PlanningProviderError 之外的
             # 任何意外（网络栈、序列化、第三方库）都不得让世界停摆。
-            return _ProviderAnswer(None, int((time.monotonic() - started) * 1000), None)
+            # 分类只取 provider 自己给出的 `reason`；其余一律 "unknown"，
+            # 绝不根据异常长相臆造一个更具体的原因。
+            reason = getattr(exc, "reason", None) or "unknown"
+            return _ProviderAnswer(
+                None, int((time.monotonic() - started) * 1000), None,
+                failure_reason=reason,
+            )
         return _ProviderAnswer(
             decision, int((time.monotonic() - started) * 1000),
             getattr(self._provider, "last_tokens_used", None),
@@ -187,6 +200,7 @@ class AgentPlanner:
             return PlanningOutcome(
                 proposal=decide_action(actor, world), source=ProposalSource.FALLBACK,
                 plan=None, decision=None, latency_ms=None, tokens_used=None,
+                failure_stage="provider", failure_code=answer.failure_reason,
             )
         created = self._repository.create_from_decision(
             world.id, actor.id, answer.decision,

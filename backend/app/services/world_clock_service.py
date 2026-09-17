@@ -89,6 +89,11 @@ def _planning_trace(npc_id: str, outcome: PlanningOutcome) -> TraceDraft:
             "model": plan.model if plan is not None else "rule-based",
             "latency_ms": outcome.latency_ms,
             "tokens_used": outcome.tokens_used,
+            # 兜底归因。成功或复用计划时为 None —— 评测据此区分「没拿到结果」
+            # 与「拿到了但被规则拒」，不必再从 source 反推。
+            # 形状由 `world_clock_repository._validate_result` 强制，改这里要同步改那里。
+            "failure_stage": outcome.failure_stage,
+            "failure_code": outcome.failure_code,
         },
     )
 

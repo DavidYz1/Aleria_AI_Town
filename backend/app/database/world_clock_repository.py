@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 import json
@@ -277,8 +278,13 @@ class WorldTickRepository:
         # 因此这里只能校验「条数有界 + 位置固定在 run_started 之后 + 形状合法」。
         planning_count = sum(1 for trace in result.traces if trace.stage == "planning")
         require(planning_count <= len(result.proposals))
+        # 每个 NPC 每 tick 最多被拒一次：`_with_fallback` 一旦替换就直接用确定性
+        # 兜底，不会再拒第二轮。
+        rejection_count = sum(1 for trace in result.traces if trace.stage == "rule_rejection")
+        require(rejection_count <= len(result.proposals))
         expected_topology = [("run_started", None)]
         expected_topology.extend(("planning", None) for _ in range(planning_count))
+        expected_topology.extend(("rule_rejection", None) for _ in range(rejection_count))
         expected_topology.extend(("proposal", ordinal) for ordinal in range(len(result.proposals)))
         expected_topology.extend(("validation", ordinal) for ordinal in range(len(result.proposals)))
         for ordinal, _ in accepted:
@@ -301,7 +307,7 @@ class WorldTickRepository:
                 require(t.actor_id in actors)
                 require(set(t.data) == {
                     "npc_id", "source", "goal", "thought", "provider", "model",
-                    "latency_ms", "tokens_used",
+                    "latency_ms", "tokens_used", "failure_stage", "failure_code",
                 })
                 require(t.data["npc_id"] == t.actor_id)
                 require(t.data["source"] in {source.value for source in ProposalSource})
@@ -312,6 +318,49 @@ class WorldTickRepository:
                 require(all(
                     t.data[key] is None or (type(t.data[key]) is int and t.data[key] >= 0)
                     for key in ("latency_ms", "tokens_used")
+                ))
+                # 兜底归因的形状不变量。planner 只在 provider 没给出可用决策时
+                # 产出 FALLBACK，所以「source 是 fallback」与「带 provider 失败分类」
+                # 必须同真同假。任一侧漏设都是代码缺陷，宁可让这一 tick 失败被发现，
+                # 也不要落一条自相矛盾的 trace —— 评测会直接读它。
+                # 规则拒绝不在这里：它发生在 orchestrator，由 proposal trace 记录。
+                require(t.data["failure_stage"] in {None, "provider"})
+                require(
+                    (t.data["failure_stage"] is None)
+                    == (t.data["source"] != ProposalSource.FALLBACK.value)
+                )
+                require(
+                    t.data["failure_code"] is None
+                    if t.data["failure_stage"] is None
+                    else bool(t.data["failure_code"])
+                    and isinstance(t.data["failure_code"], str)
+                )
+            elif t.stage == "rule_rejection":
+                require(t.actor_id in actors)
+                require(set(t.data) == {
+                    "npc_id", "failure_stage", "failure_code",
+                    "attempted_action", "attempted_target", "attempted_source",
+                })
+                require(t.data["npc_id"] == t.actor_id)
+                require(t.data["failure_stage"] == "rule")
+                # 拒绝码是下划线命名（`unknown_location`、`wrong_duty_location`），
+                # 与 reason_code 同形，不是连字符的 identifier。
+                require(self._is_reason_code(t.data["failure_code"]))
+                # 确定性提案不经过这条路径 —— 它是引擎自己产出的，拒绝它说明引擎
+                # 与自己的规则不一致，那属于缺陷而不是可记录的正常事件。
+                require(t.data["attempted_source"] in {
+                    source.value for source in ProposalSource
+                } - {ProposalSource.DETERMINISTIC.value})
+                # 这里记录的**正是不合法的输入**，所以动作与目标只做有界的宽松校验：
+                # 用 `_is_identifier` 会让模型编造一个畸形 id 直接把整个 tick 打成
+                # 503 —— 记录失败反而制造更大的失败。长度上界防止 trace 被塞进正文。
+                require(self._is_bounded_text(t.data["attempted_action"]))
+                target = t.data["attempted_target"]
+                require(target is None or (
+                    isinstance(target, Mapping)
+                    and set(target) == {"kind", "id"}
+                    and self._is_bounded_text(target["kind"])
+                    and self._is_bounded_text(target["id"])
                 ))
             elif t.stage == "proposal":
                 ordinal = self._trace_ordinal(t.data, len(result.proposals))
@@ -375,6 +424,11 @@ class WorldTickRepository:
         return isinstance(value, str) and bool(re.fullmatch(r"[a-z][a-z0-9-]{0,63}", value))
 
     @staticmethod
+    def _is_bounded_text(value: object) -> bool:
+        """非空、长度有界的字符串。用于记录**被拒绝**的外部输入。"""
+        return isinstance(value, str) and 0 < len(value) <= 64
+
+    @staticmethod
     def _is_reason_code(value: object) -> bool:
         return isinstance(value, str) and bool(re.fullmatch(r"[a-z][a-z0-9_]{0,63}", value))
 
@@ -415,6 +469,7 @@ class WorldTickRepository:
         return {
             "run_started": "Deterministic world advance started",
             "planning": "Planning decision recorded",
+            "rule_rejection": "Proposal rejected by rules",
             "proposal": "Action proposed",
             "validation": "Proposal validated",
             "execution": "Action executed",

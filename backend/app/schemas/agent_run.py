@@ -21,7 +21,7 @@ class AgentRunSummary(BaseModel):
 ACTION_TYPES = frozenset({"eat", "move", "rest", "talk", "wait", "work"})
 TARGET_KINDS = frozenset({"location", "npc"})
 SOURCES = frozenset({"deterministic", "existing_plan", "llm", "fallback"})
-TRACE_STAGES = frozenset({"run_started", "planning", "proposal", "validation", "execution", "event", "run_completed"})
+TRACE_STAGES = frozenset({"run_started", "planning", "rule_rejection", "proposal", "validation", "execution", "event", "run_completed"})
 QUEST_STATUSES = frozenset({"available", "accepted", "briefed_by_grey", "shoe_found", "child_found", "completed"})
 QUEST_INTERACTIONS = frozenset({"accept_quest", "ask_grey", "inspect_shoe", "search_child", "return_child"})
 
@@ -104,7 +104,10 @@ def _trace_facts(stage: str, value: object) -> dict:
         if set(value) == {"world_id", "world_version", "clock_tick"} and _identifier(value["world_id"]) and _integer(value["world_version"]) and _integer(value["clock_tick"]):
             return dict(value)
     if stage == "planning":
-        keys = {"npc_id", "source", "goal", "thought", "provider", "model", "latency_ms", "tokens_used"}
+        keys = {
+            "npc_id", "source", "goal", "thought", "provider", "model",
+            "latency_ms", "tokens_used", "failure_stage", "failure_code",
+        }
         # goal / thought 是模型自由文本，长度上限与 AgentDecision 契约、DB 列宽一致，
         # 保证公开投影始终有界。
         limits = {"goal": 200, "thought": 800, "provider": 100, "model": 200}
@@ -114,8 +117,41 @@ def _trace_facts(stage: str, value: object) -> dict:
             and value["source"] in SOURCES
             and all(isinstance(value[key], str) and 0 < len(value[key]) <= limit for key, limit in limits.items())
             and all(value[key] is None or _integer(value[key]) for key in ("latency_ms", "tokens_used"))
+            # 失败分类是**枚举出来的类别名**，不是模型自由文本，也不含响应正文或
+            # 凭据，所以可以公开：它让「为什么这个 NPC 忽然按确定性策略行动」有据
+            # 可依。规则拒绝的明细不走这里 —— 见文件末尾的说明。
+            and value["failure_stage"] in (None, "provider")
+            and (
+                value["failure_code"] is None
+                if value["failure_stage"] is None
+                else _reason_code(value["failure_code"])
+            )
         ):
             return dict(value)
+    if stage == "rule_rejection":
+        public = {
+            "npc_id", "failure_stage", "failure_code",
+            "attempted_action", "attempted_source",
+        }
+        stored = public | {"attempted_target"}
+        # **这个函数必须幂等。** FastAPI 的 `response_model` 会对返回值再验证一次，
+        # 于是投影结果会第二次流经这里。其余 stage 恰好满足（它们返回的 key 集合
+        # 与输入相同），本分支是唯一做收窄的，所以必须同时认「落盘形状」与
+        # 「已收窄形状」—— 否则第二遍会判定不合法并清空成 {}。
+        if (
+            set(value) in (stored, public)
+            and _identifier(value["npc_id"])
+            and value["failure_stage"] == "rule"
+            and _reason_code(value["failure_code"])
+            and value["attempted_action"] in ACTION_TYPES
+            and value["attempted_source"] in SOURCES
+        ):
+            # 落盘完整、对外收窄 —— 与 `npc_plan` 的 evidence 同一条规则。
+            # `attempted_target` 的 id 是模型编造的自由文本（`unknown_location`
+            # 恰恰意味着它不对应任何真实地点），不进公开响应；排障需要它时读
+            # trace 表。其余四项都是枚举出来的类别名，公开它们让「这个 NPC 为什么
+            # 忽然按确定性策略行动」对玩家可解释。
+            return {key: value[key] for key in sorted(public)}
     if stage == "proposal":
         keys = {"action_type", "target", "reason_code", "proposal_ordinal", "source"}
         target = _target(value.get("target"))
@@ -201,6 +237,7 @@ class AgentTraceInfo(BaseModel):
         summaries = {
             "run_started": "Deterministic world advance started",
             "planning": "Planning decision recorded",
+            "rule_rejection": "Proposal rejected by rules",
             "proposal": "Action proposed", "validation": "Proposal validated",
             "execution": "Action executed", "event": "Domain event recorded",
             "run_completed": "Deterministic world advance completed",
