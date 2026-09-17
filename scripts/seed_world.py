@@ -22,10 +22,13 @@ from scripts.upgrade_schema import upgrade_schema
 def seed_database(database_url: str, seed_dir: Path) -> None:
     seed = load_seed_data(seed_dir)
     engine, session_factory = create_engine_and_session(database_url)
-    upgrade_schema(database_url)
-
-    with session_factory() as session:
-        DemoResetService(session).reset(seed)
+    try:
+        upgrade_schema(database_url)
+        with session_factory() as session:
+            DemoResetService(session).reset(seed)
+    finally:
+        # 同上：播种结束后释放文件句柄，让临时库可被删除。
+        engine.dispose()
 
 
 def main() -> int:

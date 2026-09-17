@@ -41,7 +41,12 @@ def _alembic_config(database_url: str) -> Config:
 
 def upgrade_schema(database_url: str, revision: str = "head") -> None:
     engine, _ = create_engine_and_session(database_url)
-    tables = set(inspect(engine).get_table_names())
+    try:
+        tables = set(inspect(engine).get_table_names())
+    finally:
+        # 一次性调用：连接池若留着，Windows 会一直占住 SQLite 文件，
+        # 调用方（如评测脚本）就删不掉自己的临时库。
+        engine.dispose()
     config = _alembic_config(database_url)
     if "alembic_version" not in tables and tables:
         if tables != LEGACY_TABLES:
