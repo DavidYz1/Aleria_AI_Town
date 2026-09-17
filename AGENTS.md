@@ -18,9 +18,9 @@
 
 项目按 Stage 推进，每个 Stage 交付一个**垂直切片**（技术内核 + 玩家可感知效果 + 可复现演示）。
 
-- **已完成**：Foundation（确定性 Agent Runtime）
-- **进行中**：Stage 2 — Perception, Memory and Reflection
-- **未开始**：Stage 3–6（见 `docs/superpowers/roadmaps/2026-09-09-ai-native-agent-rpg-stages-2-to-6-cn.md`）
+- **已完成**：Foundation（确定性 Agent Runtime）、Stage 2（Perception, Memory and Reflection）、
+  Stage 3m（Agent Loop MVP：多步规划、跨 tick 计划复用、分层兜底归因）
+- **未开始**：生产级 Stage 3 与 Stage 4–6（见 `docs/superpowers/roadmaps/2026-09-09-ai-native-agent-rpg-stages-2-to-6-cn.md`）
 
 当前进度详见 `CURRENT_STATE.md`。
 
@@ -68,13 +68,14 @@ Aleria_AI_Town/
 │   │   ├── services/  用例服务层（编排、事务边界、公开 DTO 投影）
 │   │   ├── database/  ORM models + repository + connection
 │   │   ├── agents/    Agent runtime（contracts、action_registry、orchestrator、
-│   │   │              conflict_resolver、perception、memory_retrieval、reflection）
+│   │   │              conflict_resolver、perception、memory_retrieval、reflection、
+│   │   │              planner、planning_contracts）
 │   │   ├── world/     纯确定性世界模拟（clock、tick_engine、role_routines、action_rules）
-│   │   ├── llm/       Provider 抽象（chat / embedding / reflection，各有 fake 与 OpenAI-compatible）
+│   │   ├── llm/       Provider 抽象（chat / embedding / reflection / planning，各有 fake 与 OpenAI-compatible）
 │   │   ├── quests/    任务策略（missing_child）
 │   │   ├── schemas/   Pydantic 公开契约
 │   │   └── core/      Settings
-│   ├── migrations/    Alembic（versions/ 下 0001–0004）
+│   ├── migrations/    Alembic（versions/ 下 0001–0006）
 │   └── data/          本地 SQLite 文件（**被 .gitignore，仅 .gitkeep 被跟踪**）
 │
 ├── docs/              权威设计文档
@@ -86,7 +87,7 @@ Aleria_AI_Town/
 │       └── plans/     每个 Stage/Phase 的逐文件实施计划
 │
 ├── tests/
-│   ├── backend/       pytest（53 个文件）
+│   ├── backend/       pytest（59 个 test_*.py）
 │   └── frontend/      Vitest（30 个文件）
 │
 ├── scripts/           运维与开发脚本
@@ -195,6 +196,8 @@ npm --prefix frontend run type-check
 
 **不得引入新的 skip 或新的 warning。** 当前基线的 4 个 skip 全部是 `TEST_POSTGRES_URL` 未设置的 opt-in PostgreSQL 测试，1 个 warning 是既有的 Starlette/httpx 弃用提示。
 
+**通过数取决于 shell**：`test_start_dev.py` 的 shell launcher 探针在 PATH 中没有 POSIX `sh` 时会跳过。因此 Windows PowerShell 下是 **778 passed / 5 skipped**，Git Bash 与 Linux CI 下是 **779 passed / 4 skipped**。报告数字时必须带上环境，不要把 778 当成漏跑。
+
 ### Review Baseline
 
 上一节的“验证基线”指的是**测试基线**（多少条通过、多少 skip）。本节的 **Review Baseline** 是另一件事：一个可复现的**仓库状态锚点**，用来让下一次 review 只看增量。
@@ -216,7 +219,7 @@ npm --prefix frontend run type-check
 - **禁止删除 `backend/data/aleria.db`**。该文件被 `.gitignore` 忽略（`backend/data/*.db`），**git 无法恢复它**。删除即永久丢失本地演示数据。
 - **禁止重置或清空用户数据**作为"让测试通过"的手段。
 - **禁止直接用 SQL 或外部工具修改数据库文件**的结构。
-- **禁止破坏 migration**：不得删除、改写或重编号已存在的 revision（当前链为 `0001 → 0002 → 0003 → 0004`），不得伪造 `alembic_version` 的值。
+- **禁止破坏 migration**：不得删除、改写或重编号已存在的 revision（当前链为 `0001 → 0002 → 0003 → 0004 → 0005 → 0006`），不得伪造 `alembic_version` 的值。
 - **禁止 `docker compose down -v`**：`-v` 会删除 PostgreSQL 数据卷 `aleria_postgres_data`。普通 `down` 保留数据。
 - **禁止让测试写入 `backend/data/aleria.db`**。所有迁移、Reset 与失败恢复测试必须使用临时数据库（`tmp_path` fixture）。
 

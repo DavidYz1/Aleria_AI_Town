@@ -1,8 +1,8 @@
 # Aleria AI Town API Contract
 
-Version: v3.1
+Version: v3.2
 
-Last Updated: 2026-09-16
+Last Updated: 2026-09-17
 
 # 1. API Design Overview
 
@@ -601,13 +601,13 @@ Request:
 
 `POST /api/demo/reset` resets the target demo world and its quest/chat/runtime history in one transaction. It is an explicit demo reset, not an incremental migration.
 
-There is no independent `GET /api/events` endpoint yet. Events are returned by advancement and persisted-run detail. The bounded `GET /api/npcs/{npc_id}/memory-explanations` contract is implemented as documented above; arbitrary memory search/write APIs, async submission, SSE, Agent Lab and LLM action-cognition APIs are not implemented.
+There is no independent `GET /api/events` endpoint yet. Events are returned by advancement and persisted-run detail. The bounded `GET /api/npcs/{npc_id}/memory-explanations` and `GET /api/npcs/{npc_id}/plan` contracts are implemented as documented above; arbitrary memory search/write APIs, plan creation/cancellation APIs, async submission, SSE and Agent Lab are not implemented.
 
 # 7. Internal Agent Contracts
 
 `backend/app/agents/` implements immutable ActionProposal, ActionValidation, ResolvedProposal, DomainEventDraft, TraceDraft and AgentRuntimeResult contracts. The registry alone validates legal actions and effects. All proposals consume one immutable WorldSnapshot; no proposal sees another proposal's result.
 
-Proposal source enum values reserved for future modes do not mean that LLM planning or memory is implemented.
+Proposal `source` records how each proposal was produced: `llm` (a new plan returned by the planning provider), `existing_plan` (a step reused from an active plan, with no model call this tick), `fallback` (planning was unavailable and the deterministic policy took over) and `deterministic` (the run advanced in deterministic mode). Whatever the source, every proposal passes the same registry validation, conflict resolution and single-transaction commit.
 
 # 8. Error Handling
 

@@ -1,19 +1,19 @@
 # Aleria AI Town Engineering Architecture
 
-Version: v3.0 · Updated: 2026-09-12
+Version: v3.1 · Updated: 2026-09-17
 
 ## Current implementation
 
 Aleria is a modular monolith: Vue 3/Pinia handles interaction, Phaser 3.90.0 renders the RPG, and FastAPI owns world facts. SQLAlchemy repositories persist state in SQLite for local light mode or PostgreSQL for Docker deployment.
 
-The observable agent runtime is synchronous and deterministic:
+The observable agent runtime is synchronous. Each NPC either reuses an active plan or asks the planning provider for a new one; everything downstream of the proposal stays deterministic:
 
 ```text
-Snapshot -> ActionProposal -> Registry validation
+Snapshot -> plan reuse | LLM planning -> ActionProposal -> Registry validation
 -> deterministic resolution -> atomic world/run/action/event/trace commit
 ```
 
-`POST /api/world/tick` returns HTTP 200 after persistence completes. The RPG exposes one “推进 1 小时” control. There is no background queue or runtime-mode selector.
+`POST /api/world/tick` returns HTTP 200 after persistence completes. The RPG exposes one “推进 1 小时” control. There is no background queue. The request accepts `runtime_mode`: `auto` (default — plan reuse or LLM planning) or `deterministic` (skip planning entirely).
 
 Cognition is a second, strictly subordinate pipeline. Authoritative sources commit first; per-NPC perception, memory, embedding and reflection are projected afterwards and may fail without changing any authoritative outcome.
 
@@ -26,6 +26,9 @@ Cognition is a second, strictly subordinate pipeline. Authoritative sources comm
 | `app/agents/action_registry.py` | Legal actions, target validation, effects and event metadata |
 | `app/agents/conflict_resolver.py` | Stable proposal ordering and duplicate/invalid proposal resolution |
 | `app/agents/orchestrator.py` | One immutable decision snapshot, proposals and resolved result |
+| `app/agents/planning_contracts.py` | Frozen planning contracts: `AgentDecision`, plan steps and the MCP-shaped tool manifest |
+| `app/agents/planner.py` | Eight-section context assembly, retrieval budget, active-plan reuse and plan lifecycle |
+| `llm/planning_provider.py` | Independent fake/OpenAI-compatible planning provider using native tool calling |
 | `services/world_clock_service.py` | Application coordination and public response mapping |
 | `database/world_clock_repository.py` | Validate the result graph, compare-and-swap world version, commit once |
 | `database/agent_run_repository.py` | Ordered, read-only persisted run graph |
@@ -114,26 +117,26 @@ The run API is available for inspection; Agent Lab UI and runtime mode controls 
 
 ## Persistence and deployment
 
-Alembic revisions `0001 -> 0002 -> 0003 -> 0004` upgrade empty SQLite/PostgreSQL databases and supported unversioned legacy SQLite databases while preserving gameplay data. Startup runs `scripts.upgrade_schema`, then `scripts.ensure_demo_world`, then Uvicorn. Explicit reseeding/reset is a separate destructive demo operation.
+Alembic revisions `0001 -> 0002 -> 0003 -> 0004 -> 0005 -> 0006` upgrade empty SQLite/PostgreSQL databases and supported unversioned legacy SQLite databases while preserving gameplay data. Startup runs `scripts.upgrade_schema`, then `scripts.ensure_demo_world`, then Uvicorn. Explicit reseeding/reset is a separate destructive demo operation.
 
 Local `.env.example` keeps SQLite with cross-thread access and foreign keys enabled. Compose uses Psycopg 3 via `postgresql+psycopg://` and `pgvector/pgvector:0.8.6-pg17-bookworm`. PostgreSQL has a named volume and readiness check; backend waits for healthy database, web waits for healthy backend. Only web publishes a base host port. The host-side PostgreSQL test override binds to loopback port 55432 by default.
 
 Revision `0004` creates the vector-valued `memories.embedding` column: a pgvector `Vector` on PostgreSQL and a JSON array on SQLite. Both dialects run the same retrieval code — PostgreSQL computes distance with the `<=>` operator inside a savepoint so a failed vector query degrades to lexical ranking without reusing an aborted transaction, while SQLite scores cosine similarity in Python. SQLite remains the fast automated-test default. Real PostgreSQL tests require `TEST_POSTGRES_URL` and run serially in independent empty test schemas.
 
-## Interface boundary for Stage 3
+## Interface boundary for LLM planning
 
-Stage 3 will orchestrate Goal → Plan → typed `ActionProposal` with LangGraph. Stage 2 exposes exactly three stable surfaces for it, and nothing more:
+Stage 3m orchestrates Goal → Plan → typed `ActionProposal` **without** LangGraph: `app/agents/planner.py` calls the provider directly. It uses exactly three surfaces, and nothing more:
 
-1. **Permission-filtered cognition reads.** Stage 3 reads Memory, reflection and current Belief through the existing scopes and hard filter. It must not widen a scope, bypass `SCOPE_RULES`, or query cognition tables directly.
-2. **The existing Action Registry.** LLM-derived intentions must become the same typed `ActionProposal` and pass the same validation, conflict resolution and atomic commit. No second execution path may write world state.
-3. **The post-commit projection contract.** Cognition stays subordinate to authoritative commits; a LangGraph run may not be inserted into the current Agent Run Graph or hold a database transaction across a provider call.
+1. **Permission-filtered cognition reads.** The planner reads Memory, reflection and current Belief through the existing scopes and hard filter, in the `internal_reflection` scope. It does not widen a scope, bypass `SCOPE_RULES`, or query cognition tables directly. What the plan API returns is re-filtered through `public_explanation`, so a citation the caller may not see is absent rather than redacted.
+2. **The existing Action Registry.** LLM-derived intentions become the same typed `ActionProposal` and pass the same validation, conflict resolution and atomic commit. There is no second execution path that writes world state.
+3. **The post-commit projection contract.** Cognition stays subordinate to authoritative commits, and no provider call is held inside a database transaction.
 
-LangGraph, LangChain, Goal/Plan entities and LLM-generated proposals are **not implemented here**. The Stage 2 checkpoint is not a general task queue and must not be repurposed as one.
+LangGraph and LangChain are **not used**. The Stage 2 checkpoint is not a general task queue and must not be repurposed as one.
 
 ## Deferred capabilities
 
-Goal/Plan entities, LLM-generated action proposals, LangGraph, LangChain, NPC-to-NPC dialogue, relationships, claim propagation, knowledge graphs, Agent Lab, LangSmith, an MCP server, Celery, Redis, transactional outbox, async HTTP 202 submission, SSE, distributed retries and asynchronous cancellation are not implemented in this phase. Stage 2 does implement bounded provider calls and a shared post-commit cognition budget. Supporting a PostgreSQL deployment does not by itself provide multi-worker runtime scheduling.
+LangGraph, LangChain, NPC-to-NPC dialogue, relationships, claim propagation, knowledge graphs, Agent Lab, LangSmith, an MCP transport layer (stdio/SSE — only the manifest shape is aligned), Celery, Redis, transactional outbox, async HTTP 202 submission, SSE, distributed retries and asynchronous cancellation are not implemented. Bounded provider calls and a shared post-commit cognition budget are implemented. Supporting a PostgreSQL deployment does not by itself provide multi-worker runtime scheduling.
 
-Memory, embeddings, permission-first retrieval, reflection and beliefs are **no longer deferred** — they are implemented and described above.
+Memory, embeddings, permission-first retrieval, reflection and beliefs are **no longer deferred** — they are implemented and described above. Goal/Plan entities and LLM-generated action proposals are **no longer deferred** either — see the planning surfaces above.
 
 See [API contract](06_API_Contract.md), [database schema](07_Database_Schema.md), and [development environment](14_Development_Environment.md).

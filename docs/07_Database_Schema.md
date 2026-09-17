@@ -1,6 +1,6 @@
 # Aleria AI Town Database Schema
 
-Version: v3.0 · Updated: 2026-09-12
+Version: v3.1 · Updated: 2026-09-17
 
 ## Authority and modes
 
@@ -34,7 +34,8 @@ The ORM and the migrations are **isomorphic**: every FK, CHECK, UNIQUE and index
 | `memory_evidence` | Ordered edges from a derived memory to the memories it cites |
 | `beliefs` | Append-only belief revisions with confidence and lifecycle |
 | `belief_evidence` | Supporting/contradicting evidence edges per belief |
-| `alembic_version` | Current schema revision (head: 0004) |
+| `agent_plans` | Procedural memory: UUID string id, world/owner/source-run references, goal + goal_reason + thought, ordered `steps_json`, `current_step_index`, status (`active`/`completed`/`abandoned`), created/updated clock_tick, provider/model/prompt_version, latency_ms, tokens_used, **plus the 0006 `evidence_memory_ids_json`** |
+| `alembic_version` | Current schema revision (head: 0006) |
 
 Integer history IDs use autoincrement. JSON columns hold structured facts. SQLAlchemy uses timezone-aware timestamp declarations; public DTOs normalize SQLite's returned timestamps to UTC. API DTOs are deliberate projections, not raw table dumps.
 
@@ -163,6 +164,8 @@ The first command applies Alembic to head without resetting gameplay. The second
 | 0002 | Distinct world_version/clock_tick/event_sequence; PostgreSQL vector extension |
 | 0003 | Runtime graph, structured events/traces, legacy action/run backfill; social action renamed to talk |
 | 0004 | Event/message source metadata, six cognition tables, dialect-specific embedding column; forward-only |
+| 0005 | `agent_plans` — procedural memory for multi-step LLM plans reused across ticks |
+| 0006 | `agent_plans.evidence_memory_ids_json` — the memory ids retrieved into the planning context; nullable, because plans written before this revision genuinely have no such record |
 
 Legacy actions/events are retained and associated with deterministic historical runs during backfill. A migration is not equivalent to SQLAlchemy `create_all`.
 

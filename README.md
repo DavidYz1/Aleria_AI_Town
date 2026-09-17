@@ -1,6 +1,14 @@
 # Aleria AI Town · 曦谷
 
-> AI 全栈实习作品：可运行的 2D 小镇与可解释的 NPC Agent MVP
+[![CI](https://github.com/DavidYz1/Aleria_AI_Town/actions/workflows/ci.yml/badge.svg)](https://github.com/DavidYz1/Aleria_AI_Town/actions/workflows/ci.yml)
+
+> 可运行的 2D 小镇模拟：NPC 基于记忆与目标自主规划多步行动。模型负责判断，引擎负责执行。
+
+| | |
+| --- | --- |
+| **这是什么** | 一个完整的 Web 应用：Vue 3 + Phaser 3 前端、FastAPI + PostgreSQL/pgvector 后端。三位 NPC 在小镇里各自形成分层记忆、规划多步行动、与玩家多轮对话，世界按 tick 推进。 |
+| **核心技术主张** | 模型只产出**类型化动作提案**，必须过一遍工具注册表的二次校验才可能改写世界；超时或返回非法结构时降级到确定性策略。世界规则、动作合法性与任务状态机本身不交给模型。 |
+| **最硬的一个数字** | 20 tick 真实模型验收：**动作合法率 100%（43/43）**、计划复用率 51.7%、模型调用 0.483 次/NPC-tick。分母、口径与失败归因见[逐条证据](docs/eval/2026-09-17-agent-eval-live-20tick.md)。 |
 
 曦谷是一座从战争中恢复的温暖小镇。你是一名失去记忆、身带陌生印记的旅人；一次寻找失踪孩子的委托，将你带向城堡残缺的档案和森林深处的旧封锁线。
 
@@ -304,8 +312,10 @@ README 只介绍玩家可知的 Public Lore，不公开完整幕后真相。含�
 - WASD、方向键自由移动，包含碰撞、镜头跟随和地点区域识别。
 - 点击地点卡片快速前往；Backend 确认语义地点后，地图角色才会移动到对应区域，失败时不会出现界面与任务状态不一致。
 - 查看三位 NPC 的身份、状态、当前位置、当前行为和最近三条行动。
-- 推进 World Tick，观察 NPC 基于同一世界快照做出确定性行为。
+- 推进 World Tick，观察三位 NPC 从同一不可变快照各自规划下一步；「思考」Tab 标出本回合是模型规划、沿用已有计划还是确定性兜底。
+- 查看 NPC 当前的目标、多步计划与执行进度，以及规划时检索到的可公开记忆。
 - 与 NPC 进行多轮对话；对话上下文包含当前 World、NPC、玩家称谓和 Quest 摘要。
+- 展开 NPC 详情里的「相关记忆」，查看他记得哪些事、每条的来源类别和发生时刻。
 - 完成“失踪的孩子”六状态、五迁移任务闭环。
 - 重新开始冒险，恢复初始世界并清理 Demo 数据。
 
@@ -318,14 +328,24 @@ available → accepted → briefed_by_grey
 
 错误地点、跳步和过期版本会被 Backend 拒绝。旅行只修改玩家语义地点，不推进 World Tick；Chat 只保存聊天记录，不推进任务或世界。
 
-### 当前不做
+### 范围边界
+
+**不在当前范围内**（尚未实现）：
 
 - 战斗、技能、背包、装备和奖励系统。
 - 多张独立地图或室内地图切换。
 - 账号、多人世界和复杂权限系统。
-- 长期 Memory、Relationship 数值、RAG 或 LLM 驱动 World Tick。
+- Relationship 数值，以及 NPC 之间的信息传播。
 
-这些边界让作业重点集中在可解释的 NPC 行为、AI 对话、状态一致性和完整体验闭环。
+**有意保持确定性的部分**——这不是缺失，是设计决策：
+
+世界规则、动作校验和任务状态机**不交给模型**。模型提出类型化的行动提案，由 `ActionRegistry`
+校验、确定性冲突处理裁决、单事务提交；它不推进 Tick、不移动 NPC、不完成任务、不写任何世界状态。
+代价是 NPC 无法发明规则之外的新玩法；收益是每一次推进都可复现、可测试，并且模型超时或返回
+非法结构时世界照常运转。
+
+长期 Memory、混合 RAG 检索与 LLM 驱动的多步规划**都已实现**，见上文
+[记忆闭环演示](#记忆闭环演示)与 [Agent Loop](#agent-loopnpc-自己决定做什么)。
 
 ## 技术选型
 
@@ -336,6 +356,8 @@ available → accepted → briefed_by_grey
 | Backend | FastAPI、Pydantic v2 | API 契约明确、校验能力完整，并自动提供 Swagger 文档 |
 | 持久化 | SQLAlchemy、Alembic、SQLite / PostgreSQL + pgvector | 本地轻量运行，Docker 持久部署；版本化迁移和原子 Runtime 记录 |
 | AI 接入 | OpenAI-compatible Adapter | 通过配置复用腾讯混元、Gemini 等兼容服务，业务层不依赖具体供应商 |
+| Agent 规划 | 原生 Function Calling + Pydantic 契约 | 模型产出结构化提案而非自由文本；工具定义与校验规则同源，输出形状对齐 MCP `tools/list` |
+| Agent Memory | pgvector + 确定性混合检索 | Episodic / Semantic / Procedural 分层落在同一套 SQL 里；权限在 SQL 层硬过滤，不做应用层后过滤 |
 | 部署 | Docker Compose、Nginx | 保持 Frontend + Backend 当前架构，支持环境隔离、健康检查和服务器迁移 |
 
 ### 为什么选择 Phaser，而不是直接使用 PixiJS
@@ -347,7 +369,7 @@ PixiJS 更接近高性能 2D 渲染引擎，场景管理、输入系统和游戏
 ```mermaid
 flowchart LR
     Browser["Browser"]
-    Vue["Vue 3<br/>角色创建 · World/NPC/Quest UI"]
+    Vue["Vue 3<br/>角色创建 · World/NPC/Quest/Plan UI"]
     Phaser["Phaser 3<br/>地图 · 移动 · 碰撞 · Sprite"]
     API["FastAPI REST API"]
 
@@ -359,18 +381,22 @@ flowchart LR
         ResetService["DemoResetService"]
     end
 
-    Rules["确定性规则<br/>World Engine · Quest Policy · Validation"]
+    AgentLoop["Agent 规划链<br/>Planner · PlanningProvider · ActionRegistry<br/>模型只提案，失败落确定性兜底"]
+    Rules["确定性规则<br/>World Engine · Quest Policy · 冲突处理"]
     Context["权威上下文构建<br/>World · NPC · Player · Quest · History"]
     Provider["ChatProvider"]
     Compatible["OpenAI-compatible Adapter<br/>hy-role · hy3 · Gemini"]
     Mock["Character-aware Mock"]
-    SQLite[("SQLite / PostgreSQL")]
+    SQLite[("SQLite / PostgreSQL + pgvector")]
 
     Browser --> Vue
     Browser --> Phaser
     Phaser -->|地点进入 / 快速前往结果| Vue
     Vue --> API
-    API --> WorldService --> Rules --> SQLite
+    API --> WorldService --> AgentLoop
+    AgentLoop -->|校验通过的类型化动作| Rules
+    Rules --> SQLite
+    AgentLoop -.只读记忆与计划.-> SQLite
     API --> NPCService --> SQLite
     API --> QuestService --> Rules
     QuestService --> SQLite
@@ -385,7 +411,7 @@ flowchart LR
 
 架构中有两条明确隔离的运行链：
 
-- **确定性游戏链**：`Snapshot → ActionProposal → Registry validation → deterministic resolution → atomic world/run/action/event/trace commit`。
+- **确定性游戏链**：`Snapshot → 计划复用 | LLM 规划 → ActionProposal → Registry validation → deterministic resolution → atomic world/run/action/event/trace commit`。规划环节的展开见上文 [Agent Loop](#agent-loopnpc-自己决定做什么)。
 - **生成式对话链**：`Authoritative Context → Prompt v3 → Provider → Validation → Chat Persistence`。
 
 AI 对话不能进入 Action Execution、Quest Transition 或 World Update。
@@ -428,7 +454,7 @@ Backend 校验乐观锁版本
     ↓
 创建本回合不可变 World Snapshot
     ↓
-每个 NPC 根据角色、地点、状态、时间和允许行为选择下一步
+每个 NPC 复用活跃计划，或经 PlanningProvider 规划新的多步计划
     ↓
 Registry validation → deterministic resolution
     ↓
@@ -439,7 +465,7 @@ Registry validation → deterministic resolution
 
 NPC 决策不由前端写死，所有 NPC 从同一不可变快照决策。Registry 初始行为为 `move/rest/work/eat/talk/wait`；`social` 仍是需求数值，不再是 action ID。
 
-`world_version` 是世界推进、实际旅行和任务迁移共享的乐观并发版本；`clock_tick` 只在推进时间时增加；`event_sequence` 对同一世界的事件连续排序。Chat 不改变这三个计数。Trace 只记录结构化引用与简短事实，不记录隐藏推理。Memory 已通过权威来源提交后的 post-commit cognition 落地；LLM 规划、Agent Lab、异步 202、Celery/Redis/SSE 留给后续阶段。
+`world_version` 是世界推进、实际旅行和任务迁移共享的乐观并发版本；`clock_tick` 只在推进时间时增加；`event_sequence` 对同一世界的事件连续排序。Chat 不改变这三个计数。Trace 只记录结构化引用与简短事实，不记录隐藏推理。Memory 已通过权威来源提交后的 post-commit cognition 落地；LLM 规划已接入 World Tick（见上文 [Agent Loop](#agent-loopnpc-自己决定做什么)），Agent Lab、异步 202、Celery/Redis/SSE 留给后续阶段。
 
 ### NPC Chat 决策流程
 
@@ -879,7 +905,7 @@ POST /api/demo/reset
 
 直接调用 API 只重置 Backend；通过页面按钮操作时，Frontend 还会清理 `localStorage` 并重新创建游戏实例。
 
-这是为作业演示提供的全局重置能力。当前项目没有账号隔离，公开服务器上的访客共享同一个世界，任何访客触发重置都会影响其他访客，因此不应把该接口原样用于正式多用户产品。
+这是为项目演示提供的全局重置能力。当前项目没有账号隔离，公开服务器上的访客共享同一个世界，任何访客触发重置都会影响其他访客，因此不应把该接口原样用于正式多用户产品。
 
 ## AI 开发工具与人工修正案例
 
@@ -912,7 +938,7 @@ Verification Before Completion：运行测试、类型检查、构建并检查 D
 Codex 不被授权自动提交 Git，也不能扩大已经确认的模块范围。人工负责：
 
 - 决定产品范围与架构边界；
-- 判断 AI 建议是否符合当前代码和作业目标；
+- 判断 AI 建议是否符合当前代码和项目目标；
 - 审查每个模块的修改文件、测试结果和 Diff；
 - 决定是否接受实现并亲自提交；
 - 保护 API Key 等敏感配置。
@@ -979,11 +1005,13 @@ npm --prefix frontend run build
 docker compose --env-file .env.production.example config --quiet
 ```
 
+当前 HEAD 上这些命令的完整实测输出、运行环境与逐条对应关系见 [能力基线](docs/eval/2026-09-17-capability-baseline.md)。后端测试数在 Windows PowerShell 下是 778 passed / 5 skipped，在有 POSIX `sh` 的环境（Git Bash、Linux CI）下是 779 passed / 4 skipped —— 差的那一项是 `test_start_dev.py` 的 shell launcher 探针，基线文档里有说明。
+
 默认自动测试使用临时 SQLite、Mock 或假 Provider，不读取真实 API Key，也不发起外部模型请求。PostgreSQL 集成测试只在显式设置 `TEST_POSTGRES_URL` 时运行，且使用独立可丢弃数据库中的测试 schema；缺失时明确 skip。真实 Provider 验证属于显式、手动的 Smoke Test。
 
 ### 已知限制
 
-- 当前公开部署是共享单世界、无账号的作业 Demo，不适合多人同时修改状态。
+- 当前公开部署是共享单世界、无账号的演示环境，不适合多人同时修改状态。
 - Demo Reset 是全局接口，尚未增加认证和权限控制。
 - 本地 SQLite 为轻量单实例模式；Docker 使用 PostgreSQL，但异步提交、后台调度和多 worker Runtime 协调仍未实现。
 - NPC 记忆是 append-only 的，只做来源幂等与内容去重，没有自动摘要压缩；长时间演示会持续累积记忆行。
@@ -1002,7 +1030,8 @@ docker compose --env-file .env.production.example config --quiet
 
 ### 文档导航
 
-- [`docs/01_Assignment_Specification.md`](docs/01_Assignment_Specification.md)：腾讯作业要求整理。
+- [`docs/01_Assignment_Specification.md`](docs/01_Assignment_Specification.md)：项目需求与验收标准。
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)：架构地图，严格区分 Implemented 与 Proposed。
 - [`docs/05_Engineering_Architecture.md`](docs/05_Engineering_Architecture.md)：工程架构与边界。
 - [`docs/06_API_Contract.md`](docs/06_API_Contract.md)：API 请求与响应契约。
 - [`docs/07_Database_Schema.md`](docs/07_Database_Schema.md)：SQLite / PostgreSQL、Alembic 与 Runtime 数据结构。
@@ -1010,6 +1039,8 @@ docker compose --env-file .env.production.example config --quiet
 - [`docs/10_AI_Coding_Workflow.md`](docs/10_AI_Coding_Workflow.md)：AI 辅助开发与人工 Review 流程。
 - [`docs/12_Game_Experience_Design.md`](docs/12_Game_Experience_Design.md)：四场景游戏体验设计。
 - [`docs/15_Story_Bible_CN.md`](docs/15_Story_Bible_CN.md)：完整世界观、人物知识矩阵和连续性规则（含剧透）。
+- [`docs/eval/`](docs/eval/)：历次 Agent 评测报告、去内容化证据与阶段快照。
+- [`docs/eval/2026-09-17-capability-baseline.md`](docs/eval/2026-09-17-capability-baseline.md)：当前 HEAD 的测试、构建与评测实测基线。
 
 ---
 

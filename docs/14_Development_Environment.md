@@ -1,6 +1,6 @@
 # Aleria AI Town 开发环境
 
-版本：v3.0 · 更新时间：2026-09-12
+版本：v3.1 · 更新时间：2026-09-17
 
 ## 当前运行模式
 
@@ -11,11 +11,13 @@
 | 自动化测试 | 临时 SQLite + Mock | 不需要真实模型密钥 |
 | 显式 PostgreSQL 集成测试 | 独立可丢弃 PostgreSQL 数据库 | TEST_POSTGRES_URL，缺失则明确 skip |
 
-当前 Runtime 是同步、确定性的。Stage 2 已实现感知、长期 Memory、Embedding、权限优先检索、Reflection 与 Belief；它们全部是权威提交之后的 best-effort 投影，失败不改变世界状态。
+当前 Runtime 是同步的：模型参与规划，世界写入、动作校验与冲突处理保持确定性。Stage 2 已实现感知、长期 Memory、Embedding、权限优先检索、Reflection 与 Belief；它们全部是权威提交之后的 best-effort 投影，失败不改变世界状态。
 
 **默认零配置可用**：Chat、Embedding、Reflection 三个 Provider 各自独立，默认全部使用 fake/mock 实现，不需要任何 API Key，也不发起外部请求。
 
-尚未实现：LLM action cognition（Goal/Plan/LLM ActionProposal）、LangGraph、Agent Lab、Celery/Redis/SSE 和异步 202。
+Stage 3m 已实现 LLM action cognition：Goal、多步 Plan 与 LLM ActionProposal 由 `PlanningProvider` 经原生 tool calling 产出，落在 `agent_plans` 并跨 tick 复用；每一步仍需通过 `ActionRegistry` 校验才能改写世界，失败落确定性兜底。
+
+尚未实现：LangGraph、Agent Lab、Celery/Redis/SSE 和异步 202。
 
 ## 本地准备与启动
 
@@ -221,4 +223,6 @@ unset TEST_POSTGRES_URL TEST_POSTGRES_PORT POSTGRES_PASSWORD
 
 Stage 2 后新增的可见行为：选中 NPC 后详情面板内有默认折叠的"相关记忆"区域，最多五条安全摘要；与 Grey 提供独特线索并让该轮对话超出短期 history 后重启服务，再次询问时他仍能引用该线索，并且始终把它表述为**玩家的说法**而不是世界事实。记忆接口失败不影响地图、详情、Chat、Tick 与 Quest。
 
-关系系统、NPC 之间的信息传播、Goal/Plan、后台异步任务和 Agent Lab 继续留给后续阶段。
+Stage 3m 后新增的可见行为：推进世界时，NPC 详情的「思考」Tab 展示本回合的目标、计划进度与决策来源（模型规划 / 替身规划 / 沿用计划 / 确定性兜底），并列出规划时检索到的可公开记忆。
+
+关系系统、NPC 之间的信息传播、后台异步任务和 Agent Lab 继续留给后续阶段。
