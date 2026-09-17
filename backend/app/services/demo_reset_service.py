@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database.models import (
     AgentCognitionState,
+    AgentPlan,
     Belief,
     BeliefEvidence,
     Conversation,
@@ -126,6 +127,10 @@ class DemoResetService:
             delete(Conversation).where(Conversation.world_id == seed.world.id)
         )
         run_ids = select(AgentRun.id).where(AgentRun.world_id == seed.world.id)
+        # Procedural memory 与其他认知数据同级，Reset 必须一并清除：留下活跃计划会让
+        # 重置后的第一个 tick 沿用上一个世界的计划而不重新规划。
+        # 必须排在 AgentRun 之前 —— agent_plans.source_run_id 是指向 agent_runs 的外键。
+        self._session.execute(delete(AgentPlan).where(AgentPlan.world_id == seed.world.id))
         self._session.execute(delete(AgentTraceEntry).where(AgentTraceEntry.run_id.in_(run_ids)))
         self._session.execute(delete(Event).where(Event.world_id == seed.world.id))
         self._session.execute(

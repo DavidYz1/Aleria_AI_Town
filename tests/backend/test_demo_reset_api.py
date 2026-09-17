@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from backend.app.database.connection import create_engine_and_session
 from backend.app.database.models import (
     AgentCognitionState,
+    AgentPlan,
     Belief,
     BeliefEvidence,
     Conversation,
@@ -258,3 +259,102 @@ async def test_reset_clears_only_target_world_cognition_and_rebuilds_authored_kn
     assert target_belief_evidence_count == 0
     assert {memory.owner_npc_id for memory in authored} == {"ryan", "shir", "grey"}
     assert len({(memory.authored_source_id, memory.authored_source_version) for memory in authored}) == 3
+
+
+def _add_agent_plan(session, world_id: str, npc_id: str, *, status: str = "active") -> str:
+    """一条来自"上一个世界"的计划。内容刻意可辨认，便于确认它是否残留。"""
+    plan_id = str(uuid4())
+    session.add(AgentPlan(
+        id=plan_id, world_id=world_id, owner_npc_id=npc_id, source_run_id=None,
+        thought="stale thought", goal="stale goal", goal_reason="stale reason",
+        steps_json=[{
+            "action_type": "rest", "target_kind": None,
+            "target_id": None, "intent": "stale step",
+        }],
+        current_step_index=0, status=status,
+        created_clock_tick=7, updated_clock_tick=7,
+        provider="fake", model="fake-planner-1", prompt_version="planning-v1",
+        latency_ms=1, tokens_used=None, evidence_memory_ids_json=[],
+    ))
+    return plan_id
+
+
+@pytest.mark.anyio
+async def test_reset_clears_target_world_agent_plans_and_keeps_other_worlds(
+    database_url,
+    seed_dir,
+):
+    """Procedural memory 与其他认知数据同级：Reset 必须按 world 清干净，且只清目标世界。"""
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    with session_factory() as session:
+        session.add(WorldState(
+            id="other-world", name="Other", day=1, time="08:00",
+            clock_tick=0, world_version=0, event_sequence=0,
+        ))
+        session.flush()
+        _add_agent_plan(session, "aleria-town", "ryan")
+        _add_agent_plan(session, "aleria-town", "shir", status="completed")
+        other_plan_id = _add_agent_plan(session, "other-world", "grey")
+        session.commit()
+        # 非空前提：目标世界确实有计划，否则下面的"已清空"断言什么也证明不了。
+        assert session.scalar(
+            select(func.count()).select_from(AgentPlan)
+            .where(AgentPlan.world_id == "aleria-town")
+        ) == 2
+
+    app = create_app(database_url, chat_provider=MockChatProvider())
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/api/demo/reset")
+
+    assert response.status_code == 200
+    with session_factory() as session:
+        target_plans = session.scalars(
+            select(AgentPlan).where(AgentPlan.world_id == "aleria-town")
+        ).all()
+        surviving_other = session.get(AgentPlan, other_plan_id)
+
+    assert [plan.goal for plan in target_plans] == []
+    assert surviving_other is not None
+    assert surviving_other.world_id == "other-world"
+
+
+@pytest.mark.anyio
+async def test_reset_lets_the_next_tick_replan_instead_of_reusing_a_stale_plan(
+    database_url,
+    seed_dir,
+):
+    """玩家可感知的后果：重置后的第一个 tick 必须重新规划，不能沿用上个世界的计划。"""
+    seed_database(database_url, seed_dir)
+    _, session_factory = create_engine_and_session(database_url)
+    app = create_app(database_url, chat_provider=MockChatProvider())
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        for expected_version in range(3):
+            ticked = await client.post(
+                "/api/world/tick", json={"expected_world_version": expected_version}
+            )
+            assert ticked.status_code == 200
+
+        # 非空前提：重置前确实存在活跃计划，否则"没有复用"是因为压根没得复用。
+        with session_factory() as session:
+            assert session.scalar(
+                select(func.count()).select_from(AgentPlan)
+                .where(AgentPlan.world_id == "aleria-town", AgentPlan.status == "active")
+            ) > 0
+
+        reset = await client.post("/api/demo/reset")
+        assert reset.status_code == 200
+
+        after = await client.post("/api/world/tick", json={"expected_world_version": 0})
+        assert after.status_code == 200
+        detail = await client.get(f"/api/agent-runs/{after.json()['data']['run']['id']}")
+
+    assert detail.status_code == 200
+    proposals = detail.json()["data"]["proposals"]
+    assert len(proposals) == 3
+    assert [p["source"] for p in proposals if p["source"] == "existing_plan"] == []

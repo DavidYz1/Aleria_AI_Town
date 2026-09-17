@@ -893,7 +893,7 @@ Town 页面右上角的“重新开始冒险”会：
 
 - 恢复初始 World 时间与 NPC 状态；
 - 恢复 Player 和“失踪的孩子”任务状态；
-- 清除聊天、Agent Run/Proposal/Trace、NPC Action、World Event 和 Quest Event；
+- 清除聊天、Agent Run/Proposal/Trace、NPC 多步计划、NPC Action、World Event 和 Quest Event；
 - 清除浏览器中的本地角色名字与职业；
 - 销毁旧 Phaser 实例并返回角色创建流程。
 
