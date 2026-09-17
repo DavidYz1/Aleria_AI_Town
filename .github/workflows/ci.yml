@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 本 workflow 只跑不需要外部凭据的验证。
+# 刻意排除：
+#   - PostgreSQL 集成测试（不设置 TEST_POSTGRES_URL，对应 4 项自动 skip）
+#   - Live 模型评测（scripts/eval_agent.py --provider live，需要真实 API Key）
+# 后端 conftest 会清空四个 provider 的 Key 并禁用 .env，测试不会发起外部模型请求。
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+
+      # 必须用 `python -m pytest`：仓库没有被安装成包，
+      # `-m` 会把仓库根加入 sys.path，`from backend.app...` 才能 import。
+      - name: Run pytest
+        run: python -m pytest tests/backend -q -p no:cacheprovider
+
+  frontend:
+    name: Frontend vitest / type-check / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm --prefix frontend ci
+
+      - name: Run vitest
+        run: npm --prefix frontend test
+
+      - name: Type check
+        run: npm --prefix frontend run type-check
+
+      - name: Build
+        run: npm --prefix frontend run build
