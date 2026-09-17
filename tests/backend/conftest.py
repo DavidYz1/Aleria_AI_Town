@@ -17,6 +17,27 @@ LIVE_PROVIDER_ENV_VARS = (
     "CHAT_LLM_API_KEY", "EMBEDDING_API_KEY",
     "REFLECTION_API_KEY", "PLANNING_PROVIDER_API_KEY",
 )
+SAFE_PROVIDER_ENV = {
+    "CHAT_PROVIDER": "mock",
+    "CHAT_LLM_BASE_URL": "", "CHAT_LLM_MODEL": "", "CHAT_LLM_AUTH_MODE": "bearer",
+    "EMBEDDING_PROVIDER": "fake",
+    "EMBEDDING_BASE_URL": "", "EMBEDDING_MODEL": "", "EMBEDDING_AUTH_MODE": "bearer",
+    "REFLECTION_PROVIDER": "fake",
+    "REFLECTION_BASE_URL": "", "REFLECTION_MODEL": "", "REFLECTION_AUTH_MODE": "bearer",
+    "PLANNING_PROVIDER_BASE_URL": "", "PLANNING_PROVIDER_MODEL": "",
+    "PLANNING_PROVIDER_AUTH_MODE": "bearer",
+}
+
+# pytest imports conftest before collecting test modules. Application modules
+# can construct their default app during collection, before an autouse fixture
+# runs; isolate that import path too. Never inspect the repository .env here.
+from backend.app.core.config import Settings, get_settings
+
+Settings.model_config["env_file"] = None
+for name in LIVE_PROVIDER_ENV_VARS:
+    os.environ[name] = ""
+os.environ.update(SAFE_PROVIDER_ENV)
+get_settings.cache_clear()
 
 
 @pytest.fixture(autouse=True)
@@ -32,11 +53,11 @@ def isolate_repository_dotenv(monkeypatch):
     根因是同一个：`Settings` 默认读 `.env`，测试没有任何隔离。这里把 env_file
     置空，让测试只看 `Settings` 的默认值与用例自己显式传入的参数。
     """
-    from backend.app.core.config import Settings, get_settings
-
     monkeypatch.setitem(Settings.model_config, "env_file", None)
     for name in LIVE_PROVIDER_ENV_VARS:
         monkeypatch.setenv(name, "")
+    for name, value in SAFE_PROVIDER_ENV.items():
+        monkeypatch.setenv(name, value)
     # `get_settings` 带 lru_cache：先前缓存的实例会绕过上面的隔离。
     get_settings.cache_clear()
     try:
