@@ -346,7 +346,7 @@ def build_default_action_registry() -> ActionRegistry:
                 _execute_work,
                 "npc_action",
                 "工作",
-                "从事本职工作，消耗体力并提升心情。不需要目标。",
+                "从事本职工作，消耗体力并提升心情。不需要目标，但**只能在你的岗位地点执行**（岗位见 [World] 段），否则会被拒绝。",
                 _schema(needs_target=False, target_desc=""),
             ),
             ActionDefinition(
@@ -356,7 +356,7 @@ def build_default_action_registry() -> ActionRegistry:
                 _execute_eat,
                 "npc_action",
                 "用餐",
-                "进食以恢复体力。不需要目标。",
+                "进食以恢复体力。不需要目标，但**只能在酒馆（tavern）执行**，否则会被拒绝；不在酒馆时应先 move 过去。",
                 _schema(needs_target=False, target_desc=""),
             ),
             ActionDefinition(

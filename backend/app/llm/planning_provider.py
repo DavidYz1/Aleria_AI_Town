@@ -59,11 +59,18 @@ class PlanningProvider(Protocol):
     def plan(self, request: PlanningRequest) -> AgentDecision: ...
 
 
-# `[World] 第 N 天 HH:MM，当前位于 X；同地点：a、b；可达地点：c、d`
+# `[World] 第 N 天 HH:MM，当前位于 X；[…；]同地点：a、b；可达地点：c、d`
+#
+# 命名组之间都允许插入别的分号字段（例如「你的岗位：park」）。这不是为了宽松而
+# 宽松：`build_context` 与这个正则是一处**隐含耦合** —— 解析失败时本类退回
+# `rest` + `wait`，不抛异常也不降合法率，于是评测里的行为多样性会悄悄消失，
+# 而所有测试照样全绿。2026-09-16 给 `[World]` 加「你的岗位」时就这样塌缩过一次
+# （20 tick 动作分布只剩 rest/wait，行为熵 1.411 → 1.000）。
+# 守卫见 `tests/backend/test_tool_contract_alignment.py`。
 _WORLD_LINE = re.compile(
     r"\[World\][^\n]*?当前位于\s*(?P<here>[^；\s]+)；"
-    r"同地点：(?P<peers>[^；\n]*)；"
-    r"可达地点：(?P<reachable>[^；\n]*)"
+    r"[^\n]*?同地点：(?P<peers>[^；\n]*)；"
+    r"[^\n]*?可达地点：(?P<reachable>[^；\n]*)"
 )
 # 无条件合法的两个动作，解析失败时的安全退路。
 _SAFE_STEPS = (("rest", "原地休息恢复体力"), ("wait", "观察周围动静再做打算"))

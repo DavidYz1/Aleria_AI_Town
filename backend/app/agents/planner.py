@@ -15,6 +15,7 @@ from backend.app.agents.memory_retrieval import MemoryType, RetrievalRequest, Re
 from backend.app.agents.planning_contracts import AgentDecision
 from backend.app.llm.planning_provider import PlanningRequest
 from backend.app.world.decision import decide_action
+from backend.app.world.role_routines import WORK_LOCATION_BY_ROLE
 from backend.app.world.types import NpcSnapshot, WorldSnapshot
 
 
@@ -217,7 +218,10 @@ class AgentPlanner:
             [
                 f"[Identity] {actor.name}（{actor.role}），性格：{'、'.join(actor.personality)}",
                 f"[Needs] 体力 {actor.energy} / 心情 {actor.mood} / 社交 {actor.social}（低于 40 视为亟需处理）",
+                # 岗位必须单独点名。只把它混在「可达地点」里等于没说 —— 模型无从
+                # 知道哪个才是**自己的**岗位，而 `work` 的前置条件正是按它判定。
                 f"[World] 第 {world.day} 天 {world.time}，当前位于 {actor.location_id}；"
+                f"你的岗位：{WORK_LOCATION_BY_ROLE.get(actor.role) or '无固定岗位'}；"
                 f"同地点：{'、'.join(n.id for n in others) or '无'}；"
                 f"可达地点：{'、'.join(loc.id for loc in world.locations)}",
                 "[Episodic] " + ("；".join(m.content for m in memories) if memories else "暂无相关经历"),
