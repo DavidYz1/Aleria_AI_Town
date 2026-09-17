@@ -25,6 +25,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # backend job 也需要前端依赖：test_start_dev.py 的
+      # `test_check_mode_validates_real_checkout_without_starting_servers`
+      # 会跑真实的 `scripts/start_dev.py --check`，而它的前置条件之一
+      # 是 frontend/node_modules 存在。少了这一步该测试必然失败。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -35,6 +45,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt
+          npm --prefix frontend ci
 
       # 必须用 `python -m pytest`：仓库没有被安装成包，
       # `-m` 会把仓库根加入 sys.path，`from backend.app...` 才能 import。
