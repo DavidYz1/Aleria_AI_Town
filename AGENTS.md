@@ -196,7 +196,9 @@ npm --prefix frontend run type-check
 
 **不得引入新的 skip 或新的 warning。** 当前基线的 4 个 skip 全部是 `TEST_POSTGRES_URL` 未设置的 opt-in PostgreSQL 测试，1 个 warning 是既有的 Starlette/httpx 弃用提示。
 
-**通过数取决于 shell**：`test_start_dev.py` 的 shell launcher 探针在 PATH 中没有 POSIX `sh` 时会跳过。因此 Windows PowerShell 下是 **778 passed / 5 skipped**，Git Bash 与 Linux CI 下是 **779 passed / 4 skipped**。报告数字时必须带上环境，不要把 778 当成漏跑。
+**通过数取决于 shell**：`test_start_dev.py` 的 shell launcher 探针在 PATH 中没有 POSIX `sh` 时会跳过，因此 Windows PowerShell 下会比 Git Bash 与 Linux CI 少一项通过、多一项 skip。报告数字时必须带上环境，不要把 PowerShell 下少的那一项当成漏跑。
+
+当前 HEAD 的具体通过数见 `docs/eval/2026-09-17-capability-baseline.md`，**不要在本文重复维护** —— 每加一个测试都要同步多处，迟早漂移。
 
 ### Review Baseline
 

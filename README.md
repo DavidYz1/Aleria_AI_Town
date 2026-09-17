@@ -1005,7 +1005,7 @@ npm --prefix frontend run build
 docker compose --env-file .env.production.example config --quiet
 ```
 
-当前 HEAD 上这些命令的完整实测输出、运行环境与逐条对应关系见 [能力基线](docs/eval/2026-09-17-capability-baseline.md)。后端测试数在 Windows PowerShell 下是 778 passed / 5 skipped，在有 POSIX `sh` 的环境（Git Bash、Linux CI）下是 779 passed / 4 skipped —— 差的那一项是 `test_start_dev.py` 的 shell launcher 探针，基线文档里有说明。
+当前 HEAD 上这些命令的完整实测输出、运行环境与逐条对应关系见 [能力基线](docs/eval/2026-09-17-capability-baseline.md)。注意后端通过数**取决于 shell**：`test_start_dev.py` 的 shell launcher 探针在 PATH 中没有 POSIX `sh` 时会跳过，所以 Windows PowerShell 下会比 Git Bash 与 Linux CI 少一项通过、多一项 skip。具体数字以基线文档为准。
 
 默认自动测试使用临时 SQLite、Mock 或假 Provider，不读取真实 API Key，也不发起外部模型请求。PostgreSQL 集成测试只在显式设置 `TEST_POSTGRES_URL` 时运行，且使用独立可丢弃数据库中的测试 schema；缺失时明确 skip。真实 Provider 验证属于显式、手动的 Smoke Test。
 

@@ -1,6 +1,11 @@
-# 能力基线｜2026-09-17
+# 能力基线
 
-**代码锚点**：`a3f15cdad6712f0a683ddb7f6592de2d50755ebe`（`main`；本轮开始时工作树干净）。
+**代码锚点**：`c4d9048ed739516254ef4f65a6401596160c6cd1`（`main`，工作树干净）。
+首次记录 2026-09-17（锚点 `a3f15cd`），最后更新 2026-09-18。
+
+> 数字随代码变化。`a3f15cd` 上后端是 779 passed（POSIX），合计 992；`c4d9048`
+> 为 Demo Reset 的计划清理补了 2 个回归测试，因此变成 781 / 994。**引用这些数字时
+> 请带上锚点** —— 早于本次更新的材料里出现的 992 不是错的，它对应 `a3f15cd`。
 
 本文只回答一个问题：**clone 这个仓库之后，跑哪些命令、会看到什么数字。**
 
@@ -29,18 +34,18 @@
 实测输出（exit 0）：
 
 ```
-778 passed, 5 skipped, 1 warning in 421.96s (0:07:01)
+780 passed, 5 skipped, 1 warning in 309.49s (0:05:09)
 ```
 
 同一命令在 Git Bash 下（exit 0）：
 
 ```
-779 passed, 4 skipped, 1 warning in 435.90s (0:07:15)
+781 passed, 4 skipped, 1 warning in 262.86s (0:04:22)
 ```
 
-`--collect-only` 报告 **783 tests collected**，两个环境一致。
+`--collect-only` 报告 **785 tests collected**，两个环境一致。
 
-### 为什么是 778 和 779 两个数字
+### 为什么是 780 和 781 两个数字
 
 差异**只来自 shell 环境，不是测试不稳定**。[`tests/backend/test_start_dev.py:20`](../../tests/backend/test_start_dev.py) 在 PATH 里找不到 POSIX `sh` 时跳过一项：
 
@@ -49,12 +54,12 @@ if shutil.which("sh") is None:
     pytest.skip("Windows shell launcher probe requires a POSIX-compatible sh.")
 ```
 
-- **Windows PowerShell**（PATH 无 `sh`）：778 passed, 5 skipped
-- **Git Bash / Linux CI**（`/usr/bin/sh` 存在）：**779 passed, 4 skipped**
+- **Windows PowerShell**（PATH 无 `sh`）：780 passed, 5 skipped
+- **Git Bash / Linux CI**（`/usr/bin/sh` 存在）：**781 passed, 4 skipped**
 
 单独验证该文件：Git Bash 下 `5 passed`，PowerShell 下 4 passed + 1 skipped。
 
-因此引用后端测试数时必须带环境限定。**POSIX 环境下的 779 是可在 CI 上公开复核的那个数字**；`AGENTS.md` 记录的「4 个 skip」描述的也是 POSIX 环境。
+因此引用后端测试数时必须带环境限定。**POSIX 环境下的 781 是可在 CI 上公开复核的那个数字**；`AGENTS.md` 记录的「4 个 skip」描述的也是 POSIX 环境。
 
 ### 4 项 skip 的完整清单（Git Bash 实测）
 
@@ -79,9 +84,9 @@ npm --prefix frontend run build
 
 | 命令 | 实测输出 | exit |
 | --- | --- | --- |
-| `test` | `Test Files 30 passed (30)` / `Tests 213 passed (213)`，47.69s | 0 |
+| `test` | `Test Files 30 passed (30)` / `Tests 213 passed (213)`，19.25s | 0 |
 | `type-check` | 无输出（`vue-tsc -b`） | **0** |
-| `build` | `✓ 134 modules transformed` / `✓ built in 11.49s` | **0** |
+| `build` | `✓ 134 modules transformed` / `✓ built in 5.28s` | **0** |
 
 构建有一条既有提示：`createTownGame` chunk 1,492.94 kB 超过 500 kB 警告线。这是 Phaser 被动态加载进独立 chunk 的预期结果（见 [`docs/12_Game_Experience_Design.md`](../12_Game_Experience_Design.md) 对 bundle 代价的记录），不是本轮引入的回归。
 
@@ -106,7 +111,7 @@ python scripts/eval_agent.py --ticks 20 --provider fake
 
 唯一浮动的是墙钟耗时（tick P50 0.427s → 0.371s），本来就不该复现。
 
-结果与仓库内已有的 [2026-09-16 Fake 报告](2026-09-16-agent-eval-fake.md)一致。
+结果与仓库内已有的 [2026-09-16 Fake 报告](2026-09-16-agent-eval-fake.md)一致。在 `c4d9048` 上再次复跑，全部行为指标仍逐位相同 —— `seed_database` 复用 `DemoResetService`，但评测每次新建空的临时库，新增的计划清理删 0 行。
 
 **Fake 数字只证明链路可复现，不能推断真实模型质量或成本**——Provider 是本地确定性替身，token 未上报。
 
@@ -114,7 +119,7 @@ python scripts/eval_agent.py --ticks 20 --provider fake
 
 | 声明 | 本轮实测 | 证据 |
 | --- | --- | --- |
-| 前后端共 992 项测试通过 | 779 + 213 = **992**（POSIX 环境）；Windows PowerShell 下为 991 + 1 项环境性 skip | 本文 §1、§2 |
+| 前后端测试全部通过 | 781 + 213 = **994**（POSIX 环境）；Windows PowerShell 下为 993 + 1 项环境性 skip | 本文 §1、§2 |
 | Live 20 tick 动作合法率 100%（43/43） | **100.0%（43/43）** | [20-tick Live 报告](2026-09-17-agent-eval-live-20tick.md) |
 | 计划复用率 51.7% | **51.7%（31/60）** | 同上 |
 | 模型调用 0.483 次/NPC-tick | **29/60 = 0.483** | 同上 |
