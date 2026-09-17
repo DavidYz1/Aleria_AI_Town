@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "percentile_method": "nearest_rank",
+  "counts": {
+    "call_success": 6,
+    "provider_calls": 8,
+    "survived": 10,
+    "authored": 13,
+    "fallback": 5,
+    "proposals": 15,
+    "reuse": 4,
+    "completed": 0,
+    "plans": 6,
+    "untraced_deterministic": 0
+  },
+  "fallback_reasons": {
+    "provider_unknown": 2,
+    "rule_rejected": 3
+  },
+  "proposal_samples": [
+    {
+      "tick": 1,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 1,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 1,
+      "npc_id": "shir",
+      "planning_source": "fallback",
+      "executed_source": "fallback"
+    },
+    {
+      "tick": 2,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "fallback"
+    },
+    {
+      "tick": 2,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "fallback"
+    },
+    {
+      "tick": 2,
+      "npc_id": "shir",
+      "planning_source": "fallback",
+      "executed_source": "fallback"
+    },
+    {
+      "tick": 4,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 4,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "fallback"
+    },
+    {
+      "tick": 4,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 3,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 3,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 3,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 5,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 5,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 5,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    }
+  ],
+  "plan_statuses": [
+    "abandoned",
+    "abandoned",
+    "abandoned",
+    "active",
+    "active",
+    "active"
+  ],
+  "action_types": [
+    "move",
+    "move",
+    "move",
+    "move",
+    "move",
+    "move",
+    "move",
+    "talk",
+    "talk",
+    "move",
+    "move",
+    "move",
+    "move",
+    "wait",
+    "rest"
+  ],
+  "tick_durations_seconds": [
+    20.200601499993354,
+    20.15588419995038,
+    18.177032399980817,
+    0.25323969998862594,
+    11.858963300008327
+  ],
+  "call_samples": [
+    {
+      "tick": 1,
+      "npc_id": "ryan",
+      "duration_ms": 15976.088399998844,
+      "decision_ok": true,
+      "tokens_used": 3688,
+      "failure_reason": null
+    },
+    {
+      "tick": 1,
+      "npc_id": "grey",
+      "duration_ms": 18049.83039997751,
+      "decision_ok": true,
+      "tokens_used": 3815,
+      "failure_reason": null
+    },
+    {
+      "tick": 1,
+      "npc_id": "shir",
+      "duration_ms": 20020.14939999208,
+      "decision_ok": false,
+      "tokens_used": null,
+      "failure_reason": "provider_unknown"
+    },
+    {
+      "tick": 2,
+      "npc_id": "shir",
+      "duration_ms": 20013.55340000009,
+      "decision_ok": false,
+      "tokens_used": null,
+      "failure_reason": "provider_unknown"
+    },
+    {
+      "tick": 3,
+      "npc_id": "shir",
+      "duration_ms": 7386.936599970795,
+      "decision_ok": true,
+      "tokens_used": 2536,
+      "failure_reason": null
+    },
+    {
+      "tick": 3,
+      "npc_id": "grey",
+      "duration_ms": 8956.19599998463,
+      "decision_ok": true,
+      "tokens_used": 2461,
+      "failure_reason": null
+    },
+    {
+      "tick": 3,
+      "npc_id": "ryan",
+      "duration_ms": 18011.76879997365,
+      "decision_ok": true,
+      "tokens_used": 3686,
+      "failure_reason": null
+    },
+    {
+      "tick": 5,
+      "npc_id": "ryan",
+      "duration_ms": 11711.41930000158,
+      "decision_ok": true,
+      "tokens_used": 2826,
+      "failure_reason": null
+    }
+  ]
+}

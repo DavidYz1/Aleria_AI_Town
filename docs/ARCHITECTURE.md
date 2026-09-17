@@ -4,7 +4,7 @@
 
 **阅读规则**：本文严格区分 `Implemented`（已有代码与测试支撑）与 `Proposed / Future`（尚不存在）。**不要 import、假设或依赖 Proposed 段的任何内容。**
 
-事实基准：HEAD `2253768`，Alembic head `0004`，backend 709 passed / 4 skipped，frontend 207 passed / 29 files。
+事实基准：2026-09-16 HEAD `427a9d0`，Alembic head `0006`。下列测试数字如未注明本轮实测，均只代表对应日期的历史验收；本轮结果见 [阶段快照](eval/2026-09-16-stage3m-snapshot.md)。
 
 ---
 
@@ -20,7 +20,7 @@
 | 游戏渲染 | Phaser 3.90.0（版本锁定） |
 | 后端 | FastAPI + Pydantic 2 + SQLAlchemy 2 + Alembic |
 | 数据库 | SQLite（本地/测试默认）**与** PostgreSQL 17 + pgvector 0.8.6（Docker 部署路径） |
-| 测试 | pytest（53 文件）+ Vitest（30 文件） |
+| 测试 | pytest + Vitest；实际用例数以本轮验证输出为准 |
 
 ### 已实现的系统能力
 
@@ -31,6 +31,8 @@
 - **Player 系统**：本地角色档案、地点移动、主线任务 `missing_child`
 - **Stage 2 认知栈**：感知策略、Observation/Memory 投影、逐 NPC checkpoint、Embedding enrichment、权限优先混合检索、证据约束 Reflection、追加式 Belief
 - **安全解释面**：`GET /api/npcs/{npc_id}/memory-explanations` + 前端折叠"相关记忆"区
+- **Stage 3m 规划回路**：多步 `agent_plans`、活跃计划复用、并行的纯 Provider 网络调用、规则拒绝后的确定性兜底、`planning` trace、Plan API 与「思考」Tab 的可公开检索记忆
+- **兜底归因（failure taxonomy）**：Provider 失败按异常类型分 `timeout` / `http_status` / `transport` / `parse_error`；规则拒绝由 `rule_rejection` trace 记录被替换掉的原始提案与 `ActionRegistry` 的拒绝码。两级分类落盘后由评测直接读取，不再从 `source` 反推；`attempted_target` 只落盘、不进公开投影
 - **Demo Reset**：按 World 清理并重建，含认知数据
 - **部署**：Docker Compose（db / backend / web）、nginx、一键启动与部署脚本
 
@@ -47,9 +49,9 @@
 **但验收边界必须说清楚**：
 
 - Foundation 阶段的 PostgreSQL Runtime Graph 持久化**已完成真实集成验收**（commit `e78714f`）
-- **Stage 2 认知表 + 向量检索在 PostgreSQL 上的真实验收尚未执行** —— 这是 Task 5 Step 6 的待办事项。上述 4 个测试在未设置 `TEST_POSTGRES_URL` 时会 skip，当前基线中它们**全部处于 skip 状态**
+- **Stage 2 认知表 + 向量检索曾在隔离 PostgreSQL schema 上完成 14 项集成验收**（见 `CURRENT_STATE.md` 历史记录）；本轮没有重跑。默认测试未设置 `TEST_POSTGRES_URL` 时仍会 skip 对应 opt-in 项。
 
-换言之：**能跑，但 Stage 2 这部分还没有人真的跑过**。
+这不等于当前部署环境已经完成 PostgreSQL 端到端验收。
 
 ---
 
@@ -59,10 +61,10 @@
 
 | 能力 | 计划所属 Stage | 状态 |
 | --- | --- | --- |
-| Goal、Goal Arbitration、Plan、Plan Step | Stage 3 | 未实现 |
-| LLM Action Decision / LLM `ActionProposal` | Stage 3 | 未实现 |
-| 普通 / LLM 双推进 UI | Stage 3 | 未实现 |
-| **LangGraph** | Stage 3 | 未实现，已批准在 Stage 3 采用 |
+| Goal Arbitration、Rolling Plan 防循环 | deferred Stage 3 | 未实现；Stage 3m 已有基础 Goal、Plan、Plan Step |
+| 更完整的 LLM Action 决策治理 | deferred Stage 3 | Stage 3m 已有模型提案与规则校验，治理能力仍待后续 |
+| 普通 / LLM 双推进 UI | deferred Stage 3 | 未实现；现有「思考」Tab 展示决策来源 |
+| **LangGraph** | deferred Stage 3 | 当前 Runtime 未使用；引入需重新论证 |
 | **LangChain** | — | 未实现，仅在出现可证明的集成需求时才局部采用 |
 | **Celery / Redis / Outbox / Worker** | Stage 4 | 未实现 |
 | **SSE / 异步 HTTP 202 / 重试编排 / 取消** | Stage 4 | 未实现 |
@@ -88,7 +90,7 @@
                          │ HTTP (JSON envelope: success/data/message)
 ┌────────────────────────▼─────────────────────────────────┐
 │ Backend API  (FastAPI routers + DI)                      │
-│   9 routers · dependencies.py 提供 Session 与 Provider    │
+│   10 routers · dependencies.py 提供 Session 与 Provider   │
 └────────────────────────┬─────────────────────────────────┘
                          │
 ┌────────────────────────▼─────────────────────────────────┐
@@ -179,10 +181,10 @@ world/        纯确定性模拟：无 I/O、无数据库、可单元测试
   ↓
 database/     repository：SQL、约束、事务内的读写
   ↓
-models.py     ORM（20 张表）
+models.py     ORM（21 张表）
 ```
 
-### Router 清单（`backend/app/main.py` 注册 9 个）
+### Router 清单（`backend/app/main.py` 注册 10 个）
 
 | Router | 主要端点 |
 | --- | --- |
@@ -191,6 +193,7 @@ models.py     ORM（20 张表）
 | `world_clock.py` | `POST /api/world/tick`（同步 200） |
 | `agent_runs.py` | `GET /api/agent-runs/{run_id}` |
 | `npcs.py` | `GET /api/npcs/{npc_id}`、`GET /api/npcs/{npc_id}/memory-explanations` |
+| `npc_plan.py` | `GET /api/npcs/{npc_id}/plan` |
 | `npc_chat.py` | `POST /api/npcs/{npc_id}/chat` |
 | `player.py` | 玩家状态与移动 |
 | `quests.py` | 任务交互 |
@@ -240,12 +243,14 @@ POST /api/world/tick  {expected_world_version}
   │    └─ repository.get_snapshot()
   │    └─ 版本校验：snapshot.world_version != expected → 409 冲突
   │
-  ├─ run_deterministic_advance(snapshot, registry)        ← agents/orchestrator.py
+  ├─ AgentPlanner.decide_many(snapshot.npcs)               ← 有计划则复用；否则调用 Provider
+  │    └─ 仅 Provider 网络阶段并行；准备与落盘沿用 tick Session
+  ├─ run_advance(snapshot, proposal_override)             ← agents/orchestrator.py
   │    ├─ 按 (sort_order, id) 稳定排序 NPC
   │    ├─ 对每个 NPC 施加被动需求漂移
   │    ├─ advance_clock() 推进 day/time，clock_tick + 1
   │    ├─ 构造一份**不可变决策快照**
-  │    ├─ decide_action(actor, decision_world)  每个 NPC 独立提案
+  │    ├─ 优先使用 planner 提案；缺席时 decide_action 确定性提案
   │    │     ※ 所有 NPC 看到同一份快照，看不到彼此在本次推进中的效果
   │    ├─ resolve_proposals()                  ← Registry 校验 + 确定性冲突处理
   │    │     ※ 结果与提案输入顺序无关
@@ -375,19 +380,19 @@ RetrievalRequest(world_id, owner_npc_id, world_version, clock_tick,
 
 ## Persistence Model
 
-### 数据库存储职责（20 张表）
+### 数据库存储职责（21 张表）
 
 | 分组 | 表 |
 | --- | --- |
 | 世界与内容 | `world_state`、`locations`、`npc_profiles`、`npc_states` |
 | 玩家与任务 | `player_states`、`quest_progress`、`quest_events` |
-| Runtime Graph | `agent_runs`、`action_proposals`、`actions`、`events`、`agent_trace_entries` |
+| Runtime Graph | `agent_runs`、`action_proposals`、`actions`、`events`、`agent_trace_entries`、`agent_plans` |
 | 对话 | `conversations`、`conversation_messages` |
 | **认知（Stage 2）** | `agent_cognition_states`、`observations`、`memories`、`memory_evidence`、`beliefs`、`belief_evidence` |
 
 ### Migration
 
-链条：`0001_legacy_baseline → 0002_world_versioning → 0003_agent_runtime_foundation → 0004_stage2_cognition`
+链条：`0001_legacy_baseline → 0002_world_versioning → 0003_agent_runtime_foundation → 0004_stage2_cognition → 0005_stage3m_agent_plans → 0006_plan_evidence`
 
 - ORM（`models.py`）与迁移必须**同构**：相同的 FK、CHECK、UNIQUE 与索引名
 - SQLite 与 PostgreSQL 的差异在迁移中显式处理（JSON vs Vector 列）

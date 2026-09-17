@@ -1,0 +1,737 @@
+{
+  "schema_version": 1,
+  "percentile_method": "nearest_rank",
+  "counts": {
+    "call_success": 30,
+    "provider_calls": 30,
+    "survived": 60,
+    "authored": 60,
+    "fallback": 0,
+    "proposals": 60,
+    "reuse": 30,
+    "completed": 27,
+    "plans": 30,
+    "untraced_deterministic": 0
+  },
+  "fallback_reasons": {},
+  "proposal_samples": [
+    {
+      "tick": 5,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 5,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 5,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 8,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 8,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 8,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 19,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 19,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 19,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 7,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 7,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 7,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 2,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 2,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 2,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 12,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 12,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 12,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 18,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 18,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 18,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 20,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 20,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 20,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 11,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 11,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 11,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 4,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 4,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 4,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 13,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 13,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 13,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 16,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 16,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 16,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 3,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 3,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 3,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 6,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 6,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 6,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 14,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 14,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 14,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 9,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 9,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 9,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 17,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 17,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 17,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 15,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 15,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 15,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 10,
+      "npc_id": "grey",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 10,
+      "npc_id": "ryan",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 10,
+      "npc_id": "shir",
+      "planning_source": "existing_plan",
+      "executed_source": "existing_plan"
+    },
+    {
+      "tick": 1,
+      "npc_id": "grey",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 1,
+      "npc_id": "ryan",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    },
+    {
+      "tick": 1,
+      "npc_id": "shir",
+      "planning_source": "llm",
+      "executed_source": "llm"
+    }
+  ],
+  "plan_statuses": [
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "active",
+    "active",
+    "active"
+  ],
+  "action_types": [
+    "move",
+    "eat",
+    "move",
+    "eat",
+    "rest",
+    "eat",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest",
+    "talk",
+    "talk",
+    "talk",
+    "rest",
+    "rest",
+    "rest"
+  ],
+  "tick_durations_seconds": [
+    0.3325976999476552,
+    0.19798529997933656,
+    0.3463700000429526,
+    0.2331712000304833,
+    0.25572139996802434,
+    0.31097230000887066,
+    0.2192199999699369,
+    0.1495106000220403,
+    0.37499030004255474,
+    0.1914942999719642,
+    0.22507550002774224,
+    0.2311870999983512,
+    0.19929469999624416,
+    0.14899070002138615,
+    0.2539837999502197,
+    0.17546429997310042,
+    0.17753990000346676,
+    0.23255469999276102,
+    0.22515389998443425,
+    0.1777093000127934
+  ],
+  "call_samples": [
+    {
+      "tick": 1,
+      "npc_id": "ryan",
+      "duration_ms": 0.22230000467970967,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 1,
+      "npc_id": "shir",
+      "duration_ms": 0.052799994591623545,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 1,
+      "npc_id": "grey",
+      "duration_ms": 0.024999957531690598,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 3,
+      "npc_id": "ryan",
+      "duration_ms": 0.06669998401775956,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 3,
+      "npc_id": "shir",
+      "duration_ms": 0.05029997555539012,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 3,
+      "npc_id": "grey",
+      "duration_ms": 0.020000035874545574,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 5,
+      "npc_id": "ryan",
+      "duration_ms": 0.04529999569058418,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 5,
+      "npc_id": "shir",
+      "duration_ms": 0.03700004890561104,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 5,
+      "npc_id": "grey",
+      "duration_ms": 0.01409999094903469,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 7,
+      "npc_id": "ryan",
+      "duration_ms": 0.04740001168102026,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 7,
+      "npc_id": "shir",
+      "duration_ms": 0.035100034438073635,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 7,
+      "npc_id": "grey",
+      "duration_ms": 0.016000005416572094,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 9,
+      "npc_id": "ryan",
+      "duration_ms": 0.23340003099292517,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 9,
+      "npc_id": "shir",
+      "duration_ms": 0.11359999189153314,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 9,
+      "npc_id": "grey",
+      "duration_ms": 0.037299992982298136,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 11,
+      "npc_id": "ryan",
+      "duration_ms": 0.0950000248849392,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 11,
+      "npc_id": "shir",
+      "duration_ms": 0.05619996227324009,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 11,
+      "npc_id": "grey",
+      "duration_ms": 0.01829996472224593,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 13,
+      "npc_id": "ryan",
+      "duration_ms": 0.08680002065375447,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 13,
+      "npc_id": "shir",
+      "duration_ms": 0.022099993657320738,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 13,
+      "npc_id": "grey",
+      "duration_ms": 0.014899997040629387,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 15,
+      "npc_id": "ryan",
+      "duration_ms": 0.06529997335746884,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 15,
+      "npc_id": "shir",
+      "duration_ms": 0.04080001963302493,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 15,
+      "npc_id": "grey",
+      "duration_ms": 0.015600002370774746,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 17,
+      "npc_id": "ryan",
+      "duration_ms": 0.05010003224015236,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 17,
+      "npc_id": "shir",
+      "duration_ms": 0.035400036722421646,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 17,
+      "npc_id": "grey",
+      "duration_ms": 0.01580000389367342,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 19,
+      "npc_id": "ryan",
+      "duration_ms": 0.07589999586343765,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 19,
+      "npc_id": "shir",
+      "duration_ms": 0.03809999907389283,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    },
+    {
+      "tick": 19,
+      "npc_id": "grey",
+      "duration_ms": 0.0173999578692019,
+      "decision_ok": true,
+      "tokens_used": null,
+      "failure_reason": null
+    }
+  ]
+}

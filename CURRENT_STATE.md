@@ -8,7 +8,7 @@
 
 ## Current Date
 
-**2026-09-16**
+**2026-09-16（本轮按 HEAD 与工作树重新核对；下文旧 Task 记录只供追溯）**
 
 ---
 
@@ -17,13 +17,14 @@
 | 项 | 值 |
 | --- | --- |
 | 分支 | `main` |
-| HEAD | `5bc8858`（`perf: stop shipping tool descriptions twice and prefer multi-step plans`） |
-| 上一提交 | `853e4f7`（`perf: run npc planning calls concurrently within one tick`） |
+| HEAD | `427a9d08b4b82ce73e20ade9adb398be49f25e59`（规划引用记忆已落盘并展示） |
+| 上一提交 | `5bc8858`（`perf: stop shipping tool descriptions twice and prefer multi-step plans`） |
 | 远程 | `origin` → `github.com/DavidYz1/Aleria_AI_Town` |
-| 与远程的关系 | **本地领先 8 个提交，尚未 push** |
-| tracked 工作树 | **未暂存、未提交** — 跟进项 ③「规划命中的 memory id 落盘」 |
-| 未跟踪文件 | `backend/migrations/versions/0006_plan_evidence.py` |
-| 生产代码 | planner / npc_plan / cognition_repository / models / plan_repository / schemas.plan + 前端两个文件 |
+| 与远程的关系 | **本地领先 14 个提交**（本轮开始实测） |
+| 本轮开始时工作树 | **干净**；本轮评测与文档改动保持未暂存、未提交 |
+| 当前迁移链 | `0001 → … → 0006`（0006 已在 HEAD；本轮不改结构） |
+
+> 本表是当前状态。下文保留的旧「等待 review」和「下一步」段落是当时的工作记录，不能覆盖本表；本轮最新交接见文末「2026-09-16 量化评测收尾」。
 
 ### 提交历史（近期）
 
@@ -43,7 +44,7 @@ fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage
 6a25028  chore: finalize AI review workflow and stage2 contract alignment
 ```
 
-### 测试基线（跟进项 ③ 工作树，本机实测，2026-09-16）
+### 历史测试基线（跟进项 ③ 提交前实测，非本轮结果）
 
 | 套件 | 结果 |
 | --- | --- |
@@ -53,13 +54,12 @@ fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage
 | Golden 快照闸门 | **PASS**（含在全量内） |
 | 真实 PostgreSQL / pgvector 四文件 opt-in | 未运行（跟进项不涉及数据库结构） |
 | build | 本会话未跑 |
-| Fake eval（20 tick） | 动作合法率 **100.0%**，兜底率 0.0% |
-| Live eval（20 tick，`hy3`） | 动作合法率 **90.2%**，见 `docs/eval/2026-09-14-agent-eval.md` |
+| Fake eval（当时 20 tick） | 动作合法率 **100.0%**，兜底率 0.0% |
+| Live eval（历史版 20 tick，`hy3`） | 动作合法率 **90.2%**，见 `docs/eval/2026-09-14-agent-eval.md`；不能与当前版直接做 A/B |
 
 测试数 734 → 745（① reflection tool calling）→ 748（② 并行化）
 → 750（延迟诊断的两条静默退化守卫）→ 754（③ memory id 落盘）。
-**迁移链现为 `0001 → … → 0006`；演示库 `backend/data/aleria.db` 仍停在 `0005`，
-下次通过启动脚本会自动升级。**
+**迁移链现为 `0001 → … → 0006`；本轮未检查或访问演示库的实际 revision。**
 5 个 skip 与 1 个 warning 自 Stage 2 起未变，**无新增**。
 所有 Live 验证都跑在临时或 scratchpad 数据库副本上，`backend/data/aleria.db` 只读不写。
 
@@ -87,7 +87,7 @@ fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage
 连带修复：`conftest.py` 追加 `env_file=None` 隔离 —— 测试不再读仓库根的 `.env`。
 这是「填了 key 测试就打真实 API」的同一根因的第二个症状。
 
-### ② 并行化 provider 调用 — ✅ 已实现与验证，等待人类 review
+### ② 并行化 provider 调用 — ✅ 已提交 `853e4f7`
 
 `AgentPlanner.decide` 拆成三相，**只把纯网络的第 2 相放进线程池**：
 `_prepare`（数据库）→ `_ask`（provider，可并发）→ `_settle_answer`（数据库）。
@@ -102,7 +102,7 @@ fbd8b33  docs: add stage 3m agent loop mvp spec and plan, defer production stage
 完整记录（含一次 Git 规则违规的说明）见
 `.superpowers/sdd/2026-09-14-parallel-planning/progress.md`。
 
-### ③ 规划命中的 memory id 落盘 — ✅ 已实现与验证，等待人类 review
+### ③ 规划命中的 memory id 落盘 — ✅ 已提交 `427a9d0`
 
 补齐 spec §17 第 4 条。迁移 `0006` 给 `agent_plans` 加
 `evidence_memory_ids_json`：**落盘完整、对外收窄** —— planner 用
@@ -128,7 +128,7 @@ tick = 三个并发调用里最慢的那个，被 20 秒超时截断；并发把
 
 ---
 
-## Active Track：Stage 3m Agent Loop MVP（支线）
+## 历史 Track：Stage 3m Agent Loop MVP（已交付支线）
 
 **2026-09-13 决策**：原 Stage 3 生产级方案（10-15 天）超出交付窗口，改为执行 4-5 天的 MVP 支线。
 
@@ -140,8 +140,8 @@ tick = 三个并发调用里最慢的那个，被 20 秒超时截断；并发把
 | Stage 3 生产级 plan | `docs/superpowers/plans/deferred/2026-09-13-stage-3-goals-plans-llm-actions-plan-cn.md` | **DEFERRED** |
 | test-suite-cleanup 决策记录 | `docs/superpowers/specs/deferred/2026-09-13-test-suite-cleanup-decision-record-cn.md` | **DEFERRED**，MVP 交付后执行 |
 | test-suite-cleanup plan | `docs/superpowers/plans/deferred/2026-09-13-test-suite-cleanup-plan-cn.md` | **DEFERRED** |
-| **Stage 3m MVP design** | `docs/superpowers/specs/2026-09-13-stage-3m-agent-loop-mvp-design-cn.md` | **ACTIVE**，§17 验收见下方「Stage 3m 验收」 |
-| Stage 3m MVP plan | `docs/superpowers/plans/2026-09-13-stage-3m-agent-loop-mvp-plan-cn.md` | **ACTIVE**，Task 0–8 已按它执行完毕 |
+| **Stage 3m MVP design** | `docs/superpowers/specs/2026-09-13-stage-3m-agent-loop-mvp-design-cn.md` | 历史已执行；文件顶部旧 `ACTIVE` 标记未同步，§17 历史验收见下方 |
+| Stage 3m MVP plan | `docs/superpowers/plans/2026-09-13-stage-3m-agent-loop-mvp-plan-cn.md` | 历史已执行，Task 0–8 已完成 |
 
 四个 deferred 文档顶部均已插入延期状态横幅。四份文档在移动前均为 git 未跟踪状态，无历史丢失。
 
@@ -201,7 +201,7 @@ Foundation 提供的稳定边界：三套独立计数器分离、所有 NPC 消�
 
 ---
 
-## Current Task
+## 历史 Task 记录（以下等待 review 状态均以当时为准）
 
 ### Stage 3m Task 8：Eval、演示种子与文档 — ✅ 已实现与验证，等待人类 review
 
@@ -210,8 +210,9 @@ Foundation 提供的稳定边界：三套独立计数器分离、所有 NPC 消�
 交付物：
 
 - `scripts/eval_agent.py`：隔离临时 SQLite 跑 N tick，输出 markdown 指标表，
-  支持 Fake / Live 双 provider 对照。指标全部从**已落盘数据**计算，不复算业务逻辑 ——
-  `planning` trace 记录 planner 产出的来源，`proposal` trace 记录经
+  支持 Fake / Live 双 provider。**原版**计划来源、动作和计划状态从数据库取数；
+  **当前版**调用次数、耗时、token 覆盖与失败类别由进程内计量，指定 `--out` 时写入
+  去内容化 `.evidence.json` 供复核。`planning` trace 记录 planner 产出的来源，`proposal` trace 记录经
   `_with_fallback` 替换之后真正执行的来源，两者逐 (run, actor) 配对即可区分
   「模型没返回可用结果」与「模型返回了但动作被引擎拒绝」。
 - `docs/eval/2026-09-14-agent-eval.md`：Live 真实报告。
@@ -225,7 +226,7 @@ Foundation 提供的稳定边界：三套独立计数器分离、所有 NPC 消�
 
 ---
 
-## Stage 3m 验收（对照 spec §17 逐条）
+## Stage 3m 历史验收（2026-09-14 版本，对照 spec §17；当前 HEAD Live 未验证）
 
 判据：**有实测证据的才记通过；未执行的明确标注「未执行」，不得宣称通过。**
 
@@ -235,7 +236,7 @@ Foundation 提供的稳定边界：三套独立计数器分离、所有 NPC 消�
 | 2 | 强制关闭 LLM，世界仍推进，UI 显示兜底徽章 | ✅ **通过** | 两条路径都实测：① 注入恒失败 provider 重启后从 UI 推进，世界 21:00→22:00，「思考」Tab 出现琥珀色「确定性兜底」徽章；② `runtime_mode=deterministic` 下 planning trace 条数为 0、tick 0.12s（Task 5 ledger） |
 | 3 | `GET /api/npcs/{id}/plan` 返回当前目标、计划步骤与进度 | ✅ **通过** | Task 5 端到端 14 项检查全 PASS（含 404 分支）；Task 7 在 UI 上渲染同一份数据 |
 | 4 | 「思考」Tab 完整展示一次决策的推理链路**与引用记忆** | ✅ **已补齐**（跟进项 ③，2026-09-15） | 推理链路完整；引用记忆经 `0006` 落盘后由「这次决策引用的记忆」区展示。**只列可公开的部分**：planner 用 `INTERNAL_REFLECTION` 检索，API 返回前重新过 `PUBLIC_EXPLANATION` 硬过滤，不可公开的既不出现内容也不以计数暴露。隐私断言配变异验证 |
-| 5 | `eval_agent.py` 产出 6 项指标；**Live** 动作合法率 ≥ 90% | ✅ **通过** | spec §14 的 6 项全部产出（延迟与 token 拆成两行呈现）；Live `hy3` 实测 **90.2%（37/41）**，压线通过 |
+| 5 | `eval_agent.py` 产出 6 项指标；**Live** 动作合法率 ≥ 90% | 历史版 ✅；当前 HEAD Live **未验证** | 2026-09-14 旧版 Live `hy3` 实测 **90.2%（37/41）**；随后并行、载荷与计划长度均改变，不可外推到当前版 |
 | 6 | 10 个关键测试全部通过 | ✅ **通过（13 个）** | `pytest --collect-only` 实测 13 collected：golden 1 + `test_planning_core` 8 + `test_agent_loop_fallback` 3 + `test_provider_isolation` 1。plan 定的 10 个之外多出 3 个，均为执行期定位到的静默缺陷（见「本阶段额外修复」） |
 | 7 | Golden 快照比对通过 | ✅ **通过** | `test_golden_deterministic.py` 全程绿，Task 0 建立后每次全量都跑，从未更新过快照 |
 | 8 | 全量测试通过，无新增 skip / warning | ✅ **通过** | `734 passed, 5 skipped, 1 warning in 265.14s`；Frontend `213 passed (30 files)`；type-check exit 0。5 skip 与 1 warning 与基线逐项一致 |
@@ -288,7 +289,7 @@ memory id，Plan API 带出，「思考」Tab 才能如实标注引用。这需�
 | `LastOutcome` 跨 tick 回传 | 契约与 Context 段位都在，当前固定传 `None` |
 | **计划引用的记忆未落盘** | 第 4 条验收只能部分达成的直接原因 |
 | **Reflection 在 `hy3` 上返回 `{"": ""}`** | `json_object` 模式只保证「是 JSON」，不保证「是你的 JSON」。同一模型的 tool calling 完全正常 —— 修法是把 reflection 也切到 tool calling，属 Stage 2 代码 |
-| **三个 NPC 串行规划** | Live 下单 tick 24.6s（最慢 50s）。并行化要先解决共用 tick Session 的线程安全 |
+| **三个 NPC 串行规划（历史遗留，已解决）** | `853e4f7` 已把纯 Provider 网络调用并行；数据库准备与落盘仍串行。旧 Live 延迟不能代表当前 HEAD |
 
 ## Historical Stage 2 Task 5 Closeout Notes（保留供追溯）
 
@@ -438,7 +439,7 @@ tests/backend/test_stage2_acceptance.py::test_stage2_http_closure_survives_resta
 
 ---
 
-## Review Baseline
+## 历史 Review Baseline（本轮交付需另建基线）
 
 本小节是接手 agent 的第一判据，用于决定下一次 review 的增量起点。机制见 `docs/AI_REVIEW_POLICY.md`。
 
@@ -483,7 +484,7 @@ git diff HEAD --stat
 
 ---
 
-## Next Recommended Step
+## 历史 Next Recommended Step（以下建议已部分完成，请看文末当前交接）
 
 ### 下一步应该做什么
 
@@ -546,3 +547,278 @@ review 时值得重点看的三点：
 - 不得引入新的 skip 或新的 warning。
 - **修复完成后必须跑完整验证矩阵**，聚焦子集不得替代（`AI_REVIEW_POLICY` §5.2 硬规则、红线 13/14）。这一条正是本轮事故的直接教训。
 - pytest 必须在沙箱外运行并显式指定 `--basetemp` 到有写权限的目录。
+
+---
+
+## 2026-09-16 量化评测收尾（本轮交接）
+
+### 本轮范围与边界
+
+在 HEAD `427a9d0` 之上做「量化评测与项目展示收尾」：扩展评测指标、生成阶段快照、
+修正文档中与代码不符的描述、给出后续优化排序。
+
+**不改**数据库结构、公开 API、权限 scope 与生产运行模型；迁移链仍是 `0001 → … → 0006`。
+产出全部保持**未暂存、未提交**，由人类 review 后手动提交。
+
+本轮由两个 agent 接力：Codex 完成评测扩展与文档主体，Claude 复核事实、修复一处真实缺陷
+并补齐验证矩阵。下表的「来源」列标注每处改动的产出方。
+
+### 修改文件
+
+| 文件 | 改动 | 来源 |
+| --- | --- | --- |
+| `scripts/eval_agent.py` | 在既有 6 项指标外增加计划复用率、每 NPC-tick 模型调用数、tick 与 Provider 耗时 P50/P95、token 上报覆盖、兜底原因分类；新增去内容化 `.evidence.json`；Fake 模式禁用 `.env` 与四类 API Key | Codex |
+| `scripts/eval_agent.py` | 修复 engine 泄漏（`collect` 与 `run_ticks` 各 dispose 一处）；`ignore_errors=True` 换成会报警的 `remove_workspace()`；`collect()` 内遮蔽模块函数的局部变量 `run_ticks` 改名 `tick_of_run` | Claude |
+| `scripts/seed_world.py` | `seed_database` 结束后 dispose engine | Claude |
+| `scripts/upgrade_schema.py` | `upgrade_schema` 读完表名后 dispose engine | Claude |
+| `tests/backend/test_eval_agent.py` | 新增 5 条：计量分母含失败调用、Fake 全链路计数、Provider 失败不得报成 schema/超时、规则拒绝单列原因、Fake CLI 隔离与清理 | Codex |
+| `tests/backend/conftest.py` | 在 collection 阶段就关闭 `.env` 并写入安全 provider 环境（autouse fixture 晚于模块导入，挡不住 import 期建 app） | Codex |
+| `tests/backend/test_provider_isolation.py` | 去掉「无凭据则 skip」的条件分支，改为无条件断言 collection 期与执行期都装配不出真实 provider | Codex |
+| `docs/eval/2026-09-16-agent-eval-fake.md` + `.evidence.json` | 新增：当前 HEAD 的 20-tick Fake 报告与逐次证据 | Codex（数字由 Claude 用最终脚本重跑） |
+| `docs/eval/2026-09-16-stage3m-snapshot.md` | 新增：阶段成果快照（复现条件、指标、限制、优化排序、Demo 风险） | Codex（验证矩阵与两次运行一致性由 Claude 补） |
+| `docs/eval/2026-09-14-agent-eval.md` | 标注为历史版本；纠正「19 次超时」——那是当时的推断，trace 无法复核 | Codex |
+| `README.md` | 首页补完整闭环与链接；分离「AI 辅助开发 workflow」与「NPC Agent 运行链路」；修正 `[Semantic]` / `[LastOutcome]` / 并行规划 / 记忆解释 embedding 的描述 | Codex |
+| `docs/ARCHITECTURE.md` | 事实基准更新到 `427a9d0` / `0006`；补 Stage 3m 规划回路、`npc_plan` router、`agent_plans` 表；ORM 表数 20 → 21 | Codex（表数由 Claude 修） |
+
+### 本轮实测验证矩阵（本机，2026-09-16）
+
+| 套件 | 结果 |
+| --- | --- |
+| Backend 全量 | `762 passed, 4 skipped, 1 warning in 266.96s`（exit 0） |
+| Frontend 单测 | `213 passed（30 files）`（exit 0） |
+| type-check | exit 0 |
+| 生产构建 | exit 0（Phaser chunk > 500 kB 的既有提示不变，非新增） |
+| Fake 评测 20 tick | exit 0；**两次运行行为指标逐字一致**，仅墙钟耗时波动 |
+| 真实 PostgreSQL / pgvector opt-in | **未运行**（未设 `TEST_POSTGRES_URL`；4 个 skip 即此项） |
+| Live 真实模型评测 | **5 tick 探路已跑**（`hy3`，8 次调用、19012 token、约 71s）；20 tick 的 §17.5 正式验收**未运行** |
+| 浏览器人工界面验收 / 截图 | **未运行**，未采集 |
+
+skip 从历史基线的 5 项降到 4 项：`test_provider_isolation.py` 原先在没有真实凭据的机器上
+会 skip，现改成无条件断言。**无新增 skip、无新增 warning**（唯一 1 条是既有的
+Starlette/httpx 弃用提示）。
+
+### 本轮发现并修复的缺陷：评测隔离库删不掉
+
+**现象**：`test_fake_cli_clears_keyless_live_provider_configuration` 断言评测结束后临时
+目录消失，实测为红 —— 目录仍在。
+
+**根因**：`create_engine_and_session()` 返回的 engine 由调用方负责释放，而
+`seed_world.seed_database`、`upgrade_schema.upgrade_schema`、`main.create_app`、
+`eval_agent.collect` 四处都把 engine 丢弃了。连接池保持着 SQLite 文件句柄，Windows 上
+`shutil.rmtree` 因此抛 `PermissionError [WinError 32]`，而 `ignore_errors=True` 把它
+静默吞掉。分三阶段二分确认：只跑 `seed_database` 的阶段就已经删不掉。
+
+**修法**：三个脚本函数各自 dispose 自己的 engine；`run_ticks` 从
+`app.state.session_factory.kw["bind"]` 取回 `create_app` 丢弃的 engine 再 dispose
+（不改生产代码 —— 应用级 engine 本就该活到进程结束）。清理失败改为打印警告而非静默。
+
+**验证**：三阶段诊断全部 `rmtree OK`；聚焦套件 22 passed；全量无回归；重跑真实 CLI 后
+系统临时目录**不再新增**残留。
+
+**遗留**：`%TEMP%` 下有 13 个修复前留下的 `aleria-eval-*` 目录（最新 18:11，早于修复后
+运行）。属本地垃圾，未删除 —— 删除是不可逆操作，留给人类决定。
+
+### Deferred minor（发现但本轮未改）
+
+- `AGENTS.md` 的 Repository Structure 写「pytest（53 个文件）+ Vitest（30 个文件）」，
+  实际为 backend 57 个 `test_*.py`（含 conftest 共 59 个 `.py`）、frontend 30 个
+  `.spec.ts`。**未改**：用户点名要修的是 README 与 `CURRENT_STATE.md`，且 `AGENTS.md`
+  是协作规范的权威文件，改它应由人类决定。
+- `backend/app/main.py:create_app` 同样丢弃 engine 句柄。生产路径上无害（engine 随进程
+  存活），但任何想清理数据库文件的调用方都得像 `run_ticks` 那样从 sessionmaker 反查
+  bind。若将来有第二个这样的调用方，值得让 `create_app` 直接回传 engine。
+- ~~`docs/06_API_Contract.md` 缺少已实现的 `GET /api/npcs/{npc_id}/plan`~~ —— **已补**
+  （经人类确认后执行）。新增 §4.4，含请求约束、字段表、隐私边界与错误码，契约版本
+  `v3.0 → v3.1`。字段约束逐条对照 `backend/app/schemas/plan.py`、`planning_contracts.py`
+  （steps 1–4、intent ≤200）与 `models.py` 的 CHECK（status 三值）核对过。
+
+### 下一步建议
+
+优先级与理由见 [阶段快照](docs/eval/2026-09-16-stage3m-snapshot.md#下一步排序本轮不实施)。
+最该先做的两件事：
+
+1. **给 Provider 失败保留安全的错误类别**（超时 / HTTP / 响应解析 / 规则拒绝分开落 trace，
+   不记录响应正文或密钥）。当前 Live adapter 把三类错误合并成 `PlanningProviderError`，
+   这是「真实模型可用率为什么低」这个问题目前**无法回答**的直接原因。评测侧的计量已经
+   预留了分类位（`CallSample.failure_reason`），只在异常类型可直接观测时才标注。
+2. **跑一次当前 HEAD 的 Live 评测**，让 spec §17.5「Live 动作合法率 ≥ 90%」重新有依据。
+   2026-09-14 那份是历史版本，之后改过并行规划、工具载荷与计划长度，不能当作当前基线。
+
+### 本轮后续（人类确认后追加执行）
+
+1. **Live 5 tick 探路已运行**（`hy3`，8 次调用、19012 token、约 71 秒，隔离临时库）。
+   报告落在 [docs/eval/2026-09-16-agent-eval-live-probe.md](docs/eval/2026-09-16-agent-eval-live-probe.md)，
+   带明确的「样本极小、不构成 §17.5 验收」标注与 6 条人工读数说明。
+   **最重要的产出**：兜底原因第一次被分开计量 —— 3 次规则拒绝 vs 2 次 Provider 失败，
+   推翻了旧报告「兜底主要来自超时」的说法（至少在此样本上）。
+   **同时确认了观测缺口**：2 次失败耗时 20020/20014ms 精确卡在 20 秒上限，成功调用最长
+   18.05 秒，耗时证据一致于超时假设，但 trace 无法确认，只能记 `provider_unknown`。
+   动作合法率 76.9%（10/13）低于 §17.5 的 90%，但分母太小，**不能判定验收成败**。
+2. **`docs/06_API_Contract.md` 补 §4.4**，见上方 deferred minor。
+3. **清理了 `%TEMP%` 下 13 个 `aleria-eval-*` 残留**（8.8 MB，均只含 `eval.db`）。
+   修复后的运行不再产生残留 —— Live 探路跑完即时验证，残留数为 0。
+
+### 2026-09-17 追加：P0-1 Error taxonomy 与 P0-2 工具契约对齐
+
+人类先要了一次面向简历/面试的工程评审，结论是「可以投递，但失败路径的可解释性是
+唯一硬缺口」，随后批准实施 P0-1 与 P0-2。两项都按 TDD 完成。
+
+#### P0-1：兜底归因（failure taxonomy）
+
+**关键发现：rule 侧的分类本来就存在，只是被丢弃了。** `ActionValidation` 是
+`(accepted, code, message)` 三字段，`action_registry` 与 `conflict_resolver` 一共产出
+9 个拒绝码；但 `orchestrator._with_fallback` 只取了 `.accepted`，然后把被拒提案整体
+替换成确定性兜底。于是落盘的 proposal / validation trace 记录的都是**替换后**的动作，
+validation 的 code 甚至是 `accepted`。所以「3 次 rule_rejected」答不出是哪 3 次。
+
+改动：
+
+| 层 | 改动 |
+| --- | --- |
+| `planning_provider.py` | `PlanningProviderError` 带 `reason`；`classify_planning_failure()` 按异常类型分 `timeout` / `http_status` / `transport` / `parse_error`（顺序不可换：`TimeoutException` 是 `TransportError` 子类，`HTTPStatusError` 直接继承 `HTTPError`） |
+| `planner.py` | `_ProviderAnswer.failure_reason`、`PlanningOutcome.failure_stage/failure_code`；`_ask` 优先读 `exc.reason`，读不到记 `unknown` |
+| `world_clock_service.py` | planning trace 落 `failure_stage` / `failure_code` |
+| `orchestrator.py` | `_with_fallback` 返回 `(proposal, rejection｜None)`，保持纯函数；新增 `rule_rejection` trace 记录被替换掉的原始提案 |
+| `world_clock_repository.py` | 声明新 stage 的 topology 与形状契约 |
+| `schemas/agent_run.py` | 公开投影：planning 放行两个新字段；`rule_rejection` 收窄后公开 |
+| `scripts/eval_agent.py` | `collect()` 直接读落盘分类，key 变为 `<stage>:<code>`；不再从 source 反推 |
+
+**实施中撞的两次红，都是本项目自己的防护在起作用**（值得记住）：
+
+1. 加 planning trace 字段后 tick 直接 503。根因：`world_clock_repository._validate_result`
+   对 trace 做**精确 key 集合相等**校验，多一个字段即判 `invalid runtime result`。
+   这是防篡改设计，加字段必须同步声明契约。
+2. 公开响应里 `rule_rejection` 退化成 `data={}`。根因：FastAPI 的 `response_model`
+   会对返回值**再验证一次**，于是投影结果第二次流经 `_trace_facts`。**该函数必须幂等** ——
+   其余 stage 恰好满足（返回的 key 集合与输入相同），本次的收窄投影是第一个不幂等的。
+   修法：同时接受「落盘形状」与「已收窄形状」。
+
+**API 可见性裁定**：`attempted_target` **只落盘、不进公开响应**。理由：`unknown_location`
+恰恰意味着那个 id 是模型编造的自由文本。其余四项都是枚举类别名，公开它们让「NPC 为什么
+忽然按确定性策略行动」对玩家可解释。同时避免了空条目——README 的披露原则要求不可公开的
+内容**不以占位符出现**，而不在白名单里的 stage 会退化成 `data={}`，那正是占位符。
+
+#### P0-2：工具契约对齐
+
+`work` 要求在本职岗位、`eat` 要求在酒馆，两条都在 `ActionRegistry` 里强制，但工具描述
+写的是「不需要目标」，`[World]` 段也从没给出 NPC 自己的岗位。模型无从满足这两条。
+改动：两条描述补上前置条件；`[World]` 增加「你的岗位：X」。
+
+**连带修复一个静默回归（测试全绿但质量降了）**：`FakePlanningProvider` 用正则
+`_WORLD_LINE` 解析 `[World]` 段，我在中间插入字段后它匹配失败，于是一路退回
+`rest` + `wait` 安全步骤——不抛异常、不降合法率，777 个测试照样全绿，但 20 tick 的
+动作分布从 `eat 3、move 2、rest 28、talk 27` 塌缩成 `rest 30、wait 30`，行为熵
+1.411 → 1.000。**是评测输出暴露的，不是测试。** 已放宽正则并补守卫测试
+（`test_fake_provider_still_parses_the_current_context_format`），重跑后分布与熵
+逐字恢复。
+
+#### 本轮验证矩阵（本机实测）
+
+| 套件 | 结果 |
+| --- | --- |
+| Backend 全量 | `779 passed, 4 skipped, 1 warning in 304.07s`（exit 0；762 → 779，新增 17 条：taxonomy 12 + 契约对齐 5） |
+| Frontend 单测 | `213 passed（30 files）` |
+| type-check | exit 0 |
+| Fake 评测 20 tick | 行为指标与改动前逐字一致（复用 30/60、合法 60/60、熵 1.411、`eat 3、move 2、rest 28、talk 27`） |
+| Live 探路 5 tick | 已跑三次，见下 |
+| **Live 正式验收 20 tick** | **已通过** —— 动作合法率 100.0%（43/43），满足 spec §17.5 |
+| 生产构建 / PostgreSQL opt-in / 浏览器人工验收 | **未运行** |
+
+**无新增 skip、无新增 warning。**
+
+#### Live 探路结果（改动后，`hy3`，11 次调用 / 8904 token）
+
+- **8 次兜底全部 `provider:timeout`** —— P0-1 的目标达成：从「原因未区分」变成可复核的观测。
+- **超时上限配得太紧，这次有数据**：配置 20 秒，8 次超时精确落在 20007–20024ms，
+  3 次成功是 12622 / 18600 / 18521ms。成功调用已贴着上限 →「调到 30 秒」成为**有依据**的下一步。
+- **规则拒绝 0 次、`work` 首次出现 9 次**（上轮分别是 3 次、0 次）：与 P0-2 的意图一致，
+  但动作合法率分母只有 7，**不能确认因果**。
+- **可用决策率 75%（6/8）→ 27.3%（3/11），原因未确定**。可排除「prompt 变长」这一项：
+  成功调用平均 token 2968 vs 上轮 3169，请求没有变大。剩余主要是外部服务波动，5 tick
+  无法区分。**既不要写成本轮改动的后果，也不要写成与改动无关。**
+
+两次探路**不是受控 A/B**（相隔约一小时、外部服务不可控、样本都太小）。
+
+#### 追加：超时上限 20 → 30 秒（人类批准后实施并实测）
+
+**改动位置**：本地 `.env:66`，`PLANNING_PROVIDER_TIMEOUT_SECONDS=20` → `30`。
+以二进制方式精确替换 1 个字节，保留原有 CRLF 行尾（`sed -i` 会把整个文件转成 LF，
+已避免）。备份在 scratchpad。
+
+**注意 `.env` 被 git 忽略，这项改动不会出现在 diff 里**，接手时请对照本节。
+
+**实测结果**（[报告](docs/eval/2026-09-17-agent-eval-live-probe-timeout30.md)）：
+
+| 指标 | 20 秒 | 30 秒 |
+| --- | --- | --- |
+| 可用决策率 | 27.3%（3/11） | 85.7%（6/7） |
+| 兜底率 | 53.3%（8/15） | 6.7%（1/15） |
+| 计划复用率 | 26.7%（4/15） | 53.3%（8/15） |
+| 模型调用 / NPC-tick | 0.733 | 0.467 |
+| 行为熵 | 1.555 | 1.930 |
+| tick P50 / P95 | 20.225s / 20.607s | 20.382s / 30.302s |
+
+**一条不依赖对比的直接证据**：6 次成功调用里 3 次耗时超过 20 秒
+（20113 / 20970 / 23959 ms），它们在旧上限下必然被判超时。
+
+**二阶效应**：提高超时反而**减少**了模型调用。超时 → 兜底 → 本 tick 没产生计划 →
+下个 tick 必须重新规划 → 更多调用。成功的规划产出可复用计划，打断了这个循环。
+
+**仍不能声称**：5 tick、单次运行、外部服务不可控。「27.3% → 85.7%」的幅度里有多少
+来自超时调整、多少来自服务端波动，本轮无法区分。
+
+**默认值也已改（人类确认后实施）**：`backend/app/core/config.py:56` 的
+`planning_provider_timeout_seconds` 20.0 → 30.0，`.env.example:55` 同步为 30。
+代码里写了为什么是 30（含实测数字与报告路径），避免将来有人改回去时不知道代价。
+
+新增防漂移测试 `test_env_example_matches_the_settings_default_for_planning_timeout`：
+`.env.example` 与 `Settings` 默认值不一致即红。**该测试的判别力已实测验证** ——
+改完 `config.py` 还没改示例时它确实变红，改完示例才转绿。这两处很容易只改一个，
+而漂移不会有任何报错，只会让新人照示例配置得到与默认不同的行为。
+
+三处现均为 30：`Settings` 默认值、`.env.example`、本地 `.env`。
+
+#### 追加：20 tick Live 正式验收（人类要求后执行）
+
+[报告](docs/eval/2026-09-17-agent-eval-live-20tick.md)。60 个 NPC-tick，超时 30 秒，
+29 次调用 / 39553 上报 token / 约 7 分钟。
+
+**spec §17.5 通过：动作合法率 100.0%（43/43）**，样本大于 2026-09-14 的 41 条且
+零规则拒绝（`rule_rejection` trace 为空）。§17.1「连续 20 tick 世界零异常」同时通过 ——
+脚本对任何非 200 响应会直接 raise，本次 20 tick 全部 200。
+
+其余指标：可用决策率 41.4%（12/29）、兜底率 28.3%（17/60）、计划完成 91.7%（11/12）、
+复用 51.7%（31/60）、调用 0.483 次/NPC-tick、行为熵 **2.126/2.585（历次最高）**、
+tick 耗时 P50 14.213s / P95 31.049s（最快 0.1s，4 个 tick 因全复用低于 1 秒）。
+
+**本次最有价值的发现：两类失败的耗时特征完全相反。**
+
+```
+provider:http_status   3 次   2328 / 2585 / 2128 ms    ← 约 2 秒快速失败
+provider:timeout      14 次   30008 … 30023 ms         ← 等满 30 秒
+```
+
+旧的合并实现下这 3 次会被算进超时，从而误导出「继续调高超时」的结论；实际它们是
+服务端主动拒绝。**这是 P0-1 拆分 taxonomy 最直接的回报。**
+
+**超时上限的边际收益已下降**：12 次成功里只有 2 次超过 20 秒（5 tick 探路时是 6 次里
+3 次）。继续加大上限（45 秒）不太可能复现 20→30 的效果，应先查那 14 次为何根本没返回。
+
+**下一个观测点（未实施）**：`http_status` 未区分具体状态码。2 秒内失败且与超时同期
+出现，符合限流或过载特征（29 次调用集中在约 7 分钟内），但当前 trace **无法确认是
+429 还是 5xx**。状态码本身不敏感，可安全记录。**不得据现有数据断言「是限流」。**
+
+**成本口径**：39553 token 只覆盖 12/29 次成功调用，失败的 17 次未返回 usage，
+**不能当作本次评测的总成本**。
+
+#### 文档同步
+
+`docs/06_API_Contract.md` §3.3 补齐 trace stage 列表（此前连早已存在的 `planning`
+都没列）与两个归因 stage 的字段说明；`docs/ARCHITECTURE.md` Implemented 段增加
+failure taxonomy 一项；README 增加分层归因说明与工具契约对齐案例。
+
+### 必须遵守的约束（未变）
+
+- 不执行任何 git 写命令；产出保持未暂存、未提交。
+- 评测一律用临时数据库，`backend/data/aleria.db` 不读不写。
+- 测试不得读取 `.env` 的真实 API Key，不得发起付费请求。

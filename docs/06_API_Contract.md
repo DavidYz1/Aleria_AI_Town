@@ -1,8 +1,8 @@
 # Aleria AI Town API Contract
 
-Version: v3.0
+Version: v3.1
 
-Last Updated: 2026-09-12
+Last Updated: 2026-09-16
 
 # 1. API Design Overview
 
@@ -100,7 +100,14 @@ data:
   trace: ordered by sequence
 ```
 
-Proposal fields are id, ordinal, actor_id, action_type, target_kind/target_id, reason_code, source, payload, status, rejection_code and rejection_message. Trace fields are sequence, stage, actor_id, summary, data, visibility and UTC created_at. The first three-NPC run has trace sequences 1–14 spanning run_started, proposal, validation, execution, event and run_completed.
+Proposal fields are id, ordinal, actor_id, action_type, target_kind/target_id, reason_code, source, payload, status, rejection_code and rejection_message. Trace fields are sequence, stage, actor_id, summary, data, visibility and UTC created_at.
+
+Trace stage 取值：`run_started`、`planning`、`rule_rejection`、`proposal`、`validation`、`execution`、`event`、`run_completed`。顺序固定：`run_started` 之后是每个 NPC 的 `planning`，然后是本 tick 发生的 `rule_rejection`，再按 ordinal 排列 `proposal` 与 `validation`，被接受的提案各追加一对 `execution` / `event`，最后 `run_completed`。纯确定性推进（无规划、无拒绝）的三 NPC run 是 sequence 1–14。
+
+两个与兜底归因有关的 stage：
+
+- **`planning`** 的 `data` 含 `npc_id`、`source`、`goal`、`thought`、`provider`、`model`、`latency_ms`、`tokens_used`、`failure_stage`、`failure_code`。后两项在规划成功或复用既有计划时为 `null`；当 Provider 未返回可用决策时，`failure_stage` 为 `"provider"`，`failure_code` 取 `timeout` / `http_status` / `transport` / `parse_error` / `unknown` 之一。它们是**枚举出来的类别名**，不含响应正文、URL 或凭据。
+- **`rule_rejection`** 记录被规则拒绝、因而**被替换成确定性兜底**的原始提案。公开 `data` 含 `npc_id`、`failure_stage`（恒为 `"rule"`）、`failure_code`（`ActionRegistry` 与冲突处理的拒绝码，如 `unknown_location`、`wrong_duty_location`）、`attempted_action` 与 `attempted_source`。**`attempted_target` 只落盘、不公开** —— 它是模型编造的自由文本（`unknown_location` 恰恰意味着它不指向任何真实地点）。落盘完整、对外收窄，与 §4.4 的 `evidence` 同一条规则。
 
 These are concise factual records. Hidden reasoning, raw prompts, credentials and raw provider errors are not exposed. Unknown run UUID returns 404, malformed UUID returns 422, database failure returns a safe 503. This read creates no new run and changes no world state.
 
@@ -410,6 +417,101 @@ Error responses：
 503 只在**记忆读取本身失败**时返回。读取前的有界 `catch_up_owner` 若失败，接口降级为读取已投影的既有记忆并记录安全日志，不返回 503 —— 投影新鲜度不是正确性前提。
 
 本阶段不新增 Memory 写接口、Reflection 触发接口、任意向量搜索接口或调试参数。
+
+## 4.4 Get NPC Plan
+
+Method:
+
+    GET /api/npcs/{npc_id}/plan
+
+只读接口（Stage 3m 新增）。返回该 NPC 当前活跃的计划与最近若干条历史计划，用于 NPC 详情页的「思考」Tab。
+
+Request：无请求体。**不接受任何 query 参数** —— 没有 limit、status 或 world_id。世界由 Backend 用 `CANONICAL_WORLD_ID` 自行确定，历史条数固定为 5。
+
+Success response：
+
+```json
+{
+  "success": true,
+  "data": {
+    "current": {
+      "id": "8f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+      "goal": "确认孩子最后出现的位置",
+      "goal_reason": "旅人刚提到低语森林的石堆，值得先去看看。",
+      "thought": "先到森林边缘，再决定要不要深入。",
+      "steps": [
+        {
+          "action_type": "move",
+          "target_kind": "location",
+          "target_id": "whisper_forest",
+          "intent": "前往低语森林边缘查看"
+        }
+      ],
+      "current_step_index": 0,
+      "status": "active",
+      "created_clock_tick": 7,
+      "provider": "openai_compatible",
+      "model": "hy3",
+      "latency_ms": 15976,
+      "tokens_used": 3688,
+      "evidence": [
+        {
+          "id": "0f5f1f4c-5a7a-4a9c-9d0e-9a1b2c3d4e5f",
+          "type": "episodic",
+          "label": "亲历事件",
+          "summary": "Grey 记得在低语森林附近发生过一件与当前线索有关的事。"
+        }
+      ]
+    },
+    "recent": []
+  },
+  "message": "ok"
+}
+```
+
+字段约束（与 `backend/app/schemas/plan.py` 逐字段一致）：
+
+| 字段 | 类型 | 约束 |
+| --- | --- | --- |
+| `current` | object \| null | 当前活跃计划；没有活跃计划时为 `null` |
+| `recent` | array | 最近计划，**最多 5 条**，含已结束的 |
+| `*.id` | UUID | 计划的不透明标识 |
+| `*.goal` | string | <= 200 字符 |
+| `*.goal_reason` | string | <= 500 字符 |
+| `*.thought` | string | <= 800 字符 |
+| `*.steps` | array | 1–4 步 |
+| `*.steps[].action_type` | enum | `move`、`work`、`eat`、`talk`、`rest`、`wait` |
+| `*.steps[].target_kind` | string \| null | `location` 或 `npc`；无目标时为 `null` |
+| `*.steps[].target_id` | string \| null | 对应地点或 NPC 的 id |
+| `*.steps[].intent` | string | 1–200 字符，该步意图的自然语言说明 |
+| `*.current_step_index` | int | >= 0 |
+| `*.status` | enum | `active`、`completed`、`abandoned` |
+| `*.created_clock_tick` | int | >= 0 |
+| `*.provider` / `*.model` | string | 由 Backend 记录，**不由模型自报** |
+| `*.latency_ms` / `*.tokens_used` | int \| null | 复用已有计划的 tick 不产生新值 |
+| `*.evidence` | array | 本次规划检索命中、**且允许公开**的记忆 |
+| `*.evidence[].type` | enum | `episodic`、`conversation`、`reflection`、`knowledge` |
+| `*.evidence[].label` | string | 取值 `亲历事件`、`听到的说法`、`稳定知识`、`形成的看法` |
+| `*.evidence[].summary` | string | <= 240 字符，安全摘要，非原文 |
+
+隐私边界：
+
+- 计划落盘的引用 id 是**完整**的（planner 用 `INTERNAL_REFLECTION` scope 检索，含 secret 与 internal_only），但本接口返回前会**重新过一遍 `PUBLIC_EXPLANATION` 硬过滤**。不可公开的记忆既不出现内容，也不以计数或占位符暴露差额 —— 与 `4.3` 同一条规则。
+- `evidence` 表示**进入规划上下文的检索结果**，不表示模型在 `thought` 里逐条明确引用了它们。
+- `recent[].evidence` 恒为空数组：历史计划只展示目标与状态，不为每条再查一次记忆（那是 N 次额外查询）。这是**设计决定**，不代表那些计划没有引用记忆。
+- 不返回 Prompt、模型原始响应、Embedding、检索分数或 Provider 错误详情。
+- `evidence_memory_ids_json` 为 `None`（`0006` 之前写入的计划）与 `[]`（确实没检索到）在存储层刻意可区分，但在本接口的响应里都表现为空数组。
+
+Error responses：
+
+| 状态码 | 场景 | 响应 |
+| --- | --- | --- |
+| 404 | NPC 不存在 | `{"success": false, "data": null, "message": "NPC not found"}` |
+| 503 | NPC 详情不可用，或计划行读取失败 / 形状异常 | `{"success": false, "data": null, "message": "npc plan is unavailable"}` |
+
+计划行由本服务自己写入，因此形状异常属于**服务端**故障，对外仍收敛成有界的 503，不泄露内部结构。
+
+本接口不提供计划的创建、修改、取消或重规划入口 —— 计划只能由 `POST /api/world/tick` 的推进过程产生。
 
 # 5. Player APIs
 
