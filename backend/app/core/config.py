@@ -53,7 +53,14 @@ class Settings(BaseSettings):
     planning_provider_api_key: str = ""
     planning_provider_model: str = ""
     planning_provider_auth_mode: Literal["bearer", "none"] = "bearer"
-    planning_provider_timeout_seconds: float = Field(default=20.0, gt=0, le=120)
+    # 30 秒不是拍脑袋：20 秒是在没有失败归因数据时定的，实测切掉了本来会成功的
+    # 调用 —— 2026-09-17 的 Live 探路里 6 次成功调用有 3 次耗时 20113 / 20970 /
+    # 23959 ms，在 20 秒上限下全部会被判超时。调整后兜底率 53.3% → 6.7%，且模型
+    # 调用数反而下降（0.733 → 0.467 次/NPC-tick）：超时会导致本 tick 没产出计划，
+    # 下个 tick 就必须重新规划。代价是失败时 tick 更慢（P95 20.6s → 30.3s）。
+    # 数据见 docs/eval/2026-09-17-agent-eval-live-probe-timeout30.md。
+    # 改动此值时请同步 `.env.example`（有测试守卫）。
+    planning_provider_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
 
     model_config = SettingsConfigDict(
         env_file=REPO_ROOT / ".env",
