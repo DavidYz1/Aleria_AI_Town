@@ -30,9 +30,7 @@ AI Native Simulation Game
 
 ## 1.3 Project Goal
 
-本项目面向腾讯 IEG 游戏前沿技术后台开发实习作业。
-
-目标是在有限开发周期内，实现一个可运行、可演示的 Web AI 小镇 MVP。
+本项目在有限开发周期内实现一个可运行、可演示的 Web AI 小镇。
 
 项目不是复刻 Stanford Generative Agents，也不是开发完整商业 RPG 游戏。
 

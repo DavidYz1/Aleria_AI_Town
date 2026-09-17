@@ -32,7 +32,7 @@ Town 以一张 48×36 的室外 Phaser 地图为第一视觉层，酒馆、公�
 
 目标：
 
--   在满足腾讯 AI Town 作业要求的基础上，提高 Demo 的游戏体验。
+-   在满足 AI Town 核心需求的基础上，提高 Demo 的游戏体验。
 -   将 AI Agent 世界模拟能力通过直观的 2D 世界展示出来。
 -   为未来 Canvas / PixiJS / Cocos 扩展提供设计依据。
 
@@ -281,7 +281,7 @@ Phase 2 已将：
 原因：
 
 -   原生提供 Tilemap、Arcade Physics、Camera、Input、Sprite Animation 和 Scene；
--   更适合在面试周期内形成可玩的 RPG 展示闭环；
+-   更适合在有限周期内形成可玩的 RPG 展示闭环；
 -   通过 Vue `TownGameHost` 与 `TownGameBridge` 隔离，避免引擎侵入 Store/API；
 -   bundle 较大是明确代价，因此 Host 只在进入 Town 后动态加载游戏工厂。
 
