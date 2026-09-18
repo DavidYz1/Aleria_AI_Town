@@ -504,7 +504,7 @@ Frontend 不复制任务迁移规则，只渲染 Backend 返回的目标与可�
 
 | 运行方式 | 页面地址 | Backend / 调试地址 | 适用场景 |
 | --- | --- | --- | --- |
-| 线上 Demo |  | 页面同域访问 `/api` | 直接体验 |
+| 线上 Demo | *（部署完成后填入公网地址）* | 页面同域访问 `/api` | 直接体验 |
 | 本地 Docker | <http://127.0.0.1:8080/> | 页面同域访问 `/api` | 最推荐的本地复现方式 |
 | 一键开发启动 | <http://127.0.0.1:5173/> | <http://127.0.0.1:8000/docs> | 日常开发 |
 | 分别启动前后端 | <http://127.0.0.1:5173/> | <http://127.0.0.1:8000/docs> | 调试单个服务 |
@@ -774,6 +774,18 @@ REFLECTION_PROVIDER=fake
 
 `fake` Embedding 是确定性的特征哈希实现，不发起网络请求，排序结果完全可复现；`fake` Reflection 产出结构合法、可被证据校验拒绝或接受的草稿。因此**记忆闭环演示在零配置下即可完整体验**。切换真实 Provider 时把对应项改为 `openai_compatible` 并补齐 base URL、model 与 Key；配置不完整会回退 fake 而不是启动失败。完整的认知配置项见 [`docs/14_Development_Environment.md`](docs/14_Development_Environment.md)。
 
+Stage 3m 的规划 Provider 是第四个独立 Provider，没有 `*_PROVIDER` 开关：base URL 与 model 齐备、且 auth mode 为 `none` 或提供了 Key 时才走真实模型，否则使用确定性替身规划。
+
+```env
+PLANNING_PROVIDER_BASE_URL=
+PLANNING_PROVIDER_API_KEY=
+PLANNING_PROVIDER_MODEL=
+PLANNING_PROVIDER_AUTH_MODE=bearer
+PLANNING_PROVIDER_TIMEOUT_SECONDS=30
+```
+
+**留空即替身规划，NPC 详情的「思考」Tab 会把来源标成替身而不是模型规划。** 线上 Demo 若要展示真实模型驱动的 Agent 行为，这一组必须配齐。
+
 ### 推荐配置：腾讯混元 hy-role
 
 ```env
@@ -827,7 +839,7 @@ Frontend 会显示“AI：provider”“Mock 模式”或“AI 服务异常，�
 
 ## 云服务器部署与维护
 
-当前线上 Demo 使用 Ubuntu、Docker Compose、Nginx 和公网 IP 的 HTTP 80 端口。下面以 Ubuntu 为例。
+线上 Demo 的目标形态是 Ubuntu + Docker Compose + Nginx，通过公网 IP 的 HTTP 80 端口访问；上面「运行方式与端口」表中的地址在实际部署完成后填入。下面以 Ubuntu 为例。
 
 ### 首次部署
 
@@ -857,6 +869,8 @@ HTTP_PORT=80
 必须替换 POSTGRES_PASSWORD 占位值。Compose 会使用这些变量生成 PostgreSQL 连接地址；仅在需要覆盖连接地址或使用保留字符凭据时，另设正确 percent-encoded 的 `postgresql+psycopg://` DATABASE_URL，并保持数据库实际密码一致。
 
 然后从前面的 AI 配置中选择 Mock 或真实 Provider。真实 Key 只写入服务器上的 `.env.production`，不要提交 Git、发送到前端或放进截图。
+
+想让线上 Demo 展示**真实模型驱动**的 Agent 行为，除了 `CHAT_*` 之外还要配 `PLANNING_PROVIDER_*`；只配 Chat 的话对话是真模型，但 NPC 的规划仍然是确定性替身。切换任一 Provider 到 `openai_compatible` 时，同时把该 Provider 自己的 `*_TIMEOUT_SECONDS` 调高 —— 3 秒的默认值只够 fake 用。配置不完整会静默回退 fake，因此「行为看起来像替身」是没配全的典型症状。这些变量全部由 Compose 透传给 Backend 容器，完整清单见 `.env.production.example`。
 
 5. 构建、启动并检查：
 

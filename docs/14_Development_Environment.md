@@ -145,6 +145,8 @@ PLANNING_PROVIDER_TIMEOUT_SECONDS=30
 
 `compose.yaml` 提供 db、backend、web 三个服务。db 固定使用 `pgvector/pgvector:0.8.6-pg17-bookworm`，通过 pg_isready 做健康检查，数据卷为 `aleria_postgres_data`。Backend 等待数据库健康，执行 Alembic、仅空世界播种，然后启动 API；Web 等待 Backend 健康。
 
+**Compose 只把 backend `environment:` 段列出的变量送进容器。** `--env-file` 仅供 Compose 文件自身插值，而 `.dockerignore` 排除了 `.env*`，镜像里没有 env 文件可读。因此该清单必须覆盖 `Settings` 的全部字段，漏列一项的症状不是启动报错，而是该配置静默取默认值 —— Embedding/Reflection 退回 `fake`，Planning 退回确定性替身。`tests/backend/test_deploy.py` 用 `Settings` 的字段集守卫这条对应关系，新增设置字段时会自动失败。
+
 ```bash
 test -e .env.production || cp .env.production.example .env.production
 # 编辑 .env.production：替换 demo-only POSTGRES_PASSWORD，按需调整 HTTP_PORT。
@@ -178,7 +180,7 @@ git diff --check
 
 只使用 `TEST_POSTGRES_URL`，必须指向独立可丢弃的测试数据库。测试会新建 `aleria_test_<uuid>` schema，结束删除该 schema，且需要 CREATE SCHEMA、CREATE EXTENSION vector 权限，必须串行执行。
 
-opt-in PostgreSQL 用例分布在四个文件，缺一会漏掉一层验证：`test_schema_migrations.py`（空库迁移到 `0004`）、`test_postgres_runtime.py`（Runtime Graph 与 pgvector 向量检索）、`test_memory_retrieval.py`（向量权限与 fallback）、`test_chat_repository.py`（同 owner Turn 的并发顺序）。未设置 URL 时这四个用例在常规 SQLite 全量回归中表现为 4 个 skip。
+opt-in PostgreSQL 用例分布在四个文件，缺一会漏掉一层验证：`test_schema_migrations.py`（空库迁移到 `0006`）、`test_postgres_runtime.py`（Runtime Graph 与 pgvector 向量检索）、`test_memory_retrieval.py`（向量权限与 fallback）、`test_chat_repository.py`（同 owner Turn 的并发顺序）。未设置 URL 时这些用例在常规 SQLite 全量回归中表现为 skip —— 当前是 5 个（`test_postgres_runtime.py` 有两个：Runtime 验收，以及 Demo Reset 对非空 `agent_plans` 的清理）。
 
 **backend 容器 Smoke 与测试数据库必须使用不同的 Compose project/volume。** 测试使用 `search_path=<test schema>,public`，因此 public 不能包含应用表或 `alembic_version`。如果先在同一库启动 backend，它会迁移并播种 public，迁移测试会在空表前置检查失败，Runtime 测试可能访问 public。schema 不能保护已有业务数据，绝不能把 URL 指向现有业务数据库；不要清空业务 public 或改 Alembic 版本来绕过检查。2026-09-09 首次共库流程失败后，用全新的 db-only 项目运行相同测试，13 项全部通过，无需改产品或测试代码。
 
@@ -215,7 +217,7 @@ unset TEST_POSTGRES_URL TEST_POSTGRES_PORT POSTGRES_PASSWORD
 
 **Foundation Runtime**：pgvector 0.8.6、一次同步 200、一个 completed run、三条 proposal/action/event、有序 trace，以及 world_version=1、clock_tick=1。
 
-**Stage 2 认知与向量**：`alembic_version` 为 `0004`、六张认知表存在、`memories.embedding` 在 PostgreSQL 上的数据类型确为 `vector`；随后写入 ready Embedding 并执行真实检索 —— 同 owner 的两条 public 记忆、一条 `secret`、一条属于其他 NPC。断言 `<=>` 查询只返回两条被允许的 id 且重复运行顺序稳定，secret 与跨 owner 记忆始终不出现；再把 Provider 置为失败，断言降级为 `mode="lexical_fallback"`、`error_code="embedding_unavailable"` 且允许集合不变；最后断言 `access_count` 仍为 0，证明公开读取未写入 telemetry。
+**Stage 2 认知与向量**：`alembic_version` 为 `0006`、六张认知表存在、`memories.embedding` 在 PostgreSQL 上的数据类型确为 `vector`；随后写入 ready Embedding 并执行真实检索 —— 同 owner 的两条 public 记忆、一条 `secret`、一条属于其他 NPC。断言 `<=>` 查询只返回两条被允许的 id 且重复运行顺序稳定，secret 与跨 owner 记忆始终不出现；再把 Provider 置为失败，断言降级为 `mode="lexical_fallback"`、`error_code="embedding_unavailable"` 且允许集合不变；最后断言 `access_count` 仍为 0，证明公开读取未写入 telemetry。
 
 没有 URL 会明确 skip；没有可用 Docker daemon/Compose 时记录 unavailable，**不宣称实际 smoke 通过**。skip 不等于验收通过。
 

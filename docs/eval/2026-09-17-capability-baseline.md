@@ -1,11 +1,24 @@
 # 能力基线
 
-**代码锚点**：`c4d9048ed739516254ef4f65a6401596160c6cd1`（`main`，工作树干净）。
+**代码锚点**：提交 `d323f1c0e9b89c3a6ad68afad8694d1eecb4cc6a`（`main`）
+**加上尚未提交的部署收尾改动**（10 个文件，见下）。
 首次记录 2026-09-17（锚点 `a3f15cd`），最后更新 2026-09-18。
 
-> 数字随代码变化。`a3f15cd` 上后端是 779 passed（POSIX），合计 992；`c4d9048`
-> 为 Demo Reset 的计划清理补了 2 个回归测试，因此变成 781 / 994。**引用这些数字时
-> 请带上锚点** —— 早于本次更新的材料里出现的 992 不是错的，它对应 `a3f15cd`。
+> **锚点必须是 `git cat-file -t` 能解析的对象。** 本文上一版写的
+> `c4d9048ed739…` 在仓库历史里不存在 —— 提交被 amend 或 rebase 之后 SHA 变了，
+> 而本文没有同步。按那个锚点核对的人会直接卡在第一步。改锚点时请当场验证一次。
+
+本轮数字对应的工作树改动（**未提交**，人工 review 后提交）：
+`compose.yaml`、`.env.production.example`、`tests/backend/test_deploy.py`、
+`tests/backend/test_postgres_runtime.py`、`AGENTS.md`、`README.md`、
+`CURRENT_STATE.md`、`docs/07_Database_Schema.md`、`docs/14_Development_Environment.md`、
+以及本文件。
+**提交后请把上面的锚点换成那个提交的 SHA，并当场 `git cat-file -t` 验证。**
+
+> 数字随代码变化。`a3f15cd` 上后端是 779 passed（POSIX），合计 992；随后
+> Demo Reset 的计划清理补了 2 个回归测试变成 781 / 994；本轮部署收尾再补 4 条
+> Compose 透传守卫与 1 条 opt-in PostgreSQL 用例，POSIX 下变成 785 / 998。
+> **引用这些数字时请带上锚点** —— 旧材料里的 992 / 994 不是错的，它们对应更早的锚点。
 
 本文只回答一个问题：**clone 这个仓库之后，跑哪些命令、会看到什么数字。**
 
@@ -20,7 +33,7 @@
 | Node / npm | v24.18.0 / 11.16.0；README 要求 Node 20+ |
 | 数据库 | 临时 SQLite；迁移链 `0001 → 0006` |
 | Provider | Chat `mock`、Embedding `fake`、Reflection `fake`、Planning 未配置（走确定性替身） |
-| PostgreSQL | **未**设置 `TEST_POSTGRES_URL`，4 项 opt-in 集成测试按设计 skip |
+| PostgreSQL | 后端全量跑时**未**设置 `TEST_POSTGRES_URL`，5 项 opt-in 集成测试按设计 skip；另**单独**用独立 db-only Compose 项目实跑了这批用例，见 §5 |
 | 外部请求 | 无。后端 conftest 禁用仓库 `.env` 并清空四类 API Key |
 
 ## 1. 后端测试
@@ -34,18 +47,15 @@
 实测输出（exit 0）：
 
 ```
-780 passed, 5 skipped, 1 warning in 309.49s (0:05:09)
+785 passed, 5 skipped, 1 warning in 314.47s (0:05:14)
 ```
 
-同一命令在 Git Bash 下（exit 0）：
+上面是 **Git Bash 实测**。Windows PowerShell 下为 **784 passed, 6 skipped** ——
+该差值本轮**没有**整轮复跑，而是单独实测了造成差值的那一个文件（见下）。
 
-```
-781 passed, 4 skipped, 1 warning in 262.86s (0:04:22)
-```
+`--collect-only` 报告 **790 tests collected**。
 
-`--collect-only` 报告 **785 tests collected**，两个环境一致。
-
-### 为什么是 780 和 781 两个数字
+### 为什么是 784 和 785 两个数字
 
 差异**只来自 shell 环境，不是测试不稳定**。[`tests/backend/test_start_dev.py:20`](../../tests/backend/test_start_dev.py) 在 PATH 里找不到 POSIX `sh` 时跳过一项：
 
@@ -54,23 +64,26 @@ if shutil.which("sh") is None:
     pytest.skip("Windows shell launcher probe requires a POSIX-compatible sh.")
 ```
 
-- **Windows PowerShell**（PATH 无 `sh`）：780 passed, 5 skipped
-- **Git Bash / Linux CI**（`/usr/bin/sh` 存在）：**781 passed, 4 skipped**
+- **Windows PowerShell**（PATH 无 `sh`）：784 passed, 6 skipped（由下面的单文件实测推出）
+- **Git Bash / Linux CI**（`/usr/bin/sh` 存在）：**785 passed, 5 skipped**（整轮实测）
 
-单独验证该文件：Git Bash 下 `5 passed`，PowerShell 下 4 passed + 1 skipped。
+单独验证该文件，两个环境都实跑过：Git Bash 下 `5 passed`，PowerShell 下
+`4 passed, 1 skipped in 1.27s`。差值恰好是这一项，因此 PowerShell 的整轮数字可由
+Git Bash 的实测值减一推出；但它本身是推出来的，不是本轮实测的。
 
-因此引用后端测试数时必须带环境限定。**POSIX 环境下的 781 是可在 CI 上公开复核的那个数字**；`AGENTS.md` 记录的「4 个 skip」描述的也是 POSIX 环境。
+因此引用后端测试数时必须带环境限定。**POSIX 环境下的 785 是可在 CI 上公开复核的那个数字**；`AGENTS.md` 记录的「5 个 skip」描述的也是 POSIX 环境。
 
-### 4 项 skip 的完整清单（Git Bash 实测）
+### 5 项 skip 的完整清单（Git Bash 实测）
 
 ```
 SKIPPED [1] tests\backend\test_chat_repository.py:19:     TEST_POSTGRES_URL is not set
 SKIPPED [1] tests\backend\test_memory_retrieval.py:309:   TEST_POSTGRES_URL is not set
-SKIPPED [1] tests\backend\test_postgres_runtime.py:90:    TEST_POSTGRES_URL is not set
+SKIPPED [1] tests\backend\test_postgres_runtime.py:91:    TEST_POSTGRES_URL is not set
+SKIPPED [1] tests\backend\test_postgres_runtime.py:197:    TEST_POSTGRES_URL is not set
 SKIPPED [1] tests\backend\test_schema_migrations.py:443:  TEST_POSTGRES_URL is not set
 ```
 
-全部是 opt-in PostgreSQL 集成测试。**一次 skip 永远不等于一次 PostgreSQL 兼容性验收**——这条规则见 [`docs/07_Database_Schema.md`](../07_Database_Schema.md) 的 acceptance 段。
+全部是 opt-in PostgreSQL 集成测试。第 5 项（`:197`）是本轮新增的 Demo Reset 对非空 `agent_plans` 的清理覆盖 —— 它让 skip 基线从 4 升到 5，`AGENTS.md` 与 `docs/14` 已同步。**一次 skip 永远不等于一次 PostgreSQL 兼容性验收**——这条规则见 [`docs/07_Database_Schema.md`](../07_Database_Schema.md) 的 acceptance 段。
 
 1 个 warning 是既有的 Starlette/httpx 弃用提示，与 `AGENTS.md` 记录的基线一致，本轮未新增 skip 或 warning。
 
@@ -84,9 +97,9 @@ npm --prefix frontend run build
 
 | 命令 | 实测输出 | exit |
 | --- | --- | --- |
-| `test` | `Test Files 30 passed (30)` / `Tests 213 passed (213)`，19.25s | 0 |
+| `test` | `Test Files 30 passed (30)` / `Tests 213 passed (213)`，19.13s | 0 |
 | `type-check` | 无输出（`vue-tsc -b`） | **0** |
-| `build` | `✓ 134 modules transformed` / `✓ built in 5.28s` | **0** |
+| `build` | `✓ 134 modules transformed` / `✓ built in 5.65s` | **0** |
 
 构建有一条既有提示：`createTownGame` chunk 1,492.94 kB 超过 500 kB 警告线。这是 Phaser 被动态加载进独立 chunk 的预期结果（见 [`docs/12_Game_Experience_Design.md`](../12_Game_Experience_Design.md) 对 bundle 代价的记录），不是本轮引入的回归。
 
@@ -109,9 +122,9 @@ python scripts/eval_agent.py --ticks 20 --provider fake
 | 模型调用 / NPC-tick | 30/60 = 0.500 | 30/60 = 0.500 |
 | 动作分布 | eat 3、move 2、rest 28、talk 27 | 同左 |
 
-唯一浮动的是墙钟耗时（tick P50 0.427s → 0.371s），本来就不该复现。
+唯一浮动的是墙钟耗时（tick P50 0.218s → 0.241s、P95 0.291s → 0.334s），本来就不该复现。
 
-结果与仓库内已有的 [2026-09-16 Fake 报告](2026-09-16-agent-eval-fake.md)一致。在 `c4d9048` 上再次复跑，全部行为指标仍逐位相同 —— `seed_database` 复用 `DemoResetService`，但评测每次新建空的临时库，新增的计划清理删 0 行。
+结果与仓库内已有的 [2026-09-16 Fake 报告](2026-09-16-agent-eval-fake.md)一致。在本文顶部所述的锚点上再次复跑，全部行为指标仍逐位相同 —— `seed_database` 复用 `DemoResetService`，但评测每次新建空的临时库，新增的计划清理删 0 行。本轮的部署改动只涉及 Compose、env 模板、测试与文档，不触及评测路径。
 
 **Fake 数字只证明链路可复现，不能推断真实模型质量或成本**——Provider 是本地确定性替身，token 未上报。
 
@@ -119,7 +132,7 @@ python scripts/eval_agent.py --ticks 20 --provider fake
 
 | 声明 | 本轮实测 | 证据 |
 | --- | --- | --- |
-| 前后端测试全部通过 | 781 + 213 = **994**（POSIX 环境）；Windows PowerShell 下为 993 + 1 项环境性 skip | 本文 §1、§2 |
+| 前后端测试全部通过 | 785 + 213 = **998**（POSIX 环境，实测）；Windows PowerShell 下为 997 + 1 项环境性 skip（推出，非实测） | 本文 §1、§2 |
 | Live 20 tick 动作合法率 100%（43/43） | **100.0%（43/43）** | [20-tick Live 报告](2026-09-17-agent-eval-live-20tick.md) |
 | 计划复用率 51.7% | **51.7%（31/60）** | 同上 |
 | 模型调用 0.483 次/NPC-tick | **29/60 = 0.483** | 同上 |
@@ -133,8 +146,63 @@ python scripts/eval_agent.py --ticks 20 --provider fake
 ### 本轮**没有**复核的项
 
 - **真实模型（Live）评测未重跑。** §4 中的 Live 数字全部引用 2026-09-17 已有报告，不是本轮新测。
-- **PostgreSQL / pgvector 端到端未验收。** 4 项 opt-in 测试在本轮全部 skip。
-- **Live tick 延迟未实测。** 当前 HEAD 的真实模型端到端耗时仍是未知量。
-- **Docker Compose 未启动。** 本轮只验证源码级测试与构建。
+- **Live tick 延迟未实测。** 当前锚点上的真实模型端到端耗时仍是未知量。§5 的 Docker 实测全部使用 fake/mock Provider。
+- **真实 Embedding / Reflection / Planning Provider 的 Docker 冒烟未做。** §5 只证明了配置能到达容器并被 `Settings` 读到（用不可达的探测地址），**没有**证明与真实模型服务的端到端调用成功。
+- **云服务器部署未执行。** 本轮只做本地 Docker 验证。
 
 以上四项属于「未执行」，不是「通过」。
+
+## 5. PostgreSQL 与 Docker Compose（本轮实跑）
+
+前两版基线在这两项上都是「未执行」。本轮补上，命令与环境如下。
+
+### 5.1 Docker Compose 端到端
+
+Docker Engine 29.6.1 / Compose v5.3.0。使用**独立 project 名与独立 env 文件**，
+不触碰默认 project 的卷；收尾用不带 `-v` 的 `down`。
+
+```bash
+docker compose -p aleria-local-verify --env-file <scratch env> up -d --build --wait --wait-timeout 300
+```
+
+- db / backend / web 三个容器全部 `healthy`
+- 经 nginx 的真实用户路径（`http://127.0.0.1:8080`）：`GET /` 200、`/healthz` 200、
+  `/api/health` 返回 `{"status":"ok","database":"ok","chat_provider":"mock"}`
+- 一次 `POST /api/world/tick` 在 PostgreSQL 上完成：3 proposals / 3 actions / 3 events，
+  **trace sequence 1–17**，前四个 stage 为 `run_started, planning, planning, planning`
+- `GET /api/npcs/grey/memory-explanations` 返回 `retrieval_mode: "hybrid"` ——
+  pgvector 的 `<=>` 检索真的执行了，不是 lexical fallback
+- 浏览器实走完整体验路线：角色创建 → 序章 → 小镇 → 「推进 1 小时」，
+  Day 1 08:00 → 09:00，页面显示 3 条 NPC Actions 与 3 条 World Events
+
+**Compose 环境变量透传的差分验证**：把 13 个配置项改成与代码默认值不同的值后重启
+backend，容器内 `Settings` 逐项等于 env 文件的值（例如
+`cognition_post_commit_budget_seconds` 代码默认 `5.0`、容器实际 `13.0`），
+且 `build_planning_provider()` 由 `FakePlanningProvider` 变为
+`OpenAICompatiblePlanningProvider`。修复前 Docker 部署路径无法选到 live planner。
+
+### 5.2 PostgreSQL opt-in 集成测试
+
+独立 db-only Compose 项目（全新卷），测试前 `public` 无任何应用表：
+
+```bash
+export TEST_POSTGRES_URL='postgresql+psycopg://aleria:<test-only>@127.0.0.1:55432/aleria'
+python -m pytest tests/backend/test_schema_migrations.py tests/backend/test_postgres_runtime.py   tests/backend/test_memory_retrieval.py tests/backend/test_chat_repository.py -q -rs
+```
+
+实测输出（exit 0）：
+
+```
+49 passed in 32.18s
+```
+
+**零 skip。** 同时在容器内直接查到：`alembic_version = 0006`、
+pgvector `extversion = 0.8.6`、`memories.embedding` 的 `udt_name = vector`。
+
+本轮修掉了该套件里两处过时断言（`alembic_version` 写着 `0004`、trace 写着 1–14），
+它们此前必然导致 PG 验收变红；修改前先实跑取得 RED（`assert '0006' == '0004'`）。
+
+新增一条覆盖：Demo Reset 对**非空** `agent_plans` 的清理。容器内实测
+reset 前 `agent_plans = 6` / `agent_runs = 3`，reset 后两者均为 0，世界回到
+`day 1 08:00 v0 t0`。该用例做过变异验证 —— 把清理改成匹配不到任何行时，
+它以 `assert 3 == 0` 变红。
