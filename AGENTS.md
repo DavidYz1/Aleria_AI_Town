@@ -194,7 +194,9 @@ npm --prefix frontend run type-check
 
 跑 pytest 时**必须显式指定 `--basetemp` 到有写权限的目录，且不要在沙箱内运行** —— 沙箱会创建 Windows `0700` 权限的临时目录导致无效结果（本项目已实际发生过两次无效运行）。
 
-**不得引入新的 skip 或新的 warning。** 当前基线的 4 个 skip 全部是 `TEST_POSTGRES_URL` 未设置的 opt-in PostgreSQL 测试，1 个 warning 是既有的 Starlette/httpx 弃用提示。
+**不得引入新的 skip 或新的 warning。** 当前基线的 5 个 skip 全部是 `TEST_POSTGRES_URL` 未设置的 opt-in PostgreSQL 测试，1 个 warning 是既有的 Starlette/httpx 弃用提示。
+
+这条规则针对的是**静默停用测试**。新增 opt-in PostgreSQL 用例会让 skip 数上升，属于允许的例外，但必须同步本文、`docs/14` 与能力基线中的数字，并在交付时明确说明多出来的那一项是什么。
 
 **通过数取决于 shell**：`test_start_dev.py` 的 shell launcher 探针在 PATH 中没有 POSIX `sh` 时会跳过，因此 Windows PowerShell 下会比 Git Bash 与 Linux CI 少一项通过、多一项 skip。报告数字时必须带上环境，不要把 PowerShell 下少的那一项当成漏跑。
 

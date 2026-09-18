@@ -120,6 +120,23 @@ REFLECTION_CHAR_BUDGET=4000
 
 切换到真实 Provider 时把对应的 `*_PROVIDER` 改为 `openai_compatible` 并补齐 base URL、model 与 Key。**配置不完整会回退到 fake，而不是报错启动失败。**
 
+### Stage 3m 规划 Provider
+
+规划 Provider 没有 `*_PROVIDER` 开关：`build_planning_provider` 直接看配置是否完整 —— base URL 与 model 齐备，且 auth mode 为 `none` 或提供了 Key，才会构造 OpenAI-compatible 实现，否则返回确定性替身。
+
+```env
+PLANNING_PROVIDER_BASE_URL=
+PLANNING_PROVIDER_API_KEY=
+PLANNING_PROVIDER_MODEL=
+PLANNING_PROVIDER_AUTH_MODE=bearer
+# 原生 tool calling 带 6 个工具的 manifest 很慢：实测单次 7.6-17 秒。
+PLANNING_PROVIDER_TIMEOUT_SECONDS=30
+```
+
+`PLANNING_PROVIDER_TIMEOUT_SECONDS` 的 30 秒是实测值，不是默认猜测，改动时有测试守卫（`.env.example` 与 `.env.production.example` 各有一条）。留空即保持替身规划，世界照常推进。
+
+**切到真实 Provider 时的延迟代价**：认知投影在 `/api/world/tick` 提交之后**同步**执行，因此一次 tick 最坏可以花掉 `PLANNING_PROVIDER_TIMEOUT_SECONDS` 加上 `COGNITION_POST_COMMIT_BUDGET_SECONDS` 才返回。
+
 两个 Provider 的调用都不持有数据库事务，输入有界，超时短。真实 Embedding/Reflection 的验证属于**显式手动 Smoke**：没有 Key 时不得声称已验证，也不会导致自动化测试失败。
 
 `EMBEDDING_DIMENSIONS` 或 `EMBEDDING_MODEL` 变更后，旧向量因 embedding 身份与 `embedding_input_hash` 不匹配而自动失效，检索会跳过它们并在后续 enrichment 中重算 —— 不需要手动清库。
