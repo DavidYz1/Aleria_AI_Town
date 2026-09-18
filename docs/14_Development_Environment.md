@@ -83,10 +83,13 @@ CHAT_PROMPT_VERSION=v3
 Embedding 与 Reflection 是**两个与 Chat 互相独立**的 Provider，各有自己的开关、地址、模型和超时。默认值如下，全部无需 Key：
 
 ```env
-# 投影预算：core / embedding / reflection 三阶段共享同一个 deadline
+# 投影预算：core / embedding / reflection 三阶段共享同一个 deadline。
+# 它是上限不是固定开销：用确定性替身时 catch_up 只要约 0.2 秒，调高不产生代价。
+# Settings 默认值是 5.0，但两份 env 模板都写 20 —— 配了真实 reflection provider 后
+# 5 秒会让每次反思都在 4.9 秒整超时（实测单次反思需要 8-11 秒）。
 COGNITION_SOURCE_BATCH_SIZE=25
 COGNITION_ATTENTION_BUDGET=12
-COGNITION_POST_COMMIT_BUDGET_SECONDS=5.0
+COGNITION_POST_COMMIT_BUDGET_SECONDS=20
 COGNITION_ENRICHMENT_BATCH_SIZE=12
 
 # Memory embedding：fake 是确定性的，不需要网络
