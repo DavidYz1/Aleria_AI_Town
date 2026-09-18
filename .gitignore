@@ -119,3 +119,8 @@ docker-compose.override.yml
 # sdd/, so this tracked rule is what actually survives a fresh clone or a
 # `git clean -fdx`.
 /.superpowers/
+
+# pytest --basetemp target used by the verification commands in README and
+# docs/14. AGENTS.md requires an explicit --basetemp outside any sandbox, so
+# following the documented commands creates this directory on every run.
+/.test-tmp/

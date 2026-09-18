@@ -20,11 +20,11 @@
 | 项 | 值 |
 | --- | --- |
 | 分支 | `main` |
-| HEAD | `d323f1c0e9b89c3a6ad68afad8694d1eecb4cc6a`（`ci: install frontend deps in the backend job for the start-dev check`） |
-| 上一提交 | `f6200d1`（`docs: align the capability baseline with the demo reset fix`） |
+| HEAD | `a53e3d7cef614eaf53acc79bed2c7454fc90b44a`（`docs: record deployment verification and refresh baseline`） |
+| 上一提交 | `ccc0726`（`test: update postgres assertions and cover plan reset`） |
 | 远程 | `origin` → `github.com/DavidYz1/Aleria_AI_Town` |
-| 与远程的关系 | **与 `origin/main` 同步**（`git log origin/main..main` 为空，2026-09-18 实测） |
-| 本轮开始时工作树 | **干净**；本轮部署改动保持未暂存、未提交 |
+| 与远程的关系 | **领先 `origin/main` 3 个提交**（2026-09-18 实测） |
+| 本轮部署收尾 | 已由人工 review 后提交为 `fdbb53a` / `ccc0726` / `a53e3d7` |
 | 当前迁移链 | `0001 → … → 0006`（0006 已在 HEAD；本轮不改结构） |
 
 > 本表是当前状态。下文保留的旧「等待 review」和「下一步」段落是当时的工作记录，不能覆盖本表；本轮最新交接见文末「2026-09-18 部署收尾」。

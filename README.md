@@ -48,10 +48,11 @@
 3. 进入曦谷地图后，使用 WASD、方向键或地点卡片的“快速前往”移动。
 4. 点击地图上的 Ryan、Shir、Grey，查看状态、最近行动并开始交流。
 5. 点击“推进 1 小时”，观察世界时间、NPC 地点、状态与行动记录变化。
-6. 前往星辉酒馆接受“失踪的孩子”，按照 Backend 返回的目标推进任务。
-7. 分别询问三位 NPC 关于战争、档案或玩家印记的问题，比较他们的知识边界和立场。
-8. 点击 NPC 详情里的“相关记忆”，展开查看他记得哪些事、来源是什么、发生在第几刻。
-9. 如需重新演示，点击“重新开始冒险”恢复初始世界并重新创建角色。
+6. 打开任一 NPC 的详情，切到「思考」Tab：看本回合的目标、多步计划的进度，以及徽章标出这一步是 **LLM 规划 / 替身规划 / 沿用计划 / 确定性兜底** 中的哪一种。
+7. 前往星辉酒馆接受“失踪的孩子”，按照 Backend 返回的目标推进任务。
+8. 分别询问三位 NPC 关于战争、档案或玩家印记的问题，比较他们的知识边界和立场。
+9. 点击 NPC 详情里的“相关记忆”，展开查看他记得哪些事、来源是什么、发生在第几刻。
+10. 如需重新演示，点击“重新开始冒险”恢复初始世界并重新创建角色。
 
 ## 记忆闭环演示
 
@@ -355,7 +356,7 @@ available → accepted → briefed_by_grey
 | 2D 游戏层 | Phaser 3.90.0 | 已提供 Scene、Sprite、输入、碰撞、摄像机和游戏循环，适合快速实现 2D RPG |
 | Backend | FastAPI、Pydantic v2 | API 契约明确、校验能力完整，并自动提供 Swagger 文档 |
 | 持久化 | SQLAlchemy、Alembic、SQLite / PostgreSQL + pgvector | 本地轻量运行，Docker 持久部署；版本化迁移和原子 Runtime 记录 |
-| AI 接入 | OpenAI-compatible Adapter | 通过配置复用腾讯混元、Gemini 等兼容服务，业务层不依赖具体供应商 |
+| AI 接入 | OpenAI-compatible Adapter | 通过配置复用腾讯混元等 OpenAI 兼容服务，业务层不依赖具体供应商 |
 | Agent 规划 | 原生 Function Calling + Pydantic 契约 | 模型产出结构化提案而非自由文本；工具定义与校验规则同源，输出形状对齐 MCP `tools/list` |
 | Agent Memory | pgvector + 确定性混合检索 | Episodic / Semantic / Procedural 分层落在同一套 SQL 里；权限在 SQL 层硬过滤，不做应用层后过滤 |
 | 部署 | Docker Compose、Nginx | 保持 Frontend + Backend 当前架构，支持环境隔离、健康检查和服务器迁移 |
@@ -385,7 +386,7 @@ flowchart LR
     Rules["确定性规则<br/>World Engine · Quest Policy · 冲突处理"]
     Context["权威上下文构建<br/>World · NPC · Player · Quest · History"]
     Provider["ChatProvider"]
-    Compatible["OpenAI-compatible Adapter<br/>hy-role · hy3 · Gemini"]
+    Compatible["OpenAI-compatible Adapter<br/>hy-role · hy3 · 其他兼容服务"]
     Mock["Character-aware Mock"]
     SQLite[("SQLite / PostgreSQL + pgvector")]
 
@@ -438,6 +439,8 @@ AI 对话不能进入 Action Execution、Quest Transition 或 World Update。
 | `GET` | `/api/agent-runs/{run_id}` | 查看持久化 proposal、event 与有序事实 trace | 不存在返回 `404`，非法 UUID 返回 `422` |
 | `GET` | `/api/npcs/{npc_id}` | 获取 NPC 档案、状态与最近行动 | NPC 不存在返回 `404` |
 | `POST` | `/api/npcs/{npc_id}/chat` | 创建或继续 NPC 多轮对话 | 校验 NPC、conversation、输入与模型输出；Primary 失败自动尝试 Mock |
+| `GET` | `/api/npcs/{npc_id}/memory-explanations` | 获取该 NPC **已被允许公开**的记忆安全摘要，支撑详情页「相关记忆」区域 | 不接受任何 query 参数，查询情境由 Backend 构造；NPC 不存在返回 `404`，认知读取不可用返回 `503` |
+| `GET` | `/api/npcs/{npc_id}/plan` | 获取当前活跃计划与最近 5 条历史计划，支撑详情页「思考」Tab | 不接受任何 query 参数，世界与条数由 Backend 固定；NPC 不存在返回 `404`，计划读取失败返回 `503` |
 | `GET` | `/api/player` | 获取玩家地点、Quest objective、版本与事件 | 玩家或任务不存在返回 `404` |
 | `POST` | `/api/player/travel` | 更新玩家权威语义地点，不推进时间 | 携带 `expected_world_version`；未知地点返回 `404`，过期返回 `409` |
 | `POST` | `/api/quests/missing-child/interact` | 按 interaction、`expected_version` 与 `expected_world_version` 推进任务 | 错误地点、跳步或版本冲突返回 `409` |
@@ -515,11 +518,13 @@ Frontend 不复制任务迁移规则，只渲染 Backend 返回的目标与可�
 
 这种方式只需要 Git 和 Docker，不需要在宿主机安装 Node.js、项目 Python 依赖或数据库。
 
+**Compose 只把 `compose.yaml` 的 backend `environment:` 段列出的变量送进容器。** `--env-file` 仅供 Compose 文件自身插值，而 `.dockerignore` 排除了 `.env*`，镜像里没有 env 文件可读。所以往 `.env.production` 里加一个 compose 没列的键**不会生效**，而且不会报错 —— 只会让该配置静默取默认值。该清单必须覆盖 `Settings` 的全部字段，由 `tests/backend/test_deploy.py` 守卫。
+
 Docker 基础拓扑包含 `pgvector/pgvector:0.8.6-pg17-bookworm`，只向宿主机发布 Web 端口。`.env.production.example` 由 PostgreSQL 变量生成 Psycopg 3 URL；示例密码只供 Demo，部署前必须替换。URL 中的用户名/密码需 URL-safe；使用保留字符时显式设置正确 percent-encoded `DATABASE_URL`。
 
-数据库迁移 `0004` 已加入六张认知表与 `memories.embedding`：PostgreSQL 使用 pgvector `vector`，SQLite 使用 JSON 向量等价物。迁移与 PostgreSQL loopback 测试 override 的完整命令见 [开发环境](docs/14_Development_Environment.md)。
+数据库迁移 `0004` 已加入六张认知表与 `memories.embedding`：PostgreSQL 使用 pgvector `vector`，SQLite 使用 JSON 向量等价物。完整迁移链目前是 `0001 → 0002 → 0003 → 0004 → 0005 → 0006`，其中 `0005` 建 `agent_plans`（多步计划的 procedural memory），`0006` 记录每份计划引用了哪些记忆。迁移与 PostgreSQL loopback 测试 override 的完整命令见 [开发环境](docs/14_Development_Environment.md)。
 
-PostgreSQL 验收必须把 backend 容器启动 Smoke 与迁移/Runtime 测试放在不同的 Compose project/volume 中；后者只启动 db，并要求 public 无应用表。2026-09-09 已完成容器健康检查及独立数据库的 13 项迁移/Runtime 测试；不要将 `TEST_POSTGRES_URL` 指向已有业务数据库。
+PostgreSQL 验收必须把 backend 容器启动 Smoke 与迁移/Runtime 测试放在不同的 Compose project/volume 中；后者只启动 db，并要求 public 无应用表。2026-09-18 在独立 db-only 项目上实跑这批 opt-in 测试：**49 passed，零 skip**，同时在容器内查到 `alembic_version = 0006`、pgvector `0.8.6`、`memories.embedding` 类型为 `vector`。不要将 `TEST_POSTGRES_URL` 指向已有业务数据库。
 
 ### Windows PowerShell
 
@@ -539,6 +544,8 @@ notepad .env.production
 docker compose --env-file .env.production up -d --build
 docker compose --env-file .env.production ps
 ```
+
+`up -d` 在容器**启动后**就返回，此时 `ps` 可能仍显示 `starting`。Compose 支持 `--wait` 时可以改用 `up -d --build --wait --wait-timeout 300`，它只在全部健康检查通过后才退出（本仓库验证使用的是 Compose v5.3.0）。
 
 4. 浏览器访问 <http://127.0.0.1:8080/>。验证 Backend：
 
@@ -630,7 +637,7 @@ python -m venv .venv
 Set-ExecutionPolicy -Scope Process Bypass
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r backend\requirements.txt
-npm --prefix frontend install
+npm --prefix frontend ci
 Copy-Item .env.example .env
 
 .\scripts\start-dev.cmd
@@ -655,7 +662,7 @@ cd Aleria_AI_Town
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r backend/requirements.txt
-npm --prefix frontend install
+npm --prefix frontend ci
 cp .env.example .env
 
 sh scripts/start-dev.sh
@@ -678,7 +685,7 @@ python -m venv .venv
 Set-ExecutionPolicy -Scope Process Bypass
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r backend\requirements.txt
-npm --prefix frontend install
+npm --prefix frontend ci
 Copy-Item .env.example .env
 ```
 
@@ -709,7 +716,7 @@ cd Aleria_AI_Town
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r backend/requirements.txt
-npm --prefix frontend install
+npm --prefix frontend ci
 cp .env.example .env
 ```
 
@@ -747,7 +754,25 @@ Frontend 开发模式默认请求 `http://127.0.0.1:8000`。需要使用其他 B
 
 真实 API Key 只进入 Backend 容器，不会写入前端构建产物，也不会发送到浏览器。修改环境变量后需要完整重启 Backend 或重新创建容器。
 
-以下四个配置块可以替换 `.env` 或 `.env.production` 中对应的 `CHAT_` 配置。不要在同一文件保留重复变量。
+### 四个互相独立的 Provider
+
+Chat、Embedding、Reflection、Planning 是**四个完全独立**的 Provider，各自有自己的地址、模型、Key 和超时。开一个不影响另外三个。
+
+**它们的开关机制不一样，这是最容易配错的地方：**
+
+| Provider | 怎么开 | 走真实模型的条件 | 关闭时用什么 |
+| --- | --- | --- | --- |
+| **Chat** | `CHAT_PROVIDER` 改成 `mock` 以外的任意值 | base URL + model + （auth mode 为 `none` 或填了 Key） | 角色化 Mock 回复 |
+| **Embedding** | `EMBEDDING_PROVIDER=openai_compatible`（**必须显式写**） | 同上 | 确定性特征哈希向量 |
+| **Reflection** | `REFLECTION_PROVIDER=openai_compatible`（**必须显式写**） | 同上 | 结构合法的假反思草稿 |
+| **Planning** | **没有开关变量**，配置齐了就自动启用 | 同上 | 确定性替身规划 |
+
+两个关键点：
+
+1. **`CHAT_PROVIDER` 的值只是一个标签，不是供应商选择器。** 代码里只判断它是否等于 `mock`；写 `hunyuan`、`hy3` 还是别的词，走的都是同一个 OpenAI-compatible adapter，实际差异全在 base URL、model 和 `CHAT_LLM_OUTPUT_MODE` 上。这个标签会出现在 `/api/health` 和 Chat 响应里。
+2. **配置不完整会静默回退到替身，不会启动失败。** 所以「行为看起来像没配」是配了一半的典型症状，而不是配置没生效的报错。
+
+下面每个 Provider 各给一份可直接照抄的配置。示例里的 Key 一律是占位符，**换成你自己的值，不要提交到 Git**。
 
 ### 默认配置：Mock，无需 API Key
 
@@ -765,33 +790,14 @@ CHAT_PROMPT_VERSION=v3
 
 Mock 会根据 NPC、玩家输入、世界状态和 Quest 上下文返回确定性的角色化回复，而不是只返回统一的“服务不可用”。World Tick 和 Quest 在 Mock 模式下仍然完整运行。
 
-Stage 2 的两个认知 Provider 与 Chat **相互独立**，默认同样不需要 Key：
-
-```env
-EMBEDDING_PROVIDER=fake
-REFLECTION_PROVIDER=fake
-```
-
-`fake` Embedding 是确定性的特征哈希实现，不发起网络请求，排序结果完全可复现；`fake` Reflection 产出结构合法、可被证据校验拒绝或接受的草稿。因此**记忆闭环演示在零配置下即可完整体验**。切换真实 Provider 时把对应项改为 `openai_compatible` 并补齐 base URL、model 与 Key；配置不完整会回退 fake 而不是启动失败。完整的认知配置项见 [`docs/14_Development_Environment.md`](docs/14_Development_Environment.md)。
-
-Stage 3m 的规划 Provider 是第四个独立 Provider，没有 `*_PROVIDER` 开关：base URL 与 model 齐备、且 auth mode 为 `none` 或提供了 Key 时才走真实模型，否则使用确定性替身规划。
-
-```env
-PLANNING_PROVIDER_BASE_URL=
-PLANNING_PROVIDER_API_KEY=
-PLANNING_PROVIDER_MODEL=
-PLANNING_PROVIDER_AUTH_MODE=bearer
-PLANNING_PROVIDER_TIMEOUT_SECONDS=30
-```
-
-**留空即替身规划，NPC 详情的「思考」Tab 会把来源标成替身而不是模型规划。** 线上 Demo 若要展示真实模型驱动的 Agent 行为，这一组必须配齐。
+**四个 Provider 全部保持默认时，整个 Demo 零配置即可完整体验**，包括记忆闭环和 Agent Loop —— 只是 NPC 的规划来源会标成「替身规划」。
 
 ### 推荐配置：腾讯混元 hy-role
 
 ```env
 CHAT_PROVIDER=hunyuan
 CHAT_LLM_BASE_URL=https://tokenhub.tencentmaas.com/v1
-CHAT_LLM_API_KEY=
+CHAT_LLM_API_KEY=<在此填入你的 API Key>
 CHAT_LLM_MODEL=hy-role
 CHAT_LLM_AUTH_MODE=bearer
 CHAT_LLM_OUTPUT_MODE=text
@@ -809,7 +815,7 @@ CHAT_PROMPT_VERSION=v3
 ```env
 CHAT_PROVIDER=hy3
 CHAT_LLM_BASE_URL=https://tokenhub.tencentmaas.com/v1
-CHAT_LLM_API_KEY=
+CHAT_LLM_API_KEY=<在此填入你的 API Key>
 CHAT_LLM_MODEL=hy3
 CHAT_LLM_AUTH_MODE=bearer
 CHAT_LLM_OUTPUT_MODE=structured_json
@@ -818,15 +824,119 @@ CHAT_HISTORY_LIMIT=10
 CHAT_PROMPT_VERSION=v3
 ```
 
-`hy3` 使用结构化 JSON 模式，仍复用同一个 OpenAI-compatible Adapter，不存在独立的 Hunyuan 业务分支。
+`hy3` 使用结构化 JSON 模式，仍复用同一个 OpenAI-compatible Adapter，不存在独立的 Hunyuan 业务分支。Key 留空同样会安全回退 Mock。
 
+
+### Embedding Provider
+
+默认不需要 Key，`fake` 是确定性特征哈希实现，不发起网络请求，排序结果完全可复现：
+
+```env
+EMBEDDING_PROVIDER=fake
+EMBEDDING_BASE_URL=
+EMBEDDING_API_KEY=
+EMBEDDING_MODEL=
+EMBEDDING_AUTH_MODE=bearer
+EMBEDDING_TIMEOUT_SECONDS=3
+EMBEDDING_DIMENSIONS=32
+```
+
+切换到真实 Embedding：
+
+```env
+EMBEDDING_PROVIDER=openai_compatible
+EMBEDDING_BASE_URL=https://你的-openai-兼容端点/v1
+EMBEDDING_API_KEY=<在此填入你的 API Key>
+EMBEDDING_MODEL=<你的 embedding 模型名>
+EMBEDDING_AUTH_MODE=bearer
+EMBEDDING_TIMEOUT_SECONDS=10
+EMBEDDING_DIMENSIONS=1024
+```
+
+**`EMBEDDING_DIMENSIONS` 必须等于端点实际返回的向量长度。** 请求会把它作为 `dimensions` 参数发给服务端，但如果服务端忽略该参数、返回了别的长度，向量会被判为 `embedding unavailable` 而整条失败。默认的 `32` 只适配 `fake`，真实模型通常是 1024 或 1536。
+
+`EMBEDDING_TIMEOUT_SECONDS` 的默认值 `3` 也只够 `fake` 用，上真实模型要一并调高。
+
+改动 `EMBEDDING_DIMENSIONS` 或 `EMBEDDING_MODEL` 后，旧向量会因为 embedding 身份不匹配而自动失效，检索跳过它们并在后续 enrichment 中重算 —— **不需要手动清库**。
+
+### Reflection Provider
+
+默认同样不需要 Key：
+
+```env
+REFLECTION_PROVIDER=fake
+REFLECTION_BASE_URL=
+REFLECTION_API_KEY=
+REFLECTION_MODEL=
+REFLECTION_AUTH_MODE=bearer
+REFLECTION_TIMEOUT_SECONDS=3
+```
+
+切换到真实 Reflection：
+
+```env
+REFLECTION_PROVIDER=openai_compatible
+REFLECTION_BASE_URL=https://你的-openai-兼容端点/v1
+REFLECTION_API_KEY=<在此填入你的 API Key>
+REFLECTION_MODEL=<你的对话模型名>
+REFLECTION_AUTH_MODE=bearer
+REFLECTION_TIMEOUT_SECONDS=15
+COGNITION_POST_COMMIT_BUDGET_SECONDS=20
+```
+
+**这里必须同时调两个值，只改一个会全部超时。** 认知投影在 world tick 提交之后**同步**执行，`COGNITION_POST_COMMIT_BUDGET_SECONDS` 是它的总上限；实测一次真实反思需要 8–11 秒，而两个默认值分别是 3 秒（单次调用超时）和 5 秒（总预算）。
+
+这个总预算由**当前世界的所有 NPC 共享**，Embedding enrichment 还排在 Reflection 前面先用。三个 NPC 的世界里，20 秒大约够一个 NPC 完成反思，其余的会被 deadline 截断留到下一次。
+
+Reflection 不是每个 tick 都触发：出现 critical 观察时立即触发，否则要同时满足累计重要度与新增记忆数两个阈值。
+
+### Planning Provider
+
+这一组决定 NPC 的行动是**真实模型规划**还是确定性替身。没有开关变量，**留空就是关闭**：
+
+```env
+PLANNING_PROVIDER_BASE_URL=
+PLANNING_PROVIDER_API_KEY=
+PLANNING_PROVIDER_MODEL=
+PLANNING_PROVIDER_AUTH_MODE=bearer
+PLANNING_PROVIDER_TIMEOUT_SECONDS=30
+```
+
+开启真实规划：
+
+```env
+PLANNING_PROVIDER_BASE_URL=https://你的-openai-兼容端点/v1
+PLANNING_PROVIDER_API_KEY=<在此填入你的 API Key>
+PLANNING_PROVIDER_MODEL=<支持原生 tool calling 的模型名>
+PLANNING_PROVIDER_AUTH_MODE=bearer
+PLANNING_PROVIDER_TIMEOUT_SECONDS=30
+```
+
+**模型必须支持原生 function/tool calling**，规划走的是 6 个工具的 manifest，不是自由文本解析。
+
+`PLANNING_PROVIDER_TIMEOUT_SECONDS=30` 是实测定的，不是随手写的默认值：20 秒会切掉本来会成功的调用，把兜底率从 6.7% 推高到 53.3%。原生 tool calling 带 6 工具 manifest 实测单次 7.6–17 秒。这个值有防漂移测试守着，改之前先读 `backend/app/core/config.py` 里的注释。
+
+**代价要心里有数**：规划在世界提交**之前**同步执行，所以一次 tick 最坏会花掉 `PLANNING_PROVIDER_TIMEOUT_SECONDS` 加上 `COGNITION_POST_COMMIT_BUDGET_SECONDS` 才返回。三个 NPC 的规划调用是并发的，不会叠加成三倍。
+
+### 怎么确认配置真的生效了
+
+因为配置不完整是**静默回退**，必须主动验证：
+
+| Provider | 验证方法 |
+| --- | --- |
+| **Chat** | 发一条对话，看响应里的 `provider` 与 `fallback_used`。`fallback_used=true` 就是回退了。`GET /api/health` 显示的是配置标签，**不代表调用成功过** |
+| **Planning** | 推进 1 小时，打开 NPC 详情的「思考」Tab。徽章是「LLM 规划」才是真模型；「替身规划」说明没配齐 |
+| **Embedding** | **没有公开的生效信号。** `memory-explanations` 的 `retrieval_mode` 区分的是检索降级，不是 fake / live —— `fake` 也会返回 `hybrid`。只能看后端日志有没有 `category=embedding_configuration` 的告警 |
+| **Reflection** | 同样没有公开信号，看后端日志有没有 `category=reflection_configuration` 的告警 |
+
+Planning 还有一条保护：四个变量**全空**是合法默认，不告警；只填了一部分才会打 `Planning provider configuration is incomplete` —— 因为那说明操作者本想上真实模型。
 
 ### Primary Provider 与 Mock Fallback
 
 ```text
 Provider 配置完整
     ↓
-调用 Primary（hy-role / hy3 / Gemini）
+调用 Primary（hy-role / hy3 / 其他 OpenAI 兼容服务）
     ├── 成功且响应合法 → 保存 Primary 回复，fallback_used=false
     └── 超时 / 网络错误 / 非 2xx / 输出非法
                           ↓
@@ -899,7 +1009,7 @@ docker compose --env-file .env.production restart
 
 数据库、Backend 与 Web 均有健康检查和重启策略。PostgreSQL 使用 `aleria_postgres_data` 命名卷；Backend 等待数据库健康并执行 Alembic 升级后启动，Web 等待 Backend 健康。重建容器不会清除数据；迁移服务器需要备份私有配置和 PostgreSQL 数据。旧 SQLite 的 `aleria_data` 卷保留，但不会自动导入 PostgreSQL；已有部署切换前需单独规划数据迁移。
 
-当前线上入口是 HTTP，不适合传输隐私数据或用于正式生产服务。API Key 不会经过浏览器，Backend 到模型服务仍使用 HTTPS；但浏览器与服务器之间的游戏请求和聊天内容没有 TLS 保护。正式对外运营应增加域名与 HTTPS，并补充认证、限流和重置权限控制。
+上面这套部署的入口是 HTTP，不适合传输隐私数据或用于正式生产服务。API Key 不会经过浏览器，Backend 到模型服务仍使用 HTTPS；但浏览器与服务器之间的游戏请求和聊天内容没有 TLS 保护。正式对外运营应增加域名与 HTTPS，并补充认证、限流和重置权限控制。
 
 ## Demo 重置
 
@@ -992,8 +1102,9 @@ TokenHub 显示请求已经消耗 Token，但 Frontend 仍提示使用 Mock；Ba
 Windows PowerShell：
 
 ```powershell
-# Backend
-.\.venv\Scripts\python.exe -m pytest tests\backend -q -p no:cacheprovider
+# Backend：必须显式指定 --basetemp 到有写权限的目录
+New-Item -ItemType Directory -Force .test-tmp | Out-Null
+.\.venv\Scripts\python.exe -m pytest tests\backend -q -rs -p no:cacheprovider --basetemp .test-tmp\final
 
 # Frontend
 npm --prefix frontend test
@@ -1002,13 +1113,18 @@ npm --prefix frontend run build
 
 # Docker Compose 配置（需要 Docker）
 docker compose --env-file .env.production.example config --quiet
+docker compose -f compose.yaml -f compose.postgres-test.yaml --env-file .env.production.example config --quiet
+
+# 行尾与空白检查
+git diff --check
 ```
 
 Linux / macOS Bash：
 
 ```bash
-# Backend
-.venv/bin/python -m pytest tests/backend -q -p no:cacheprovider
+# Backend：必须显式指定 --basetemp 到有写权限的目录
+mkdir -p .test-tmp
+.venv/bin/python -m pytest tests/backend -q -rs -p no:cacheprovider --basetemp .test-tmp/final
 
 # Frontend
 npm --prefix frontend test
@@ -1017,7 +1133,13 @@ npm --prefix frontend run build
 
 # Docker Compose 配置（需要 Docker）
 docker compose --env-file .env.production.example config --quiet
+docker compose -f compose.yaml -f compose.postgres-test.yaml --env-file .env.production.example config --quiet
+
+# 行尾与空白检查
+git diff --check
 ```
+
+`--basetemp` 不是可选项：在受限工作区里让 pytest 自选临时目录会产生权限异常的目录，导致整轮结果无效（本项目已实际发生过）。`.test-tmp/` 已被 gitignore。显式 PostgreSQL 集成测试的完整命令见 [开发环境](docs/14_Development_Environment.md)。
 
 当前 HEAD 上这些命令的完整实测输出、运行环境与逐条对应关系见 [能力基线](docs/eval/2026-09-17-capability-baseline.md)。注意后端通过数**取决于 shell**：`test_start_dev.py` 的 shell launcher 探针在 PATH 中没有 POSIX `sh` 时会跳过，所以 Windows PowerShell 下会比 Git Bash 与 Linux CI 少一项通过、多一项 skip。具体数字以基线文档为准。
 
@@ -1025,18 +1147,18 @@ docker compose --env-file .env.production.example config --quiet
 
 ### 已知限制
 
-- 当前公开部署是共享单世界、无账号的演示环境，不适合多人同时修改状态。
+- 部署形态是共享单世界、无账号的演示环境，不适合多人同时修改状态。
 - Demo Reset 是全局接口，尚未增加认证和权限控制。
 - 本地 SQLite 为轻量单实例模式；Docker 使用 PostgreSQL，但异步提交、后台调度和多 worker Runtime 协调仍未实现。
 - NPC 记忆是 append-only 的，只做来源幂等与内容去重，没有自动摘要压缩；长时间演示会持续累积记忆行。
-- Reflection 由累计重要度与新增记忆数触发，失败后最多自动重试一次；它只能引用真实存在的同 owner 证据，不能创造世界事实。
+- Reflection **不是每个 tick 触发**：出现 critical 观察时立即触发，否则要同时满足累计重要度与新增记忆数两个阈值；tick、Quest 交互和聊天都会触发这项检查。失败后最多自动重试一次。它只能引用真实存在的同 owner 证据，不能创造世界事实。
 - 记忆解释接口是匿名只读的，没有账号级身份，因此它不返回任何聊天原文；跨会话记忆要通过对话行为来验证。
 - NPC 之间可以 `talk`，但不会传播信息：交谈产生的是行动与事件，不会把一个 NPC 的记忆搬到另一个 NPC 身上。多 Agent 协商与消息总线属于后续阶段。
 - 规划的 **Provider 网络调用已并行**；数据库准备、计划落盘和世界提交仍留在调用线程。当前没有把规划移出同步 tick 的关键路径，真实模型的长尾仍会影响体感。当前 HEAD 的 Live tick 延迟本轮未实测。
 - 计划的动作空间锁定在 6 个动词（`move / work / eat / talk / rest / wait`）。NPC 的智能体现在选择与排序，不在可做事情的种类。
 - 不做 schema repair 重试：模型返回非法结构即判失败并降级，不会二次追问补救。
 - `agent_plans.tokens_used` 只记录消耗，没有预算约束或熔断。
-- 当前线上入口为 HTTP，没有域名和 TLS。
+- 部署入口是 HTTP，没有域名和 TLS。
 - Phaser 像素坐标不持久化；Backend 只保存任务需要的语义地点。
 - 职业只影响外观、称谓和对话上下文，没有战斗数值差异。
 - 当前只有一张室外地图和一条主线任务。
@@ -1044,14 +1166,23 @@ docker compose --env-file .env.production.example config --quiet
 
 ### 文档导航
 
+- [`AGENTS.md`](AGENTS.md)：面向 AI coding agent 的项目级协作规范，含数据库安全规则与「agent 不提交」的 Git 约定。
+- [`CURRENT_STATE.md`](CURRENT_STATE.md)：当前 HEAD、已完成范围、验证结果与遗留风险。
 - [`docs/01_Assignment_Specification.md`](docs/01_Assignment_Specification.md)：项目需求与验收标准。
+- [`docs/03_World_Model.md`](docs/03_World_Model.md)：世界模型与时间、地点、状态的语义。
+- [`docs/04_NPC_Agent_Design.md`](docs/04_NPC_Agent_Design.md)：NPC Agent 的感知、记忆与决策设计。
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)：架构地图，严格区分 Implemented 与 Proposed。
 - [`docs/05_Engineering_Architecture.md`](docs/05_Engineering_Architecture.md)：工程架构与边界。
 - [`docs/06_API_Contract.md`](docs/06_API_Contract.md)：API 请求与响应契约。
 - [`docs/07_Database_Schema.md`](docs/07_Database_Schema.md)：SQLite / PostgreSQL、Alembic 与 Runtime 数据结构。
 - [`docs/08_Prompt_Engineering_CN.md`](docs/08_Prompt_Engineering_CN.md)：Prompt 版本与角色上下文设计。
 - [`docs/10_AI_Coding_Workflow.md`](docs/10_AI_Coding_Workflow.md)：AI 辅助开发与人工 Review 流程。
+- [`docs/09_Decision_Log.md`](docs/09_Decision_Log.md)：架构决策记录（ADR）。
+- [`docs/11_Project_Structure.md`](docs/11_Project_Structure.md)：目录职责与分层边界。
 - [`docs/12_Game_Experience_Design.md`](docs/12_Game_Experience_Design.md)：四场景游戏体验设计。
+- [`docs/13_Development_Roadmap.md`](docs/13_Development_Roadmap.md)：跨 Stage 开发路线规划。
+- [`docs/14_Development_Environment.md`](docs/14_Development_Environment.md)：**开发与部署环境的权威文档** —— 环境变量全清单、Docker Compose 部署、PostgreSQL 集成测试命令与验收记录。
+- [`docs/AI_REVIEW_POLICY.md`](docs/AI_REVIEW_POLICY.md)：AI review 流程规范：等级判定、baseline 机制与复核包输入规则。
 - [`docs/15_Story_Bible_CN.md`](docs/15_Story_Bible_CN.md)：完整世界观、人物知识矩阵和连续性规则（含剧透）。
 - [`docs/eval/`](docs/eval/)：历次 Agent 评测报告、去内容化证据与阶段快照。
 - [`docs/eval/2026-09-17-capability-baseline.md`](docs/eval/2026-09-17-capability-baseline.md)：当前 HEAD 的测试、构建与评测实测基线。

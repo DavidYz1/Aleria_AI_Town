@@ -1,19 +1,17 @@
 # 能力基线
 
-**代码锚点**：提交 `d323f1c0e9b89c3a6ad68afad8694d1eecb4cc6a`（`main`）
-**加上尚未提交的部署收尾改动**（10 个文件，见下）。
+**代码锚点**：提交 `a53e3d7cef614eaf53acc79bed2c7454fc90b44a`（`main`，
+`docs: record deployment verification and refresh baseline`）。
+本文数字在该提交的内容上实测，工作树当时除此之外干净。
 首次记录 2026-09-17（锚点 `a3f15cd`），最后更新 2026-09-18。
 
 > **锚点必须是 `git cat-file -t` 能解析的对象。** 本文上一版写的
 > `c4d9048ed739…` 在仓库历史里不存在 —— 提交被 amend 或 rebase 之后 SHA 变了，
 > 而本文没有同步。按那个锚点核对的人会直接卡在第一步。改锚点时请当场验证一次。
 
-本轮数字对应的工作树改动（**未提交**，人工 review 后提交）：
-`compose.yaml`、`.env.production.example`、`tests/backend/test_deploy.py`、
-`tests/backend/test_postgres_runtime.py`、`AGENTS.md`、`README.md`、
-`CURRENT_STATE.md`、`docs/07_Database_Schema.md`、`docs/14_Development_Environment.md`、
-以及本文件。
-**提交后请把上面的锚点换成那个提交的 SHA，并当场 `git cat-file -t` 验证。**
+本轮数字覆盖的改动落在三个提交里（`d323f1c..a53e3d7`，10 个文件、474 插入 / 44 删除）：
+`fdbb53a` Compose 透传、`ccc0726` PostgreSQL 断言与 Reset 覆盖、`a53e3d7` 文档与基线。
+**每次改锚点都要当场 `git cat-file -t <SHA>` 验证它能解析** —— 本文上一版就是败在这一步。
 
 > 数字随代码变化。`a3f15cd` 上后端是 779 passed（POSIX），合计 992；随后
 > Demo Reset 的计划清理补了 2 个回归测试变成 781 / 994；本轮部署收尾再补 4 条
