@@ -98,6 +98,7 @@ temp/
 .idea/
 .vscode/
 *.code-workspace
+.claude/settings.local.json
 
 # OS metadata
 .DS_Store

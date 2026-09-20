@@ -89,7 +89,13 @@ function teleportPlayer(locationId: string): void {
   controller.teleportPlayer(locationId)
 }
 
-defineExpose({ teleportPlayer })
+function focusCanvas(): void {
+  // The overlay tick button steals focus from the canvas; movement keys only
+  // reach Phaser while the canvas itself holds focus.
+  mountElement.value?.querySelector('canvas')?.focus({ preventScroll: true })
+}
+
+defineExpose({ teleportPlayer, focusCanvas })
 
 async function retry(): Promise<void> {
   generation += 1

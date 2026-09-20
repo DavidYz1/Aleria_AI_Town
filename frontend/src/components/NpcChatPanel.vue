@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import type { ChatMessage } from '../types/chat'
 
@@ -33,6 +33,41 @@ const providerStatus = computed(() => {
 function updatePendingMessage(event: Event): void {
   emit('update:pendingMessage', (event.target as HTMLTextAreaElement).value)
 }
+
+const historyElement = ref<HTMLElement | null>(null)
+// A reply that lands a little below the fold still counts as "being followed".
+const FOLLOW_THRESHOLD_PX = 64
+
+function isFollowingLatest(element: HTMLElement): boolean {
+  return element.scrollHeight - element.scrollTop - element.clientHeight <= FOLLOW_THRESHOLD_PX
+}
+
+function scrollToLatest(): void {
+  const element = historyElement.value
+  if (element !== null) element.scrollTop = element.scrollHeight
+}
+
+watch(
+  () => props.messages.length,
+  async (next, previous) => {
+    const element = historyElement.value
+    if (element === null || next <= previous) return
+    // Read before Vue patches the DOM: someone who scrolled up to reread an
+    // earlier turn must not be yanked back down by an incoming reply.
+    const following = isFollowingLatest(element)
+    await nextTick()
+    if (following) scrollToLatest()
+  },
+)
+
+watch(
+  () => props.selectedNpcId,
+  async () => {
+    // A freshly opened resident always starts on their most recent turn.
+    await nextTick()
+    scrollToLatest()
+  },
+)
 </script>
 
 <template>
@@ -49,7 +84,7 @@ function updatePendingMessage(event: Event): void {
       <p class="chat-provider-status">{{ providerStatus }}</p>
     </header>
 
-    <section class="chat-history" aria-label="聊天记录">
+    <section ref="historyElement" class="chat-history" aria-label="聊天记录">
       <p v-if="messages.length === 0" class="chat-empty">
         还没有聊天记录。向 {{ npcName }} 打个招呼吧。
       </p>
@@ -90,7 +125,7 @@ function updatePendingMessage(event: Event): void {
         id="npc-chat-message"
         :value="pendingMessage"
         maxlength="500"
-        rows="4"
+        rows="3"
         aria-describedby="npc-chat-length"
         placeholder="输入你想说的话…"
         @input="updatePendingMessage"
@@ -150,7 +185,11 @@ function updatePendingMessage(event: Event): void {
 }
 
 .chat-history {
-  max-height: 24rem;
+  /* Matches the map frame's 28rem so the map and the transcript below it read
+     as one game view. An empty transcript still collapses, which keeps the
+     column level with the profile beside it. */
+  max-height: 28rem;
+  min-height: 7rem;
   overflow-y: auto;
   padding: 1rem 0;
 }
@@ -173,7 +212,9 @@ function updatePendingMessage(event: Event): void {
 }
 
 .chat-message {
-  max-width: 88%;
+  /* Under the map the panel is wide enough that a percentage alone stretches
+     one-line replies into empty bars. */
+  max-width: min(88%, 30rem);
   padding: 0.75rem 0.85rem;
   border-radius: 0.7rem;
   background: #edf0e8;

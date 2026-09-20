@@ -168,6 +168,13 @@ function advanceWorld(): void {
   void store.advanceTick()
 }
 
+function advanceWorldFromMap(): void {
+  advanceWorld()
+  // Clicking the overlay moves focus off the canvas; without this the player
+  // would silently lose WASD movement after every shortcut tick.
+  townGameHost.value?.focusCanvas()
+}
+
 async function restartAdventure(): Promise<void> {
   if (resettingDemo.value || demoResetBlocked.value) return
   const confirmed = window.confirm(
@@ -332,47 +339,56 @@ onMounted(loadTown)
         </div>
         <div class="town-play-layout">
           <div class="town-game-host-column">
-            <TownGameHost
-              ref="townGameHost"
-              :profile="playerProfileStore.profile"
-              :player-location-id="playerQuestStore.data?.player.location_id ?? null"
-              :npcs="projectedNpcs"
-              @npc-selected="selectNpc"
-              @player-location-entered="enterPlayerLocation"
+            <div class="town-game-stage">
+              <TownGameHost
+                ref="townGameHost"
+                :profile="playerProfileStore.profile"
+                :player-location-id="playerQuestStore.data?.player.location_id ?? null"
+                :npcs="projectedNpcs"
+                @npc-selected="selectNpc"
+                @player-location-entered="enterPlayerLocation"
+              />
+              <button
+                class="map-tick-button"
+                data-action="advance-world-from-map"
+                type="button"
+                :disabled="store.advancing || resettingDemo"
+                @click="advanceWorldFromMap"
+              >
+                {{ store.advancing ? '推进中…' : '推进 1 小时' }}
+              </button>
+            </div>
+
+            <NpcChatPanel
+              v-if="npcDetailStore.selectedNpcId !== null && selectedChatSession"
+              :selected-npc-id="npcDetailStore.selectedNpcId"
+              :npc-name="selectedNpcName"
+              :messages="selectedChatSession.messages"
+              :sending="selectedChatSession.sending || resettingDemo"
+              :error="selectedChatSession.error"
+              :pending-message="selectedChatSession.pendingMessage"
+              :provider="selectedChatSession.provider"
+              :fallback-used="selectedChatSession.fallbackUsed"
+              @update:pending-message="updatePendingMessage"
+              @send="sendChatMessage"
+              @retry="retryChatMessage"
             />
           </div>
 
           <aside class="town-map-hud" aria-label="冒险者与居民信息">
-            <div
-              v-if="npcDetailStore.selectedNpcId !== null && selectedChatSession"
-              class="detail-chat-stack"
-            >
-              <NpcDetailPanel
-                :selected-npc-id="npcDetailStore.selectedNpcId"
-                :detail="npcDetailStore.data"
-                :loading="npcDetailStore.loading"
-                :error="npcDetailStore.error"
-                :memory="npcMemoryStore.data"
-                :memory-loading="npcMemoryStore.loading"
-                :memory-error="npcMemoryStore.error"
-                @close="closeNpcDetail"
-                @retry="retryNpcDetail"
-                @retry-memory="retryNpcMemory"
-              />
-              <NpcChatPanel
-                :selected-npc-id="npcDetailStore.selectedNpcId"
-                :npc-name="selectedNpcName"
-                :messages="selectedChatSession.messages"
-                :sending="selectedChatSession.sending || resettingDemo"
-                :error="selectedChatSession.error"
-                :pending-message="selectedChatSession.pendingMessage"
-                :provider="selectedChatSession.provider"
-                :fallback-used="selectedChatSession.fallbackUsed"
-                @update:pending-message="updatePendingMessage"
-                @send="sendChatMessage"
-                @retry="retryChatMessage"
-              />
-            </div>
+            <NpcDetailPanel
+              v-if="npcDetailStore.selectedNpcId !== null"
+              :selected-npc-id="npcDetailStore.selectedNpcId"
+              :detail="npcDetailStore.data"
+              :loading="npcDetailStore.loading"
+              :error="npcDetailStore.error"
+              :memory="npcMemoryStore.data"
+              :memory-loading="npcMemoryStore.loading"
+              :memory-error="npcMemoryStore.error"
+              @close="closeNpcDetail"
+              @retry="retryNpcDetail"
+              @retry-memory="retryNpcMemory"
+            />
             <div v-else class="card map-help-card">
               <p class="card-label">当前冒险者</p>
               <h3>{{ playerProfileStore.profile.displayName }} · {{ adventurerClassTitle }}</h3>
@@ -489,19 +505,47 @@ onMounted(loadTown)
 }
 
 .town-game-host-column {
+  display: grid;
+  gap: 1rem;
   min-width: 0;
+}
+
+.town-game-stage {
+  position: relative;
+}
+
+.map-tick-button {
+  position: absolute;
+  z-index: 3;
+  inset: 0.85rem 0.85rem auto auto;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgb(232 198 117 / 55%);
+  border-radius: 0.6rem;
+  color: #f8edcf;
+  background: rgb(19 28 24 / 82%);
+  font-size: 0.85rem;
+  backdrop-filter: blur(2px);
+}
+
+.map-tick-button:hover:not(:disabled) {
+  color: #18251f;
+  background: #e8c675;
+}
+
+.map-tick-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .town-map-hud {
   min-width: 0;
 }
 
-.detail-chat-stack {
-  display: grid;
-  gap: 1rem;
-}
-
-.detail-chat-stack :deep(.npc-detail-panel) {
+/* The map column now outgrows the profile; sticking it keeps an NPC's state
+   in view while the player talks to them further down the page. */
+.town-map-hud :deep(.npc-detail-panel) {
+  position: sticky;
+  top: 1rem;
   margin-top: 0;
 }
 
@@ -527,6 +571,30 @@ onMounted(loadTown)
 
   .town-play-layout {
     grid-template-columns: 1fr;
+  }
+
+  /* Single column would read map -> chat -> profile; put the profile back
+     next to the map so the chat still follows the NPC's state. */
+  .town-game-host-column {
+    display: contents;
+  }
+
+  .town-game-stage {
+    order: 1;
+  }
+
+  .town-map-hud {
+    order: 2;
+    margin-top: 1rem;
+  }
+
+  .town-game-host-column :deep(.npc-chat-panel) {
+    order: 3;
+    margin-top: 1rem;
+  }
+
+  .town-map-hud :deep(.npc-detail-panel) {
+    position: static;
   }
 }
 </style>

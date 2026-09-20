@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { describe, expect, it } from 'vitest'
 
 import NpcChatPanel from '../../frontend/src/components/NpcChatPanel.vue'
@@ -45,6 +46,9 @@ describe('NpcChatPanel', () => {
     expect(wrapper.text()).toContain('还没有聊天记录。')
     const textarea = wrapper.get('textarea')
     expect(textarea.attributes('maxlength')).toBe('500')
+    // A shorter box leaves the transcript above it room to breathe; the
+    // textarea stays user-resizable for longer drafts.
+    expect(textarea.attributes('rows')).toBe('3')
     expect(wrapper.get('label').attributes('for')).toBe(textarea.attributes('id'))
     expect(wrapper.text()).toContain('0 / 500')
     expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
@@ -118,5 +122,77 @@ describe('NpcChatPanel', () => {
     const wrapper = mountPanel(overrides)
 
     expect(wrapper.get('.chat-provider-status').text()).toBe(expected)
+  })
+})
+
+// jsdom has no layout, so the transcript's scroll geometry is faked to make the
+// stick-to-bottom decision observable.
+function fakeScrollGeometry(
+  element: HTMLElement,
+  { scrollHeight, clientHeight, scrollTop }: {
+    scrollHeight: number
+    clientHeight: number
+    scrollTop: number
+  },
+) {
+  let current = scrollTop
+  Object.defineProperty(element, 'scrollHeight', { value: scrollHeight, configurable: true })
+  Object.defineProperty(element, 'clientHeight', { value: clientHeight, configurable: true })
+  Object.defineProperty(element, 'scrollTop', {
+    get: () => current,
+    set: (value: number) => { current = value },
+    configurable: true,
+  })
+  return () => current
+}
+
+describe('NpcChatPanel transcript scrolling', () => {
+  it('follows a new reply when the reader is already at the bottom', async () => {
+    const wrapper = mountPanel({ messages })
+    const history = wrapper.get('.chat-history').element as HTMLElement
+    const scrollTop = fakeScrollGeometry(history, {
+      scrollHeight: 600,
+      clientHeight: 200,
+      scrollTop: 400,
+    })
+
+    await wrapper.setProps({
+      messages: [...messages, { id: 3, role: 'assistant', content: '还有别的事吗？', emotion: 'neutral' } as const],
+    })
+    await nextTick()
+
+    expect(scrollTop()).toBe(600)
+  })
+
+  it('leaves the scroll position alone while the reader is further up the history', async () => {
+    const wrapper = mountPanel({ messages })
+    const history = wrapper.get('.chat-history').element as HTMLElement
+    const scrollTop = fakeScrollGeometry(history, {
+      scrollHeight: 600,
+      clientHeight: 200,
+      scrollTop: 40,
+    })
+
+    await wrapper.setProps({
+      messages: [...messages, { id: 3, role: 'assistant', content: '还有别的事吗？', emotion: 'neutral' } as const],
+    })
+    await nextTick()
+
+    expect(scrollTop()).toBe(40)
+  })
+
+  it('jumps to the latest turn when another resident is opened', async () => {
+    const wrapper = mountPanel({ messages })
+    const history = wrapper.get('.chat-history').element as HTMLElement
+    const scrollTop = fakeScrollGeometry(history, {
+      scrollHeight: 600,
+      clientHeight: 200,
+      scrollTop: 40,
+    })
+
+    await wrapper.setProps({ selectedNpcId: 'shir', npcName: 'Shir', messages: [] })
+    await nextTick()
+
+    expect(scrollTop()).toBe(600)
   })
 })

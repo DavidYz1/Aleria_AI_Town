@@ -22,6 +22,7 @@ import {
 } from './fixtures'
 
 const teleportPlayer = vi.fn()
+const focusCanvas = vi.fn()
 const TownGameHostStub = defineComponent({
   name: 'TownGameHost',
   props: {
@@ -31,7 +32,7 @@ const TownGameHostStub = defineComponent({
   },
   emits: ['npcSelected', 'playerLocationEntered'],
   setup(_props, { expose }) {
-    expose({ teleportPlayer })
+    expose({ teleportPlayer, focusCanvas })
     return {}
   },
   template: `
@@ -115,6 +116,7 @@ describe('TownView', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     teleportPlayer.mockReset()
+    focusCanvas.mockReset()
   })
 
   it('loads World and PlayerQuest on mount through their real stores', async () => {
@@ -887,6 +889,64 @@ describe('TownView', () => {
     expect(map.compareDocumentPosition(tick) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(wrapper.findAll('.npc-card')).toHaveLength(3)
     expect(wrapper.findAll('.location-card')).toHaveLength(4)
+  })
+
+  it('stacks the resident chat under the map and leaves the profile in the side column', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    mockNpcGets()
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    wrapper.getComponent(TownGameHostStub).vm.$emit('npcSelected', 'ryan')
+    await flushPromises()
+
+    const mapColumn = wrapper.get('.town-game-host-column')
+    expect(mapColumn.find('.npc-chat-panel').exists()).toBe(true)
+    expect(mapColumn.find('.npc-detail-panel').exists()).toBe(false)
+    expect(wrapper.get('.town-map-hud').find('.npc-detail-panel').exists()).toBe(true)
+
+    const map = wrapper.get('.town-game-host-stub').element
+    const chat = wrapper.get('.npc-chat-panel').element
+    expect(map.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('advances the world from the map shortcut and hands focus back to the canvas', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const advanceTick = vi.spyOn(store, 'advanceTick').mockResolvedValue()
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    await wrapper.get('[data-action="advance-world-from-map"]').trigger('click')
+
+    expect(advanceTick).toHaveBeenCalledTimes(1)
+    expect(focusCanvas).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables both tick controls while one advance is in flight', async () => {
+    const { pinia, store } = createStore()
+    store.data = worldFixture
+    vi.spyOn(store, 'loadWorld').mockResolvedValue()
+    const tickResponse = deferred<Awaited<ReturnType<typeof api.post>>>()
+    vi.spyOn(api, 'post').mockImplementation(
+      (url) => url === '/api/world/tick'
+        ? tickResponse.promise
+        : Promise.reject(new Error(`unexpected mutation: ${url}`)),
+    )
+
+    const wrapper = mountTownView(pinia)
+    await flushPromises()
+    const shortcut = wrapper.get('[data-action="advance-world-from-map"]')
+    await shortcut.trigger('click')
+    await shortcut.trigger('click')
+    await wrapper.get('.tick-panel button').trigger('click')
+
+    expect(shortcut.attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.tick-panel button').attributes('disabled')).toBeDefined()
+    expect(store.advancing).toBe(true)
   })
 
   it('cancels a full adventure restart before calling Backend', async () => {
